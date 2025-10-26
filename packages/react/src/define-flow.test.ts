@@ -1,0 +1,72 @@
+import { describe, expect, it } from "vitest";
+import { defineFlow } from "./define-flow";
+import type { FlowConfig } from "./type-helpers";
+
+describe("defineFlow validation", () => {
+  it("should throw error when defining flow with missing next step", () => {
+    expect(() =>
+      defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "missing" }, // "missing" doesn't exist!
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>),
+    ).toThrow('Step "first" references non-existent step "missing"');
+  });
+
+  it("should throw error when start step doesn't exist", () => {
+    expect(() =>
+      defineFlow({
+        id: "test",
+        start: "missing",
+        steps: {
+          first: {},
+        },
+      } as const satisfies FlowConfig<object>),
+    ).toThrow('Start step "missing" does not exist');
+  });
+
+  it("should throw error for invalid array references", () => {
+    expect(() =>
+      defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: ["second", "missing"] },
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>),
+    ).toThrow('Step "first" references non-existent step "missing"');
+  });
+
+  it("should not throw for valid flow definition", () => {
+    expect(() =>
+      defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: { next: ["third", "fourth"] },
+          third: {},
+          fourth: {},
+        },
+      } as const satisfies FlowConfig<object>),
+    ).not.toThrow();
+  });
+
+  it("should not validate function returns at definition time", () => {
+    // Functions can't be validated statically, only at runtime
+    expect(() =>
+      defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: () => "missing" }, // Can't validate this
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>),
+    ).not.toThrow();
+  });
+});

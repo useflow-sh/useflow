@@ -293,6 +293,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
       back: wrappedBack,
       setContext: wrappedSetContext,
       __flow: flowDefinition,
+      component: flowDefinition.steps[flowState.stepId]?.component,
     }),
     [flowState, wrappedNext, wrappedBack, wrappedSetContext, flowDefinition],
   );
@@ -320,9 +321,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
  * ```
  */
 export function FlowStep() {
-  const { __flow, stepId } = useFlow();
-  const currentStep = __flow.steps[stepId];
-  const Component = currentStep?.component;
+  const { component: Component, stepId } = useFlow();
 
   if (!Component) {
     console.warn(`[FlowStep] No component found for step: ${stepId}`);

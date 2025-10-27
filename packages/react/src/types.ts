@@ -34,4 +34,6 @@ export type UseFlowReturn<
 > = UseFlowReducerReturn<TContext, TValidNextSteps> & {
   /** @internal Runtime flow definition with components */
   __flow: RuntimeFlowDefinition<TContext>;
+  // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
+  component: ComponentType<any> | undefined;
 };

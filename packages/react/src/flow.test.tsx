@@ -1200,4 +1200,241 @@ describe("FlowStep", () => {
       });
     });
   });
+
+  describe("component property", () => {
+    it("should expose current component via useFlow", () => {
+      const FirstComponent = () => <div>First</div>;
+      const SecondComponent = () => <div>Second</div>;
+
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      function TestComponent() {
+        const { component, stepId } = useFlow();
+        return (
+          <div>
+            <div data-testid="stepId">{stepId}</div>
+            <div data-testid="hasComponent">{component ? "yes" : "no"}</div>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: FirstComponent,
+            second: SecondComponent,
+          })}
+          initialContext={{}}
+        >
+          <TestComponent />
+        </Flow>,
+      );
+
+      expect(screen.getByTestId("stepId")).toHaveTextContent("first");
+      expect(screen.getByTestId("hasComponent")).toHaveTextContent("yes");
+    });
+
+    it("should update component when step changes", () => {
+      const FirstComponent = () => <div>First Step</div>;
+      const SecondComponent = () => <div>Second Step</div>;
+
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      function TestComponent() {
+        const { component: Component, next, stepId } = useFlow();
+        return (
+          <div>
+            <div data-testid="stepId">{stepId}</div>
+            <div data-testid="renderedComponent">
+              {Component && <Component />}
+            </div>
+            <button onClick={() => next()}>Next</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: FirstComponent,
+            second: SecondComponent,
+          })}
+          initialContext={{}}
+        >
+          <TestComponent />
+        </Flow>,
+      );
+
+      // Initially renders FirstComponent
+      expect(screen.getByTestId("stepId")).toHaveTextContent("first");
+      expect(screen.getByTestId("renderedComponent")).toHaveTextContent(
+        "First Step",
+      );
+
+      // Navigate to second step
+      fireEvent.click(screen.getByText("Next"));
+
+      // Now renders SecondComponent
+      expect(screen.getByTestId("stepId")).toHaveTextContent("second");
+      expect(screen.getByTestId("renderedComponent")).toHaveTextContent(
+        "Second Step",
+      );
+    });
+
+    it("should allow rendering current component manually", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "test",
+        steps: {
+          test: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      const TestStep = () => <div data-testid="content">Test Content</div>;
+
+      function CustomRenderer() {
+        const { component: Component } = useFlow();
+        return (
+          <div data-testid="custom-wrapper">{Component && <Component />}</div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            test: TestStep,
+          })}
+          initialContext={{}}
+        >
+          <CustomRenderer />
+        </Flow>,
+      );
+
+      expect(screen.getByTestId("custom-wrapper")).toBeInTheDocument();
+      expect(screen.getByTestId("content")).toHaveTextContent("Test Content");
+    });
+
+    it("should expose component reference that can be compared", () => {
+      const FirstComponent = () => <div>First</div>;
+      const SecondComponent = () => <div>Second</div>;
+
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      const componentRefs: unknown[] = [];
+
+      function TestComponent() {
+        const { component, next } = useFlow();
+
+        // Store component reference
+        if (component) {
+          componentRefs.push(component);
+        }
+
+        return <button onClick={() => next()}>Next</button>;
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: FirstComponent,
+            second: SecondComponent,
+          })}
+          initialContext={{}}
+        >
+          <TestComponent />
+        </Flow>,
+      );
+
+      // Initially should have FirstComponent
+      expect(componentRefs[0]).toBe(FirstComponent);
+
+      // Navigate to second step
+      fireEvent.click(screen.getByText("Next"));
+
+      // Should now have SecondComponent
+      expect(componentRefs[1]).toBe(SecondComponent);
+      expect(componentRefs[0]).not.toBe(componentRefs[1]);
+    });
+
+    it("should work with AnimatedFlowStep pattern", () => {
+      const FirstComponent = () => <div>First</div>;
+      const SecondComponent = () => <div>Second</div>;
+
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      // Simplified AnimatedFlowStep pattern
+      function CustomAnimatedStep() {
+        const { component: CurrentComponent, stepId } = useFlow();
+        return (
+          <div data-testid="animated-container">
+            {CurrentComponent && (
+              <div key={stepId} data-testid="current-step">
+                <CurrentComponent />
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      function NavigationControls() {
+        const { next } = useFlow();
+        return <button onClick={() => next()}>Next</button>;
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: FirstComponent,
+            second: SecondComponent,
+          })}
+          initialContext={{}}
+        >
+          <NavigationControls />
+          <CustomAnimatedStep />
+        </Flow>,
+      );
+
+      // Verify initial render
+      expect(screen.getByTestId("current-step")).toHaveTextContent("First");
+
+      // Navigate
+      fireEvent.click(screen.getByText("Next"));
+
+      // Verify component changed
+      expect(screen.getByTestId("current-step")).toHaveTextContent("Second");
+    });
+  });
 });

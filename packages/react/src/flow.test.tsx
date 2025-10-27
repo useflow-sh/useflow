@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { defineFlow } from "./define-flow";
 import { Flow, FlowStep, useFlow } from "./flow";
@@ -1435,6 +1435,1216 @@ describe("FlowStep", () => {
 
       // Verify component changed
       expect(screen.getByTestId("current-step")).toHaveTextContent("Second");
+    });
+  });
+
+  describe("Persistence", () => {
+    it("should restore state from persister on mount", async () => {
+      const flow = defineFlow({
+        id: "test-flow",
+        start: "step1",
+        steps: {
+          step1: { next: "step2" },
+          step2: { next: "step3" },
+          step3: {},
+        },
+      } as const satisfies FlowConfig<{ name: string }>);
+
+      const savedState = {
+        stepId: "step2",
+        context: { name: "John" },
+        history: ["step1", "step2"],
+        status: "active" as const,
+      };
+
+      const persister = {
+        save: vi.fn(),
+        restore: vi.fn().mockResolvedValue(savedState),
+      };
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+            step2: () => <div>Step 2</div>,
+            step3: () => <div>Step 3</div>,
+          })}
+          initialContext={{ name: "" }}
+          persister={persister}
+        />,
+      );
+
+      // Initially shows loading (or null by default)
+      expect(screen.queryByText("Step 2")).not.toBeInTheDocument();
+
+      // Wait for restoration
+      await screen.findByText("Step 2");
+
+      expect(persister.restore).toHaveBeenCalledWith("test-flow", {
+        version: undefined,
+        migrate: undefined,
+      });
+    });
+
+    it("should call onRestore callback after successful restore", async () => {
+      const flow = defineFlow({
+        id: "test-flow-restore",
+        start: "step1",
+        steps: {
+          step1: { next: "step2" },
+          step2: { next: "step3" },
+          step3: {},
+        },
+      } as const satisfies FlowConfig<{ name: string }>);
+
+      const savedState = {
+        stepId: "step2",
+        context: { name: "John" },
+        history: ["step1", "step2"],
+        status: "active" as const,
+      };
+
+      const persister = {
+        save: vi.fn(),
+        restore: vi.fn().mockResolvedValue(savedState),
+      };
+
+      const onRestore = vi.fn();
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+            step2: () => <div>Step 2</div>,
+            step3: () => <div>Step 3</div>,
+          })}
+          initialContext={{ name: "" }}
+          persister={persister}
+          onRestore={onRestore}
+        />,
+      );
+
+      // Wait for restoration
+      await screen.findByText("Step 2");
+
+      expect(onRestore).toHaveBeenCalledWith(savedState);
+      expect(persister.restore).toHaveBeenCalledWith("test-flow-restore", {
+        version: undefined,
+        migrate: undefined,
+      });
+    });
+
+    it("should call onSave callback when state is saved", async () => {
+      const flow = defineFlow({
+        id: "test-flow",
+        start: "step1",
+        steps: {
+          step1: { next: "step2" },
+          step2: {},
+        },
+      } as const satisfies FlowConfig<{ count: number }>);
+
+      const persister = {
+        save: vi.fn().mockResolvedValue(undefined),
+        restore: vi.fn().mockResolvedValue(null),
+      };
+
+      const onSave = vi.fn();
+
+      function TestContent() {
+        const { next, isRestoring } = useFlow();
+        if (isRestoring) return <div>Loading...</div>;
+        return (
+          <div>
+            <FlowStep />
+            <button onClick={() => next()}>Next</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+            step2: () => <div>Step 2</div>,
+          })}
+          initialContext={{ count: 0 }}
+          persister={persister}
+          onSave={onSave}
+          saveDebounce={0}
+        >
+          <TestContent />
+        </Flow>,
+      );
+
+      // Wait for restoration to complete (returns null, so starts from step1)
+      await screen.findByText("Step 1");
+
+      // Navigate to trigger save
+      fireEvent.click(screen.getByText("Next"));
+
+      // Wait for save to be called
+      await vi.waitFor(() => {
+        expect(onSave).toHaveBeenCalled();
+      });
+    });
+
+    it("should show loading component while restoring", () => {
+      const flow = defineFlow({
+        id: "test-flow",
+        start: "step1",
+        steps: {
+          step1: {},
+        },
+      } as const satisfies FlowConfig<Record<string, never>>);
+
+      const persister = {
+        save: vi.fn(),
+        restore: vi.fn().mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              setTimeout(() => resolve(null), 100);
+            }),
+        ),
+      };
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+          })}
+          initialContext={{}}
+          persister={persister}
+          loadingComponent={<div>Loading...</div>}
+        />,
+      );
+
+      // Should show loading component
+      expect(screen.getByText("Loading...")).toBeInTheDocument();
+    });
+
+    it("should call onPersistenceError on restore validation failure", async () => {
+      const flow = defineFlow({
+        id: "test-flow",
+        start: "step1",
+        steps: {
+          step1: { next: "step2" },
+          step2: {},
+        },
+      } as const satisfies FlowConfig<Record<string, never>>);
+
+      const invalidState = {
+        stepId: "invalid-step", // Invalid step ID
+        context: {},
+        history: ["step1"],
+        status: "active" as const,
+      };
+
+      const persister = {
+        save: vi.fn(),
+        restore: vi.fn().mockResolvedValue(invalidState),
+      };
+
+      const onPersistenceError = vi.fn();
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+            step2: () => <div>Step 2</div>,
+          })}
+          initialContext={{}}
+          persister={persister}
+          onPersistenceError={onPersistenceError}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(onPersistenceError).toHaveBeenCalled();
+      });
+
+      // Should fall back to initial state
+      await waitFor(() => {
+        expect(screen.getByText("Step 1")).toBeInTheDocument();
+      });
+    });
+
+    it("should call onPersistenceError on restore exception", async () => {
+      const flow = defineFlow({
+        id: "test-flow",
+        start: "step1",
+        steps: {
+          step1: {},
+        },
+      } as const satisfies FlowConfig<Record<string, never>>);
+
+      const error = new Error("Storage error");
+      const persister = {
+        save: vi.fn(),
+        restore: vi.fn().mockRejectedValue(error),
+      };
+
+      const onPersistenceError = vi.fn();
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+          })}
+          initialContext={{}}
+          persister={persister}
+          onPersistenceError={onPersistenceError}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(onPersistenceError).toHaveBeenCalledWith(error);
+      });
+    });
+
+    it("should handle restore returning null (no saved state)", async () => {
+      const flow = defineFlow({
+        id: "test-flow",
+        start: "step1",
+        steps: {
+          step1: {},
+        },
+      } as const satisfies FlowConfig<Record<string, never>>);
+
+      const persister = {
+        save: vi.fn(),
+        restore: vi.fn().mockResolvedValue(null),
+      };
+
+      const onRestore = vi.fn();
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+          })}
+          initialContext={{}}
+          persister={persister}
+          onRestore={onRestore}
+        />,
+      );
+
+      await screen.findByText("Step 1");
+
+      // Should not call onRestore when no state is restored
+      expect(onRestore).not.toHaveBeenCalled();
+      // Should start from initial state
+      expect(screen.getByText("Step 1")).toBeInTheDocument();
+    });
+
+    it("should pass version and migrate to persister.restore", async () => {
+      const migrate = vi.fn((state) => state);
+      const flow = defineFlow({
+        id: "test-flow",
+        start: "step1",
+        version: "v2",
+        migrate,
+        steps: {
+          step1: {},
+        },
+      } as const);
+
+      const persister = {
+        save: vi.fn(),
+        restore: vi.fn().mockResolvedValue(null),
+      };
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+          })}
+          initialContext={{}}
+          persister={persister}
+        />,
+      );
+
+      await screen.findByText("Step 1");
+
+      expect(persister.restore).toHaveBeenCalledWith("test-flow", {
+        version: "v2",
+        migrate: flow.config.migrate,
+      });
+    });
+
+    it("should call onPersistenceError on save failure", async () => {
+      const flow = defineFlow({
+        id: "test-flow-save-error",
+        start: "step1",
+        steps: {
+          step1: { next: "step2" },
+          step2: {},
+        },
+      } as const satisfies FlowConfig<Record<string, never>>);
+
+      const saveError = new Error("Save failed");
+      const persister = {
+        save: vi.fn().mockRejectedValue(saveError),
+        restore: vi.fn().mockResolvedValue(null),
+      };
+
+      const onPersistenceError = vi.fn();
+
+      function TestContent() {
+        const { next } = useFlow();
+        return (
+          <div>
+            <FlowStep />
+            <button onClick={() => next()}>Next</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+            step2: () => <div>Step 2</div>,
+          })}
+          initialContext={{}}
+          persister={persister}
+          onPersistenceError={onPersistenceError}
+          saveDebounce={0}
+        >
+          <TestContent />
+        </Flow>,
+      );
+
+      await screen.findByText("Step 1");
+
+      // Navigate to trigger save
+      fireEvent.click(screen.getByText("Next"));
+
+      // Wait for save error to be handled
+      await waitFor(() => {
+        expect(onPersistenceError).toHaveBeenCalledWith(saveError);
+      });
+    });
+
+    it("should save with version when config has version", async () => {
+      const flow = defineFlow({
+        id: "test-flow-with-version",
+        start: "step1",
+        version: "v1",
+        steps: {
+          step1: { next: "step2" },
+          step2: {},
+        },
+      } as const);
+
+      const persister = {
+        save: vi.fn().mockResolvedValue(undefined),
+        restore: vi.fn().mockResolvedValue(null),
+      };
+
+      function TestContent() {
+        const { next } = useFlow();
+        return (
+          <div>
+            <FlowStep />
+            <button onClick={() => next()}>Next</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+            step2: () => <div>Step 2</div>,
+          })}
+          initialContext={{}}
+          persister={persister}
+          saveDebounce={0}
+        >
+          <TestContent />
+        </Flow>,
+      );
+
+      await screen.findByText("Step 1");
+
+      // Navigate to trigger save
+      fireEvent.click(screen.getByText("Next"));
+
+      // Wait for save to be called with version
+      await vi.waitFor(() => {
+        expect(persister.save).toHaveBeenCalledWith(
+          "test-flow-with-version",
+          expect.objectContaining({
+            stepId: "step2",
+            context: {},
+            history: ["step1", "step2"],
+            status: "complete",
+          }),
+          { version: "v1" },
+        );
+      });
+    });
+
+    it("should debounce saves when saveDebounce > 0", async () => {
+      const flow = defineFlow({
+        id: "test-flow-debounce",
+        start: "step1",
+        steps: {
+          step1: { next: "step2" },
+          step2: { next: "step3" },
+          step3: {},
+        },
+      } as const satisfies FlowConfig<Record<string, never>>);
+
+      const persister = {
+        save: vi.fn().mockResolvedValue(undefined),
+        restore: vi.fn().mockResolvedValue(null),
+      };
+
+      function TestContent() {
+        const { next } = useFlow();
+        return (
+          <div>
+            <FlowStep />
+            <button onClick={() => next()}>Next</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+            step2: () => <div>Step 2</div>,
+            step3: () => <div>Step 3</div>,
+          })}
+          initialContext={{}}
+          persister={persister}
+          saveDebounce={100}
+        >
+          <TestContent />
+        </Flow>,
+      );
+
+      await screen.findByText("Step 1");
+
+      // Navigate multiple times quickly
+      fireEvent.click(screen.getByText("Next"));
+      await screen.findByText("Step 2");
+
+      // Should not have saved yet (debounced)
+      expect(persister.save).not.toHaveBeenCalled();
+
+      // Navigate again
+      fireEvent.click(screen.getByText("Next"));
+      await screen.findByText("Step 3");
+
+      // Still should not have saved yet
+      expect(persister.save).not.toHaveBeenCalled();
+
+      // Wait for debounce to complete
+      await vi.waitFor(
+        () => {
+          expect(persister.save).toHaveBeenCalled();
+        },
+        { timeout: 200 },
+      );
+
+      // Should only save once (last state) due to debounce cleanup
+      expect(persister.save).toHaveBeenCalledTimes(1);
+      expect(persister.save).toHaveBeenCalledWith(
+        "test-flow-debounce",
+        expect.objectContaining({
+          stepId: "step3",
+        }),
+        expect.objectContaining({
+          instanceId: undefined,
+          version: undefined,
+        }),
+      );
+    });
+
+    it("should not save when saveMode is manual", async () => {
+      const flow = defineFlow({
+        id: "test-flow-manual",
+        start: "step1",
+        steps: {
+          step1: { next: "step2" },
+          step2: {},
+        },
+      } as const satisfies FlowConfig<Record<string, never>>);
+
+      const persister = {
+        save: vi.fn().mockResolvedValue(undefined),
+        restore: vi.fn().mockResolvedValue(null),
+      };
+
+      function TestContent() {
+        const { next } = useFlow();
+        return (
+          <div>
+            <FlowStep />
+            <button onClick={() => next()}>Next</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+            step2: () => <div>Step 2</div>,
+          })}
+          initialContext={{}}
+          persister={persister}
+          saveMode="manual"
+          saveDebounce={0}
+        >
+          <TestContent />
+        </Flow>,
+      );
+
+      await screen.findByText("Step 1");
+
+      // Navigate
+      fireEvent.click(screen.getByText("Next"));
+      await screen.findByText("Step 2");
+
+      // Wait a bit to ensure save is not called
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Should not have saved
+      expect(persister.save).not.toHaveBeenCalled();
+    });
+
+    it("should manually save when save() is called with saveMode=manual", async () => {
+      const flow = defineFlow({
+        id: "test-flow-manual-save",
+        start: "step1",
+        steps: {
+          step1: { next: "step2" },
+          step2: {},
+        },
+      } as const satisfies FlowConfig<Record<string, never>>);
+
+      const persister = {
+        save: vi.fn().mockResolvedValue(undefined),
+        restore: vi.fn().mockResolvedValue(null),
+      };
+
+      function TestContent() {
+        const { next, save } = useFlow();
+        return (
+          <div>
+            <FlowStep />
+            <button onClick={() => next()}>Next</button>
+            <button onClick={() => save()}>Save</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+            step2: () => <div>Step 2</div>,
+          })}
+          initialContext={{}}
+          persister={persister}
+          saveMode="manual"
+          saveDebounce={0}
+        >
+          <TestContent />
+        </Flow>,
+      );
+
+      await screen.findByText("Step 1");
+
+      // Navigate
+      fireEvent.click(screen.getByText("Next"));
+      await screen.findByText("Step 2");
+
+      // Wait a bit to ensure auto-save is not called
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(persister.save).not.toHaveBeenCalled();
+
+      // Manually trigger save
+      fireEvent.click(screen.getByText("Save"));
+
+      // Wait for save to be called
+      await vi.waitFor(() => {
+        expect(persister.save).toHaveBeenCalledWith(
+          "test-flow-manual-save",
+          expect.objectContaining({
+            stepId: "step2",
+          }),
+          expect.objectContaining({
+            version: undefined,
+            instanceId: undefined,
+          }),
+        );
+      });
+
+      expect(persister.save).toHaveBeenCalledTimes(1);
+    });
+
+    it("should call onPersistenceError on manual save failure", async () => {
+      const flow = defineFlow({
+        id: "test-flow-manual-error",
+        start: "step1",
+        steps: {
+          step1: {},
+        },
+      } as const satisfies FlowConfig<Record<string, never>>);
+
+      const saveError = new Error("Manual save failed");
+      const persister = {
+        save: vi.fn().mockRejectedValue(saveError),
+        restore: vi.fn().mockResolvedValue(null),
+      };
+
+      const onPersistenceError = vi.fn();
+
+      function TestContent() {
+        const { save } = useFlow();
+        return (
+          <div>
+            <FlowStep />
+            <button onClick={() => save()}>Save</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+          })}
+          initialContext={{}}
+          persister={persister}
+          saveMode="manual"
+          onPersistenceError={onPersistenceError}
+        >
+          <TestContent />
+        </Flow>,
+      );
+
+      await screen.findByText("Step 1");
+
+      // Manually trigger save (which will fail)
+      fireEvent.click(screen.getByText("Save"));
+
+      // Wait for error to be called
+      await vi.waitFor(() => {
+        expect(onPersistenceError).toHaveBeenCalledWith(saveError);
+      });
+    });
+
+    it("should handle manual save when no persister is configured", async () => {
+      const flow = defineFlow({
+        id: "test-flow-no-persister",
+        start: "step1",
+        steps: {
+          step1: {},
+        },
+      } as const satisfies FlowConfig<Record<string, never>>);
+
+      function TestContent() {
+        const { save } = useFlow();
+        return (
+          <div>
+            <FlowStep />
+            <button onClick={() => save()}>Save</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+          })}
+          initialContext={{}}
+          // No persister configured
+        >
+          <TestContent />
+        </Flow>,
+      );
+
+      await screen.findByText("Step 1");
+
+      // Should not throw when calling save without persister
+      fireEvent.click(screen.getByText("Save"));
+
+      // Just verify it doesn't crash
+      expect(screen.getByText("Step 1")).toBeInTheDocument();
+    });
+
+    it("should call onSave callback when manual save succeeds", async () => {
+      const flow = defineFlow({
+        id: "test-flow-onsave",
+        start: "step1",
+        steps: {
+          step1: {},
+        },
+      } as const satisfies FlowConfig<Record<string, never>>);
+
+      const persister = {
+        save: vi.fn().mockResolvedValue(undefined),
+        restore: vi.fn().mockResolvedValue(null),
+      };
+
+      const onSave = vi.fn();
+
+      function TestContent() {
+        const { save } = useFlow();
+        return (
+          <div>
+            <FlowStep />
+            <button onClick={() => save()}>Save</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+          })}
+          initialContext={{}}
+          persister={persister}
+          saveMode="manual"
+          onSave={onSave}
+        >
+          <TestContent />
+        </Flow>,
+      );
+
+      await screen.findByText("Step 1");
+
+      // Manually trigger save
+      fireEvent.click(screen.getByText("Save"));
+
+      // Wait for onSave to be called
+      await vi.waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith(
+          expect.objectContaining({
+            stepId: "step1",
+          }),
+        );
+      });
+    });
+
+    it("should save on every change when saveMode is always", async () => {
+      const flow = defineFlow({
+        id: "test-flow-always",
+        start: "step1",
+        steps: {
+          step1: { next: "step2" },
+          step2: {},
+        },
+      } as const satisfies FlowConfig<{ count: number }>);
+
+      const persister = {
+        save: vi.fn().mockResolvedValue(undefined),
+        restore: vi.fn().mockResolvedValue(null),
+      };
+
+      function TestContent() {
+        const { next, setContext } = useFlow();
+        return (
+          <div>
+            <FlowStep />
+            <button onClick={() => next()}>Next</button>
+            <button onClick={() => setContext({ count: 1 })}>
+              Update Context
+            </button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+            step2: () => <div>Step 2</div>,
+          })}
+          initialContext={{ count: 0 }}
+          persister={persister}
+          saveMode="always"
+          saveDebounce={0}
+        >
+          <TestContent />
+        </Flow>,
+      );
+
+      await screen.findByText("Step 1");
+
+      // Update context (should save with saveMode: always)
+      fireEvent.click(screen.getByText("Update Context"));
+
+      // Wait for save
+      await vi.waitFor(() => {
+        expect(persister.save).toHaveBeenCalled();
+      });
+
+      const firstCallCount = persister.save.mock.calls.length;
+
+      // Navigate (should also save)
+      fireEvent.click(screen.getByText("Next"));
+      await screen.findByText("Step 2");
+
+      // Wait for second save
+      await vi.waitFor(() => {
+        expect(persister.save).toHaveBeenCalledTimes(firstCallCount + 1);
+      });
+    });
+
+    it("should default to navigation strategy when saveMode is not provided", async () => {
+      const flow = defineFlow({
+        id: "test-flow-default",
+        start: "step1",
+        steps: {
+          step1: { next: "step2" },
+          step2: {},
+        },
+      } as const satisfies FlowConfig<{ count: number }>);
+
+      const persister = {
+        save: vi.fn().mockResolvedValue(undefined),
+        restore: vi.fn().mockResolvedValue(null),
+      };
+
+      function TestContent() {
+        const { next, setContext } = useFlow();
+        return (
+          <div>
+            <FlowStep />
+            <button onClick={() => next()}>Next</button>
+            <button onClick={() => setContext({ count: 1 })}>
+              Update Context
+            </button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            step1: () => <div>Step 1</div>,
+            step2: () => <div>Step 2</div>,
+          })}
+          initialContext={{ count: 0 }}
+          persister={persister}
+          // No saveMode prop - should default to "navigation"
+          saveDebounce={0}
+        >
+          <TestContent />
+        </Flow>,
+      );
+
+      await screen.findByText("Step 1");
+
+      // Update context (should NOT save with default navigation strategy)
+      fireEvent.click(screen.getByText("Update Context"));
+
+      // Wait a bit
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Should not have saved
+      expect(persister.save).not.toHaveBeenCalled();
+
+      // Navigate (should save with default navigation strategy)
+      fireEvent.click(screen.getByText("Next"));
+      await screen.findByText("Step 2");
+
+      // Wait for save
+      await vi.waitFor(() => {
+        expect(persister.save).toHaveBeenCalled();
+      });
+    });
+
+    describe("instanceId support", () => {
+      it("should save with instanceId when provided", async () => {
+        const flow = defineFlow({
+          id: "test-flow-instance",
+          start: "step1",
+          steps: {
+            step1: { next: "step2" },
+            step2: {},
+          },
+        } as const satisfies FlowConfig<Record<string, never>>);
+
+        const persister = {
+          save: vi.fn().mockResolvedValue(undefined),
+          restore: vi.fn().mockResolvedValue(null),
+        };
+
+        function TestContent() {
+          const { next } = useFlow();
+          return (
+            <div>
+              <FlowStep />
+              <button onClick={() => next()}>Next</button>
+            </div>
+          );
+        }
+
+        render(
+          <Flow
+            flow={flow}
+            components={() => ({
+              step1: () => <div>Step 1</div>,
+              step2: () => <div>Step 2</div>,
+            })}
+            initialContext={{}}
+            instanceId="task-123"
+            persister={persister}
+            saveDebounce={0}
+          >
+            <TestContent />
+          </Flow>,
+        );
+
+        await screen.findByText("Step 1");
+
+        // Navigate to trigger save
+        fireEvent.click(screen.getByText("Next"));
+
+        // Wait for save with instanceId
+        await vi.waitFor(() => {
+          expect(persister.save).toHaveBeenCalledWith(
+            "test-flow-instance",
+            expect.objectContaining({
+              stepId: "step2",
+            }),
+            expect.objectContaining({
+              instanceId: "task-123",
+            }),
+          );
+        });
+      });
+
+      it("should restore with instanceId when provided", async () => {
+        const flow = defineFlow({
+          id: "test-flow-restore-instance",
+          start: "step1",
+          steps: {
+            step1: { next: "step2" },
+            step2: { next: "step3" },
+            step3: {},
+          },
+        } as const satisfies FlowConfig<{ name: string }>);
+
+        const savedState = {
+          stepId: "step2",
+          context: { name: "John" },
+          history: ["step1", "step2"],
+          status: "active" as const,
+        };
+
+        const persister = {
+          save: vi.fn(),
+          restore: vi.fn().mockResolvedValue(savedState),
+        };
+
+        render(
+          <Flow
+            flow={flow}
+            components={() => ({
+              step1: () => <div>Step 1</div>,
+              step2: () => <div>Step 2</div>,
+              step3: () => <div>Step 3</div>,
+            })}
+            initialContext={{ name: "" }}
+            instanceId="task-456"
+            persister={persister}
+          />,
+        );
+
+        // Initially shows loading (or null by default)
+        expect(screen.queryByText("Step 2")).not.toBeInTheDocument();
+
+        // Wait for restoration
+        await screen.findByText("Step 2");
+
+        expect(persister.restore).toHaveBeenCalledWith(
+          "test-flow-restore-instance",
+          expect.objectContaining({
+            instanceId: "task-456",
+          }),
+        );
+      });
+
+      it("should keep different instances separate", async () => {
+        const flow = defineFlow({
+          id: "test-flow-multi-instance",
+          start: "step1",
+          steps: {
+            step1: { next: "step2" },
+            step2: {},
+          },
+        } as const satisfies FlowConfig<Record<string, never>>);
+
+        const persister1 = {
+          save: vi.fn().mockResolvedValue(undefined),
+          restore: vi.fn().mockResolvedValue(null),
+        };
+
+        const persister2 = {
+          save: vi.fn().mockResolvedValue(undefined),
+          restore: vi.fn().mockResolvedValue(null),
+        };
+
+        function TestContent() {
+          const { next } = useFlow();
+          return (
+            <div>
+              <FlowStep />
+              <button onClick={() => next()}>Next</button>
+            </div>
+          );
+        }
+
+        const { unmount } = render(
+          <>
+            <Flow
+              flow={flow}
+              components={() => ({
+                step1: () => <div>Instance 1 - Step 1</div>,
+                step2: () => <div>Instance 1 - Step 2</div>,
+              })}
+              initialContext={{}}
+              instanceId="instance-1"
+              persister={persister1}
+              saveDebounce={0}
+            >
+              <TestContent />
+            </Flow>
+            <Flow
+              flow={flow}
+              components={() => ({
+                step1: () => <div>Instance 2 - Step 1</div>,
+                step2: () => <div>Instance 2 - Step 2</div>,
+              })}
+              initialContext={{}}
+              instanceId="instance-2"
+              persister={persister2}
+              saveDebounce={0}
+            >
+              <TestContent />
+            </Flow>
+          </>,
+        );
+
+        await screen.findByText("Instance 1 - Step 1");
+        await screen.findByText("Instance 2 - Step 1");
+
+        // Navigate first instance
+        const buttons = screen.getAllByText("Next");
+        fireEvent.click(buttons[0]!);
+
+        await screen.findByText("Instance 1 - Step 2");
+
+        // Verify first instance saved with correct instanceId
+        await vi.waitFor(() => {
+          expect(persister1.save).toHaveBeenCalledWith(
+            "test-flow-multi-instance",
+            expect.objectContaining({
+              stepId: "step2",
+            }),
+            expect.objectContaining({
+              instanceId: "instance-1",
+            }),
+          );
+        });
+
+        // Second instance should not have been saved yet
+        expect(persister2.save).not.toHaveBeenCalled();
+
+        unmount();
+      });
+
+      it("should save with both instanceId and version", async () => {
+        const flow = defineFlow({
+          id: "test-flow-instance-version",
+          start: "step1",
+          version: "v2",
+          steps: {
+            step1: { next: "step2" },
+            step2: {},
+          },
+        } as const);
+
+        const persister = {
+          save: vi.fn().mockResolvedValue(undefined),
+          restore: vi.fn().mockResolvedValue(null),
+        };
+
+        function TestContent() {
+          const { next } = useFlow();
+          return (
+            <div>
+              <FlowStep />
+              <button onClick={() => next()}>Next</button>
+            </div>
+          );
+        }
+
+        render(
+          <Flow
+            flow={flow}
+            components={() => ({
+              step1: () => <div>Step 1</div>,
+              step2: () => <div>Step 2</div>,
+            })}
+            initialContext={{}}
+            instanceId="task-789"
+            persister={persister}
+            saveDebounce={0}
+          >
+            <TestContent />
+          </Flow>,
+        );
+
+        await screen.findByText("Step 1");
+
+        // Navigate to trigger save
+        fireEvent.click(screen.getByText("Next"));
+
+        // Wait for save with both instanceId and version
+        await vi.waitFor(() => {
+          expect(persister.save).toHaveBeenCalledWith(
+            "test-flow-instance-version",
+            expect.objectContaining({
+              stepId: "step2",
+            }),
+            {
+              instanceId: "task-789",
+              version: "v2",
+            },
+          );
+        });
+      });
     });
   });
 });

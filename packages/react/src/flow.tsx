@@ -1,4 +1,10 @@
-import type { ContextUpdate, FlowContext } from "@useflow/core";
+import type {
+  ContextUpdate,
+  FlowContext,
+  FlowPersister,
+  PersistedFlowState,
+} from "@useflow/core";
+import { extractPersistedState, validatePersistedState } from "@useflow/core";
 import {
   type ComponentType,
   createContext,
@@ -8,6 +14,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import type { FlowDefinition } from "./define-flow";
 import type { ExtractContext, FlowConfig, StepNames } from "./type-helpers";
@@ -27,8 +34,11 @@ const ReactFlowContext = createContext<UseFlowReturn<any> | null>(null);
  * ```tsx
  * // Direct usage (no type safety for navigation)
  * function MyStep() {
- *   const { context, next, back } = useFlow();
- *   // ...
+ *   const { context, next, back, isRestoring } = useFlow();
+ *
+ *   if (isRestoring) return <Spinner />;
+ *
+ *   return <form>...</form>;
  * }
  *
  * // Type-safe usage (recommended):
@@ -58,6 +68,7 @@ type ComponentsFunction<TConfig extends FlowConfig<any>> = (flowState: {
   next: UseFlowReducerReturn<ExtractContext<TConfig>>["next"];
   back: () => void;
   setContext: (update: ContextUpdate<ExtractContext<TConfig>>) => void;
+  isRestoring: boolean;
   // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
 }) => Record<StepNames<TConfig>, ComponentType<any>>;
 
@@ -66,6 +77,7 @@ type FlowProps<TConfig extends FlowConfig<any>> = {
   flow: FlowDefinition<TConfig>;
   components: ComponentsFunction<TConfig>;
   initialContext: ExtractContext<TConfig>;
+  instanceId?: string;
   onComplete?: () => void;
   onNext?: (event: {
     from: StepNames<TConfig>;
@@ -90,6 +102,13 @@ type FlowProps<TConfig extends FlowConfig<any>> = {
     oldContext: ExtractContext<TConfig>;
     newContext: ExtractContext<TConfig>;
   }) => void;
+  persister?: FlowPersister;
+  saveDebounce?: number;
+  saveMode?: "always" | "navigation" | "manual";
+  onPersistenceError?: (error: Error) => void;
+  onSave?: (state: PersistedFlowState<ExtractContext<TConfig>>) => void;
+  onRestore?: (state: PersistedFlowState<ExtractContext<TConfig>>) => void;
+  loadingComponent?: ReactNode;
   children?: ReactNode;
 };
 
@@ -100,6 +119,9 @@ type FlowProps<TConfig extends FlowConfig<any>> = {
  * Use FlowStep component for custom layout control.
  *
  * @param flow - FlowDefinition returned by defineFlow() (not raw config)
+ * @param instanceId - Optional unique identifier for reusable flows with separate persistence
+ * @param persister - Optional persister for saving/restoring flow state
+ * @param loadingComponent - Optional component to show while restoring state (default: null)
  *
  * @example
  * ```tsx
@@ -117,6 +139,24 @@ type FlowProps<TConfig extends FlowConfig<any>> = {
  *     complete: () => <CompleteStep {...flowState.context} />
  *   })}
  *   initialContext={{ name: '' }}
+ * />
+ *
+ * // Reusable flow with instanceId (separate state per task)
+ * <Flow
+ *   flow={feedbackFlow}
+ *   instanceId={task.id}
+ *   components={(flowState) => ({ ... })}
+ *   initialContext={{ taskName: task.name }}
+ *   persister={persister}
+ * />
+ *
+ * // With persistence and loading state
+ * <Flow
+ *   flow={myFlow}
+ *   components={(flowState) => ({ ... })}
+ *   initialContext={{ name: '' }}
+ *   persister={createLocalStoragePersister({ prefix: 'myapp' })}
+ *   loadingComponent={<Spinner />}
  * />
  *
  * // Custom layout - use FlowStep for control
@@ -139,11 +179,19 @@ export function Flow<TConfig extends FlowConfig<any>>({
   flow,
   components,
   initialContext,
+  instanceId,
   onComplete,
   onNext,
   onBack,
   onTransition,
   onContextUpdate,
+  persister,
+  saveDebounce = 300,
+  saveMode = "navigation",
+  onPersistenceError,
+  onSave,
+  onRestore,
+  loadingComponent,
   children,
 }: FlowProps<TConfig>) {
   // Extract config from FlowDefinition
@@ -158,10 +206,14 @@ export function Flow<TConfig extends FlowConfig<any>>({
     [id, config],
   );
 
+  // Track if we're currently restoring state from persister
+  const [isRestoring, setIsRestoring] = useState(!!persister);
+
   // Initialize flow state (restoration happens after mount)
   const flowState = useFlowReducer<ExtractContext<TConfig>>(
     flowDefinitionWithoutComponents,
     initialContext,
+    null,
   );
 
   // Track previous state for callbacks
@@ -251,6 +303,63 @@ export function Flow<TConfig extends FlowConfig<any>>({
     previousStateRef.current = flowState;
   }, [flowState, onNext, onBack, onTransition, onContextUpdate]);
 
+  // Handle persistence
+  useEffect(() => {
+    if (!persister) return;
+
+    const action = lastActionRef.current;
+
+    // Check if we should save based on saveMode
+    if (saveMode === "manual") return;
+    if (saveMode === "navigation" && action !== "NEXT" && action !== "BACK")
+      return;
+
+    const persistedState = extractPersistedState({
+      stepId: flowState.stepId,
+      context: flowState.context,
+      history: flowState.history as string[],
+      status: flowState.status,
+    });
+
+    const saveState = async () => {
+      try {
+        const version =
+          "version" in config
+            ? (config as { version?: string }).version
+            : undefined;
+
+        await persister.save(flow.id, persistedState, {
+          version,
+          instanceId,
+        });
+
+        onSave?.(persistedState);
+      } catch (error) {
+        console.error("[Flow] Failed to save state:", error);
+        onPersistenceError?.(error as Error);
+      }
+    };
+
+    if (saveDebounce && saveDebounce > 0) {
+      const timer = setTimeout(() => {
+        saveState();
+      }, saveDebounce);
+      return () => clearTimeout(timer);
+    }
+
+    saveState();
+  }, [
+    flowState,
+    persister,
+    saveMode,
+    saveDebounce,
+    flow.id,
+    instanceId,
+    config,
+    onSave,
+    onPersistenceError,
+  ]);
+
   // Handle completion
   useEffect(() => {
     if (flowState.status === "complete") {
@@ -267,6 +376,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
     next: wrappedNext,
     back: wrappedBack,
     setContext: wrappedSetContext,
+    isRestoring,
   });
 
   // Build RuntimeFlowDefinition with resolved components
@@ -286,17 +396,126 @@ export function Flow<TConfig extends FlowConfig<any>>({
     [config, resolvedComponents],
   ) as RuntimeFlowDefinition<ExtractContext<TConfig>>;
 
+  // Manual save function for saveMode="manual" mode
+  const save = useCallback(async () => {
+    if (!persister) return;
+
+    try {
+      const persistedState = extractPersistedState({
+        ...flowState,
+        history: [...flowState.history], // Convert readonly array to mutable
+      });
+      await persister.save(flow.id, persistedState, {
+        version: config.version,
+        instanceId,
+      });
+      onSave?.(persistedState);
+    } catch (error) {
+      console.error("[Flow] Failed to save state:", error);
+      onPersistenceError?.(error as Error);
+    }
+  }, [
+    flowState,
+    persister,
+    flow.id,
+    config.version,
+    instanceId,
+    onSave,
+    onPersistenceError,
+  ]);
+
   const flowValue = useMemo(
     () => ({
       ...flowState,
       next: wrappedNext,
       back: wrappedBack,
       setContext: wrappedSetContext,
+      save,
       __flow: flowDefinition,
       component: flowDefinition.steps[flowState.stepId]?.component,
+      isRestoring,
     }),
-    [flowState, wrappedNext, wrappedBack, wrappedSetContext, flowDefinition],
+    [
+      flowState,
+      wrappedNext,
+      wrappedBack,
+      wrappedSetContext,
+      save,
+      flowDefinition,
+      isRestoring,
+    ],
   );
+
+  // Handle async restoration from persister after mount
+  useEffect(() => {
+    if (!persister) {
+      setIsRestoring(false);
+      return;
+    }
+
+    const restoreFlowState = async () => {
+      try {
+        const state = await persister.restore(flow.id, {
+          version: config.version,
+          migrate: config.migrate,
+          instanceId,
+        });
+
+        if (state) {
+          // Validate state is compatible with this flow's definition
+          const validation = validatePersistedState(
+            state,
+            flowDefinitionWithoutComponents,
+          );
+          if (!validation.valid) {
+            console.warn(
+              "[Flow] Persisted state validation failed:",
+              validation.errors,
+            );
+            onPersistenceError?.(
+              new Error(
+                `Invalid persisted state: ${validation.errors?.join(", ")}`,
+              ),
+            );
+            return;
+          }
+
+          // Safe cast: persister returns base FlowContext, but we've validated
+          // the structure matches this flow. Context shape is trusted based on:
+          // 1. FlowId matching (same flow that saved it)
+          // 2. Version checking + migration
+          // 3. Custom validate function in persister options
+          // TODO: add context shape validation from flow definition
+          const typedState = state as PersistedFlowState<
+            ExtractContext<TConfig>
+          >;
+          flowState.restore(typedState);
+          onRestore?.(typedState);
+        }
+      } catch (error) {
+        console.error("[Flow] Failed to restore state:", error);
+        onPersistenceError?.(error as Error);
+      } finally {
+        setIsRestoring(false);
+      }
+    };
+
+    restoreFlowState();
+  }, [
+    persister,
+    flow.id,
+    instanceId,
+    config,
+    onPersistenceError,
+    onRestore,
+    flowState.restore,
+    flowDefinitionWithoutComponents,
+  ]);
+
+  // Show loading component while restoring to prevent flash of wrong content
+  if (isRestoring) {
+    return <>{loadingComponent ?? null}</>;
+  }
 
   return (
     <ReactFlowContext.Provider value={flowValue}>

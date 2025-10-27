@@ -36,4 +36,10 @@ export type UseFlowReturn<
   __flow: RuntimeFlowDefinition<TContext>;
   // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
   component: ComponentType<any> | undefined;
+  isRestoring: boolean;
+  /**
+   * Manually trigger a save when saveMode="manual"
+   * Does nothing if no persister is configured
+   */
+  save: () => Promise<void>;
 };

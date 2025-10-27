@@ -203,6 +203,11 @@ export function flowReducer<TContext extends FlowContext>(
       };
     }
 
+    case "RESTORE": {
+      // Replace the entire state with the restored state
+      return action.state;
+    }
+
     default: {
       // Warn about unknown action types (should never happen with TypeScript)
       console.warn(

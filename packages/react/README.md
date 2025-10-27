@@ -152,6 +152,7 @@ type FlowProps<TConfig> = {
   flow: FlowDefinition<TConfig>; // From defineFlow()
   components: (flowState) => Record<StepNames, ComponentType>;
   initialContext: ExtractContext<TConfig>;
+  instanceId?: string; // Optional unique identifier for reusable flows
   onComplete?: () => void;
   onNext?: (event: {
     from: StepName;
@@ -172,7 +173,17 @@ type FlowProps<TConfig> = {
     oldContext: TContext;
     newContext: TContext;
   }) => void;
-  onContextUpdate?: (event: { oldContext: TContext; newContext: TContext }) => void;
+  onContextUpdate?: (event: {
+    oldContext: TContext;
+    newContext: TContext;
+  }) => void;
+  persister?: FlowPersister; // Optional persistence
+  saveMode?: "navigation" | "always" | "manual"; // Save strategy (default: "navigation")
+  saveDebounce?: number; // Debounce delay in ms (default: 300)
+  onSave?: (state: PersistedFlowState<TContext>) => void;
+  onRestore?: (state: PersistedFlowState<TContext>) => void;
+  onPersistenceError?: (error: Error) => void;
+  loadingComponent?: ReactNode; // Show while restoring
   children?: ReactNode; // Optional for custom layout
 };
 ```
@@ -239,6 +250,8 @@ Hook to access flow state and navigation. Use directly in components or use the 
   next: (update?) => void;     // Navigate forward
   back: () => void;            // Navigate back
   setContext: (update) => void; // Update context
+  save: () => Promise<void>;   // Manually save (for saveMode="manual")
+  isRestoring: boolean;        // True while restoring from persister
 }
 ```
 
@@ -497,6 +510,7 @@ React to flow navigation events:
 ```
 
 **Callback Types:**
+
 - `onNext` - Fires on forward navigation only (includes oldContext and newContext)
 - `onBack` - Fires on backward navigation only (includes oldContext and newContext)
 - `onTransition` - **Unified callback** that fires on all navigation (forward or backward, includes direction, oldContext, and newContext)
@@ -505,11 +519,13 @@ React to flow navigation events:
 
 **Callback Ordering:**
 When navigating, callbacks fire in this order:
+
 1. Specific callback (`onNext` or `onBack`)
 2. General callback (`onTransition`)
 3. Context callback (`onContextUpdate` - if context changed)
 
 **Use cases:**
+
 - **Analytics tracking** - Log step transitions with `onTransition`
 - **Animations** - Use `onTransition` with `direction` to animate forward/backward
 - **Data persistence** - Save context to localStorage with `onContextUpdate`
@@ -543,7 +559,7 @@ Access the current component directly for custom rendering:
 ```tsx
 function AnimatedFlowStep() {
   const { component: CurrentComponent, stepId } = useFlow();
-  
+
   return (
     <div className="animated-container">
       {CurrentComponent && (
@@ -562,10 +578,790 @@ function AnimatedFlowStep() {
 ```
 
 This allows you to:
+
 - Build custom transitions/animations
 - Add loading states
 - Implement cross-fade effects
 - Control component lifecycle
+
+### Persistence & Progress Restore
+
+Save and restore flow progress automatically across sessions.
+
+> **⚠️ IMPORTANT:** Once you enable persistence, you MUST handle migrations properly when making breaking changes to your flow configuration. Breaking changes (renaming steps, changing context shape, etc.) without proper migrations will cause errors for users with old persisted state. See [Schema Versioning & Migration](#schema-versioning--migration) for details.
+
+#### Quick Start
+
+```tsx
+import { defineFlow, Flow, createPersister, kvJsonStorageAdapter } from "@useflow/react";
+
+// Define your flow with a unique ID
+export const onboardingFlow = defineFlow({
+  id: "user-onboarding", // Required for persistence
+  start: "welcome",
+  steps: { /* ... */ },
+} as const);
+
+// Create storage adapter and persister
+const storage = kvJsonStorageAdapter({
+  store: localStorage,
+  getKey: (flowId) => `myapp:${flowId}` // Key: "myapp:user-onboarding"
+});
+const persister = createPersister({
+  storage,
+  ttl: 1000 * 60 * 60 * 24 * 7, // 7 days
+});
+
+function App() {
+  return (
+    <Flow
+      flow={onboardingFlow}
+      components={...}
+      initialContext={{ name: "", email: "" }}
+      persister={persister}
+      onSave={(state) => {
+        console.log("Progress saved at step:", state.stepId);
+      }}
+      onRestore={(state) => {
+        console.log("Welcome back! Resuming from step:", state.stepId);
+      }}
+    />
+  );
+}
+```
+
+When users return, they'll automatically resume from where they left off!
+
+**Key Concept:** One persister can handle multiple flows. Each flow is identified by its unique ID, and the storage key is automatically generated as `${prefix}:${flowId}`.
+
+#### Storage Adapters
+
+**Web Storage (localStorage/sessionStorage):**
+
+```tsx
+import { kvJsonStorageAdapter, createPersister } from "@useflow/react";
+
+// localStorage - supports both sync and async storage (default key: "useflow:${flowId}")
+const storage = kvJsonStorageAdapter({
+  store: localStorage,
+});
+
+// Custom prefix
+const storage = kvJsonStorageAdapter({
+  store: localStorage,
+  getKey: (flowId) => `myapp:${flowId}`,
+});
+
+// sessionStorage (cleared when tab closes)
+const storage = kvJsonStorageAdapter({
+  store: sessionStorage,
+  getKey: (flowId) => `myapp:${flowId}`,
+});
+
+// Custom key generation (e.g., user-specific)
+const storage = kvJsonStorageAdapter({
+  store: localStorage,
+  getKey: (flowId) => `user:${userId}:${flowId}`,
+});
+
+const persister = createPersister({
+  storage,
+  ttl: 1000 * 60 * 60 * 24 * 7, // 7 days
+});
+```
+
+**React Native AsyncStorage:**
+
+```tsx
+import { kvJsonStorageAdapter, createPersister } from "@useflow/react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Works with async storage automatically
+const storage = kvJsonStorageAdapter({
+  store: AsyncStorage,
+  getKey: (flowId) => `myapp:${flowId}`,
+});
+
+const persister = createPersister({ storage });
+```
+
+**Memory Storage (for testing):**
+
+```tsx
+import { createMemoryStorage, createPersister } from "@useflow/react";
+
+const storage = createMemoryStorage();
+const persister = createPersister({ storage });
+```
+
+**Multiple Flows, One Persister:**
+
+```tsx
+const onboardingFlow = defineFlow({ id: "onboarding", /* ... */ });
+const checkoutFlow = defineFlow({ id: "checkout", /* ... */ });
+
+// One storage and persister for all flows
+const storage = kvJsonStorageAdapter({
+  store: localStorage,
+  getKey: (flowId) => `myapp:${flowId}`
+});
+const persister = createPersister({ storage });
+
+// Automatic storage keys:
+// - "myapp:onboarding"
+// - "myapp:checkout"
+<Flow flow={onboardingFlow} persister={persister} {...props} />
+<Flow flow={checkoutFlow} persister={persister} {...props} />
+```
+
+> **Note:** For reusable flows with multiple instances (same flow, different tasks/items), see [Instance IDs for Reusable Flows](#instance-ids-for-reusable-flows) below.
+
+#### Advanced Configuration
+
+```tsx
+import { kvJsonStorageAdapter, createPersister } from "@useflow/react";
+
+const storage = kvJsonStorageAdapter({
+  store: localStorage,
+  getKey: (flowId) => `myapp:${flowId}`,
+});
+const persister = createPersister({
+  storage,
+
+  // Time-to-live: auto-clear old data
+  ttl: 1000 * 60 * 60 * 24 * 7, // 7 days
+
+  // Custom validation (read-only check)
+  validate: (state) => {
+    // Return false to reject invalid state
+    // Note: Do NOT mutate state here - it's readonly
+    // For transformations, define a 'migrate' function in your flow config
+    return state.context.email?.includes("@");
+  },
+
+  // Called when state is saved
+  onSave: (flowId, state) => {
+    console.log(`Saved ${flowId} at step ${state.stepId}`);
+    // Track saves, sync to analytics, etc.
+  },
+
+  // Called when state is restored
+  onRestore: (flowId, state) => {
+    console.log(`Restored ${flowId} from step ${state.stepId}`);
+    // Track restores, log analytics events, etc.
+  },
+
+  // Error handling
+  onError: (error) => {
+    console.error("Persistence error:", error);
+    // Send to error tracking service
+  },
+});
+```
+
+#### Custom Storage Adapters
+
+Implement the `FlowStorage` interface for custom storage backends. Storage methods can be either synchronous or asynchronous:
+
+```tsx
+import type { FlowStorage, PersistedFlowState } from "@useflow/react";
+import { createPersister } from "@useflow/react";
+
+// remote API-based storage
+const remoteStorage: FlowStorage<MyContext> = {
+  async get(flowId: string) {
+    const response = await fetch(`/api/flows/${flowId}`);
+    if (!response.ok) return null;
+    return response.json();
+  },
+
+  async set(flowId: string, state: PersistedFlowState<MyContext>) {
+    await fetch(`/api/flows/${flowId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state),
+    });
+  },
+
+  async remove(flowId: string) {
+    await fetch(`/api/flows/${flowId}`, { method: "DELETE" });
+  },
+};
+
+const persister = createPersister({ storage: remoteStorage });
+
+// Use with Flow
+<Flow
+  flow={myFlow} // Flow must have an ID defined
+  components={...}
+  initialContext={...}
+  persister={persister}
+/>
+```
+
+**Custom storage examples:**
+
+- Database persistence (PostgreSQL, MongoDB)
+- IndexedDB for large data
+- Cloud storage (AWS S3, Firebase)
+- Redis or other key-value stores
+- React Native AsyncStorage
+
+#### What Gets Persisted?
+
+Persisted state includes:
+
+```tsx
+{
+  stepId: "profile",           // Current step
+  context: { name: "John" },   // Full context
+  history: ["welcome"],        // Navigation history
+  status: "active",            // Flow status
+  __meta: {                    // Internal metadata (automatically managed)
+    version: "v1",
+    savedAt: 1234567890,
+  }
+}
+```
+
+**Note:** The `__meta` field is internal-only and automatically managed by the framework. You never need to read or write it directly - it's used for TTL checks and version tracking.
+
+#### Manual Persistence Control
+
+**Manual Save Mode:**
+
+Use `saveMode="manual"` to disable automatic saves and control when state is persisted:
+
+```tsx
+import { Flow, useFlow } from "@useflow/react";
+
+function MyStep() {
+  const { context, next, save } = useFlow();
+
+  const handleSave = async () => {
+    await save(); // Manually trigger save
+    toast.success("Progress saved!");
+  };
+
+  return (
+    <div>
+      <input
+        value={context.name}
+        onChange={(e) => setContext({ name: e.target.value })}
+      />
+      <button onClick={handleSave}>Save Draft</button>
+      <button onClick={() => next()}>Next</button>
+    </div>
+  );
+}
+
+<Flow
+  flow={myFlow}
+  components={...}
+  initialContext={...}
+  persister={persister}
+  saveMode="manual"  // Disable auto-save
+/>
+```
+
+**Save Strategies:**
+
+- `saveMode="navigation"` (default) - Auto-save on step changes only
+- `saveMode="always"` - Auto-save on every context update
+- `saveMode="manual"` - No auto-save, use `save()` method to save manually
+
+**Low-level utilities** from `@useflow/core`:
+
+```tsx
+import {
+  extractPersistedState,
+  restoreFlowState,
+  serializeFlowState,
+  deserializeFlowState,
+} from "@useflow/react";
+
+// Extract state for saving
+const persistedState = extractPersistedState(flowState);
+
+// Serialize to JSON string
+const json = serializeFlowState(persistedState);
+
+// Deserialize from JSON
+const state = deserializeFlowState(json);
+
+// Restore to flow state
+const restoredState = restoreFlowState(persistedState, flowConfig);
+```
+
+#### Instance IDs for Reusable Flows
+
+When you need to use the same flow definition multiple times with separate persistence, use the `instanceId` prop:
+
+```tsx
+const feedbackFlow = defineFlow({
+  id: "feedback",
+  start: "rating",
+  steps: {
+    rating: { next: "comments" },
+    comments: { next: "complete" },
+    complete: {},
+  },
+} as const satisfies FlowConfig<FeedbackContext>);
+
+const persister = createPersister({
+  storage: kvJsonStorageAdapter({ store: localStorage }),
+});
+
+// In your app - multiple instances with separate state
+function TaskList({ tasks }: { tasks: Task[] }) {
+  return (
+    <>
+      {tasks.map((task) => (
+        <Flow
+          key={task.id}
+          flow={feedbackFlow}
+          instanceId={task.id} // ← Unique per task
+          persister={persister}
+          initialContext={{
+            taskId: task.id,
+            taskName: task.name,
+            rating: 0,
+            comments: "",
+          }}
+        />
+      ))}
+    </>
+  );
+}
+```
+
+**How it works:**
+
+- **Without `instanceId`**: Storage key is `flowId` → `"feedback"`
+- **With `instanceId`**: Storage key is `flowId:instanceId` → `"feedback:task-123"`
+
+**When to use:**
+
+- ✅ Multiple feedback forms (per task, per item)
+- ✅ Reusable configuration wizards (per user, per project)
+- ✅ Per-entity onboarding (per feature, per module)
+- ✅ Parallel workflow instances
+
+**When NOT to use:**
+
+- ❌ Single-instance flows (onboarding, checkout) - just use `flowId`
+- ❌ Different flow types - use different `flowId` values instead
+
+#### Clearing Persisted Data
+
+**Via restart button:**
+
+```tsx
+import { useFlow } from "@useflow/react";
+
+function MyStep() {
+  const handleRestart = () => {
+    // Clear persisted state using flow ID (or flow ID + instance ID)
+    await persister.remove?.(myFlow.id, instanceId);
+    // Then restart the flow
+    window.location.reload(); // Or use your own state management
+  };
+
+  return <button onClick={handleRestart}>Start Over</button>;
+}
+```
+
+**Programmatically:**
+
+```tsx
+// Clear specific flow
+await persister.remove?.(myFlow.id);
+
+// Clear specific instance
+await persister.remove?.(myFlow.id, instanceId);
+
+// Clear all instances of a flow
+await persister.removeFlow?.(myFlow.id);
+
+// Clear all flows (e.g., on logout)
+await persister.removeAll?.();
+```
+
+#### Loading States
+
+Handle async restoration with loading states:
+
+```tsx
+function App() {
+  return (
+    <Flow
+      flow={myFlow}
+      components={...}
+      initialContext={...}
+      persister={persister}
+      persistenceKey="my-flow"
+    >
+      {/* Loading shown while restoring from storage */}
+      <div>Loading your progress...</div>
+    </Flow>
+  );
+}
+```
+
+#### Persistence Callbacks
+
+Track save and restore events for analytics, debugging, or custom logic.
+
+**Option 1: Flow-level callbacks** (recommended for UI feedback):
+
+```tsx
+import { Flow } from "@useflow/react";
+
+function App() {
+  const [showSaved, setShowSaved] = useState(false);
+
+  return (
+    <>
+      {showSaved && <div className="toast">Progress saved!</div>}
+
+      <Flow
+        flow={myFlow}
+        components={...}
+        initialContext={...}
+        persister={persister}
+
+        // Called after each save
+        onSave={(state) => {
+          console.log("Saved at step:", state.stepId);
+          setShowSaved(true);
+          setTimeout(() => setShowSaved(false), 2000);
+        }}
+
+        // Called when state is restored on mount
+        onRestore={(state) => {
+          console.log("Welcome back! Resuming from:", state.stepId);
+          analytics.track("Flow Resumed", {
+            stepId: state.stepId,
+            daysOld: Math.floor((Date.now() - state.__meta.savedAt) / (1000 * 60 * 60 * 24)),
+          });
+        }}
+
+        // Called on persistence errors
+        onPersistenceError={(error) => {
+          console.error("Persistence error:", error);
+          showErrorToast("Failed to save progress");
+        }}
+      />
+    </>
+  );
+}
+```
+
+**Option 2: Persister-level callbacks** (recommended for global tracking):
+
+```tsx
+import { createPersister, kvJsonStorageAdapter } from "@useflow/react";
+
+const storage = kvJsonStorageAdapter({ store: localStorage });
+const persister = createPersister({
+  storage,
+
+  // Track ALL saves across ALL flows
+  onSave: (flowId, state) => {
+    console.log(`[${flowId}] Saved at step:`, state.stepId);
+    analytics.track("Flow Progress Saved", {
+      flowId,
+      stepId: state.stepId,
+      stepCount: state.history.length,
+    });
+  },
+
+  // Track ALL restores across ALL flows
+  onRestore: (flowId, state) => {
+    console.log(`[${flowId}] Restored from step:`, state.stepId);
+    analytics.track("Flow Progress Restored", {
+      flowId,
+      stepId: state.stepId,
+      daysOld: Math.floor(
+        (Date.now() - state.__meta.savedAt) / (1000 * 60 * 60 * 24)
+      ),
+    });
+  },
+
+  // Error handling
+  onError: (error) => {
+    console.error("[Persistence] Error:", error);
+    Sentry.captureException(error);
+  },
+});
+```
+
+**When to use which:**
+
+- **Flow-level** (`onSave`, `onRestore`, `onPersistenceError` props) - For UI feedback, flow-specific logic
+- **Persister-level** (`onSave`, `onRestore`, `onError` options) - For analytics, global tracking, monitoring
+
+**Use cases:**
+
+- 📊 **Analytics** - Track save/restore rates, completion patterns, drop-off points
+- 🐛 **Debugging** - Log persistence events during development
+- 💾 **UI feedback** - Show "Saving...", "Saved", or "Welcome back" messages
+- 🔔 **Notifications** - Alert users when progress is restored
+- 🔄 **Sync** - Trigger external syncs (e.g., to backend, cloud storage)
+
+#### Debouncing
+
+Persistence is automatically debounced (300ms) to avoid excessive writes:
+
+```tsx
+// These rapid updates trigger only one save
+setContext({ name: "J" });
+setContext({ name: "Jo" });
+setContext({ name: "Joh" });
+setContext({ name: "John" });
+// → Single save after 300ms (onSave called once)
+```
+
+#### Schema Versioning & Migration
+
+Handle breaking changes to your flow structure (context, step names, etc.).
+
+> **⚠️ CRITICAL:** If you use persistence, you MUST implement migrations when making breaking changes. Without migrations, users with old persisted state will encounter errors or lose their progress. Always update `version` (e.g., "v1" → "v2") and provide a `migrate` function when making breaking changes.
+
+**Breaking changes include:**
+
+- ✗ Renaming or removing context fields
+- ✗ Renaming or removing steps
+- ✗ Changing step transition logic that affects saved stepId
+- ✗ Changing the start step
+- ✗ Restructuring the flow in incompatible ways
+
+**Non-breaking changes (safe without migration):**
+
+- ✓ Adding new optional context fields (with defaults)
+- ✓ Adding new steps (that aren't in existing paths)
+- ✓ Changing UI/components without affecting flow structure
+- ✓ Updating logic that doesn't change persisted state structure
+
+```tsx
+import {
+  defineFlow,
+  Flow,
+  createPersister,
+  kvJsonStorageAdapter,
+} from "@useflow/react";
+
+// Define flow with version and migration
+const onboardingFlow = defineFlow({
+  id: "onboarding",
+  version: "v2", // Current version
+
+  // Migration function receives full persisted state
+  // You can migrate context, stepId, history, or any other field
+  migrate: (state, fromVersion) => {
+    // v1 -> v2: renamed 'email' to 'emailAddress' in context
+    if (fromVersion === "v1") {
+      return {
+        ...state,
+        context: {
+          ...state.context,
+          emailAddress: state.context.email, // Transform old field
+        },
+      };
+    }
+
+    // Unknown version - discard old state
+    return null;
+  },
+
+  start: "welcome",
+  steps: {
+    /* ... */
+  },
+} as const);
+
+// Persister doesn't need version config - it's on the flow
+const storage = kvJsonStorageAdapter({
+  store: localStorage,
+  getKey: (flowId) => `myapp:${flowId}`,
+});
+const persister = createPersister({ storage });
+
+<Flow flow={onboardingFlow} persister={persister} {...props} />;
+```
+
+**Example: Migrating step names**
+
+If you rename steps in your flow, you need to update both `stepId` and `history`:
+
+```tsx
+const onboardingFlow = defineFlow({
+  id: "onboarding",
+  version: "v3",
+
+  migrate: (state, fromVersion) => {
+    if (fromVersion === "v2") {
+      // Renamed step: 'userProfile' -> 'profile'
+      return {
+        ...state,
+        stepId: state.stepId === "userProfile" ? "profile" : state.stepId,
+        history: state.history.map((step) =>
+          step === "userProfile" ? "profile" : step
+        ),
+      };
+    }
+    return null;
+  },
+
+  start: "welcome",
+  steps: {
+    welcome: { next: "profile" }, // renamed from 'userProfile'
+    profile: { next: "complete" },
+    complete: {},
+  },
+} as const);
+```
+
+**How it works:**
+
+1. Define `version` and `migrate` in your flow config (not on the persister)
+2. When state is restored, the framework automatically checks if versions match
+3. If versions differ, your `migrate` function is called automatically
+4. The `migrate` function receives the **full state** `(stepId, context, history, status)` and `fromVersion`
+5. Return the transformed state, or `null` to discard old data
+
+**Key Points:**
+
+- ⚠️ **Always version your flow** - Set `version` (e.g., "v1") when using persistence
+- ⚠️ **Always provide migrations** - Update `version` (e.g., "v1" → "v2") and add migration logic for breaking changes
+- The `migrate` function is **called automatically** - you never invoke it manually
+- Define version at the **flow config level**, not persister level
+- You receive the **full persisted state**, not just context - you can migrate any field
+- Common migrations: context fields, step names (stepId + history), or entire flow structure
+- Return transformed state or `null` to discard incompatible versions
+- You don't need to manually update `__meta.version` - the framework handles it
+- **Test your migrations** - Ensure old state can be successfully migrated to new structure
+
+#### Best Practices
+
+**1. Always use versioning with persistence:**
+
+```tsx
+// ✅ Good - versioned flow with migrations
+const flow = defineFlow({
+  id: "onboarding",
+  version: "v1", // Start with v1
+  migrate: (state, fromVersion) => {
+    // Handle future migrations here
+    return null; // No old versions yet
+  },
+  start: "welcome",
+  steps: {
+    /* ... */
+  },
+} as const);
+
+// ⚠️ Risky - no version means no migration support
+const flow = defineFlow({
+  id: "onboarding",
+  // No version - any breaking changes will break users!
+  start: "welcome",
+  steps: {
+    /* ... */
+  },
+} as const);
+```
+
+**2. Use descriptive flow IDs:**
+
+```tsx
+// ✅ Good
+id: "user-onboarding";
+id: "checkout-flow";
+id: "survey-2024";
+
+// ❌ Bad
+id: "flow1";
+id: "f";
+```
+
+**3. Test migrations before deploying:**
+
+```tsx
+// Create test cases for your migrations
+import { describe, it, expect } from "vitest";
+
+describe("onboarding flow migrations", () => {
+  it("should migrate v1 to v2", () => {
+    const oldState = {
+      stepId: "profile",
+      context: { email: "user@example.com" },
+      history: ["welcome", "profile"],
+      status: "active",
+      __meta: { version: "v1" },
+    };
+
+    const migrated = onboardingFlow.migrate(oldState, "v1");
+
+    expect(migrated).toEqual({
+      ...oldState,
+      context: { emailAddress: "user@example.com" },
+    });
+  });
+});
+```
+
+**4. Set appropriate TTL:**
+
+```tsx
+// Short forms: 1 day
+const storage = kvJsonStorageAdapter({ store: localStorage });
+const persister = createPersister({
+  storage,
+  ttl: 1000 * 60 * 60 * 24,
+});
+
+// Long onboarding: 30 days
+const persister = createPersister({
+  storage,
+  ttl: 1000 * 60 * 60 * 24 * 30,
+});
+
+// Session-only: use sessionStorage
+const storage = kvJsonStorageAdapter({ store: sessionStorage });
+const persister = createPersister({ storage });
+```
+
+**5. Handle sensitive data:**
+
+```tsx
+// Validate sensitive data isn't in state
+const storage = kvJsonStorageAdapter({ store: localStorage });
+const persister = createPersister({
+  storage,
+  validate: (state) => {
+    // Reject if sensitive fields are present
+    if (state.context.creditCard || state.context.password) {
+      console.error("Sensitive data in persisted state!");
+      return false; // Discard this state
+    }
+    return true;
+  },
+});
+
+// Better: Don't put sensitive data in context at all
+// Keep it in local component state instead
+```
+
+#### Use Cases
+
+Perfect for:
+
+- 📝 **Long forms** - Multi-step forms users complete over time
+- 🛒 **Checkout flows** - Shopping cart and payment info across sessions
+- 📊 **Surveys** - Long questionnaires users can pause and resume
+- 🎓 **Onboarding** - Complex setup flows users complete at their own pace
+- 🎮 **Tutorials** - Interactive guides users can return to later
 
 ### Multiple Flows
 

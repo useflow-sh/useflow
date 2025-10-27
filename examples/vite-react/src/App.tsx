@@ -1,5 +1,5 @@
-import { Flow } from "@useflow/react";
-import { useState } from "react";
+import { createPersister, Flow, kvJsonStorageAdapter } from "@useflow/react";
+import { useMemo, useState } from "react";
 import {
   AnimatedFlowStep,
   type Direction,
@@ -7,6 +7,7 @@ import {
 import { BusinessDetailsStep } from "./components/BusinessDetailsStep";
 import { CompleteStep } from "./components/CompleteStep";
 import { FlowState } from "./components/FlowState";
+import { LoadingView } from "./components/LoadingView";
 import { PreferencesStep } from "./components/PreferencesStep";
 import { ProfileStep } from "./components/ProfileStep";
 import { SetupPreferenceStep } from "./components/SetupPreferenceStep";
@@ -23,12 +24,29 @@ function App() {
   const [flowKey, setFlowKey] = useState(0);
   const [direction, setDirection] = useState<Direction>("initial");
 
+  // Create a single persister for all flows with a common prefix
+  const persister = useMemo(() => {
+    return createPersister({
+      storage: kvJsonStorageAdapter({
+        store: localStorage,
+        prefix: "myapp",
+      }),
+      ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+  }, []);
+
   const handleFlowTypeChange = (type: FlowType) => {
     setFlowType(type);
     setFlowKey((k) => k + 1);
   };
 
-  const handleRestart = () => setFlowKey((k) => k + 1);
+  const handleRestart = () => {
+    // Remove persisted state on restart using flow ID
+    const flowId = flowType === "simple" ? simpleFlow.id : advancedFlow.id;
+    persister.remove?.(flowId);
+    setFlowKey((k) => k + 1);
+  };
+
   const handleComplete = () => alert("Onboarding completed! 🎉");
 
   const handleTransition = ({ direction }: { direction: Direction }) => {
@@ -69,6 +87,9 @@ function App() {
           }}
           onComplete={handleComplete}
           onTransition={handleTransition}
+          persister={persister}
+          saveDebounce={300}
+          loadingComponent={<LoadingView />}
         >
           <FlowState />
           <AnimatedFlowStep direction={direction} />
@@ -110,6 +131,9 @@ function App() {
           }}
           onComplete={handleComplete}
           onTransition={handleTransition}
+          persister={persister}
+          saveDebounce={300}
+          loadingComponent={<LoadingView />}
         >
           <FlowState />
           <AnimatedFlowStep direction={direction} />

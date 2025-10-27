@@ -10,7 +10,7 @@ import type { UseFlowReturn } from "./types";
 
 /**
  * Enhanced flow object returned by defineFlow
- * Contains a type-safe useFlow hook and the original config
+ * Contains a type-safe useFlow hook, the original config, and flow ID
  */
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
 export type FlowDefinition<TConfig extends FlowConfig<any>> = {

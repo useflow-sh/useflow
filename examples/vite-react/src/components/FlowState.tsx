@@ -1,7 +1,7 @@
 import { useFlow } from "@useflow/react";
 
 export function FlowState() {
-  const { context, stepId, status, history } = useFlow();
+  const { context, stepId, status, history, isRestoring } = useFlow();
 
   return (
     <div
@@ -24,6 +24,9 @@ export function FlowState() {
       </div>
       <div>
         <strong>Status:</strong> {status}
+      </div>
+      <div>
+        <strong>Restoring:</strong> {isRestoring ? "Yes" : "No"}
       </div>
       <div>
         <strong>Step:</strong> {stepId}

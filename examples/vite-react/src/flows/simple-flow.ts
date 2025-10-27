@@ -1,4 +1,4 @@
-import { defineFlow, type FlowConfig } from "@useflow/react";
+import { defineFlow } from "@useflow/react";
 
 /**
  * Simple linear onboarding flow
@@ -29,4 +29,4 @@ export const simpleFlow = defineFlow({
       // no next step = flow is complete
     },
   },
-} as const satisfies FlowConfig<SimpleFlowContext>);
+} as const);

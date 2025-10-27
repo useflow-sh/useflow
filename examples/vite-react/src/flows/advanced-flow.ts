@@ -1,4 +1,4 @@
-import { defineFlow, type FlowConfig } from "@useflow/react";
+import { defineFlow } from "@useflow/react";
 
 /**
  * Advanced onboarding flow with conditional branching
@@ -34,7 +34,7 @@ export const advancedFlow = defineFlow({
     },
     userType: {
       // Context-driven: flow decides next step based on context
-      next: (ctx) =>
+      next: (ctx: AdvancedFlowContext) =>
         ctx.userType === "business" ? "businessDetails" : "setupPreference",
     },
     businessDetails: {
@@ -51,4 +51,4 @@ export const advancedFlow = defineFlow({
       // no next step = flow is complete
     },
   },
-} as const satisfies FlowConfig<AdvancedFlowContext>);
+} as const);

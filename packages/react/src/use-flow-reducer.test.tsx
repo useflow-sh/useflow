@@ -230,4 +230,32 @@ describe("useFlowReducer", () => {
     expect(Array.isArray(history)).toBe(true);
     expect(history).toEqual(["first"]);
   });
+
+  describe("persistence", () => {
+    it("should initialize with restored state", () => {
+      const definition = {
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      };
+
+      const restoredState = {
+        stepId: "second",
+        context: { count: 5 },
+        history: ["first", "second"],
+        status: "active" as const,
+      };
+
+      const { result } = renderHook(() =>
+        useFlowReducer(definition, { count: 0 }, restoredState),
+      );
+
+      expect(result.current.stepId).toBe("second");
+      expect(result.current.context).toEqual({ count: 5 });
+      expect(result.current.history).toEqual(["first", "second"]);
+    });
+  });
 });

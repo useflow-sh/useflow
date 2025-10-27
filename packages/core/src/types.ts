@@ -36,6 +36,22 @@ export type StepDefinition<TContext extends FlowContext = FlowContext> = {
 };
 
 /**
+ * Persisted state structure (simplified for migration typing)
+ * Full type is in persistence module to avoid circular dependencies
+ */
+export type PersistedState<TContext extends FlowContext = FlowContext> = {
+  stepId: string;
+  context: TContext;
+  history: string[];
+  status: "active" | "complete";
+  __meta?: {
+    savedAt?: number;
+    version?: string;
+    [key: string]: unknown;
+  };
+};
+
+/**
  * Flow definition
  * Simple declarative object defining steps and transitions
  */
@@ -43,6 +59,85 @@ export type FlowDefinition<TContext extends FlowContext = FlowContext> = {
   id: string;
   start: string;
   steps: Record<string, StepDefinition<TContext>>;
+
+  /**
+   * Schema version for the flow (string, e.g., "v1", "v2", "2024-01")
+   * Used for migration when flow structure changes between app versions
+   *
+   * When making breaking changes, update this version string and provide
+   * a migration function to transform old persisted state.
+   *
+   * @optional
+   */
+  version?: string;
+
+  /**
+   * Migration function to transform persisted state from old versions
+   * Called when persisted state version doesn't match current version
+   *
+   * **IMPORTANT:** If you use persistence, you MUST handle migrations properly when making
+   * breaking changes to your flow. Breaking changes include:
+   * - Renaming or removing context fields
+   * - Renaming or removing steps
+   * - Changing the flow structure
+   *
+   * Without proper migrations, users with old persisted state will experience errors or
+   * lose their progress. Always update `version` (e.g., "v1" → "v2") and provide a
+   * `migrate` function when making breaking changes.
+   *
+   * Receives the full persisted state (stepId, context, history, status) to allow
+   * migrations that need to update step names, history, or other fields beyond context.
+   *
+   * @param persistedState - The saved state with old version (includes all fields)
+   * @param fromVersion - The version of the persisted state (from __meta.version)
+   * @returns Migrated state with updated fields, or null to discard
+   *
+   * @example
+   * ```ts
+   * // Example 1: Simple context migration
+   * const flow = defineFlow({
+   *   id: 'onboarding',
+   *   version: 'v2',
+   *   migrate: (state, fromVersion) => {
+   *     if (fromVersion === 'v1') {
+   *       return {
+   *         ...state,
+   *         context: {
+   *           ...state.context,
+   *           emailAddress: state.context.email, // Renamed field
+   *         },
+   *       };
+   *     }
+   *     return null; // Unknown version, discard
+   *   },
+   *   start: 'welcome',
+   *   steps: { ... }
+   * });
+   *
+   * // Example 2: Migration with step name changes
+   * const flow = defineFlow({
+   *   id: 'onboarding',
+   *   version: 'v3',
+   *   migrate: (state, fromVersion) => {
+   *     if (fromVersion === 'v2') {
+   *       // Renamed step: 'userProfile' -> 'profile'
+   *       return {
+   *         ...state,
+   *         stepId: state.stepId === 'userProfile' ? 'profile' : state.stepId,
+   *         history: state.history.map(s => s === 'userProfile' ? 'profile' : s),
+   *       };
+   *     }
+   *     return null;
+   *   },
+   *   start: 'welcome',
+   *   steps: { ... }
+   * });
+   * ```
+   */
+  migrate?: (
+    persistedState: PersistedState<TContext>,
+    fromVersion: string | undefined,
+  ) => PersistedState<TContext> | null;
 };
 
 /**
@@ -63,4 +158,5 @@ export type FlowState<TContext extends FlowContext = FlowContext> = {
 export type FlowAction<TContext extends FlowContext = FlowContext> =
   | { type: "NEXT"; target?: string; update?: ContextUpdate<TContext> }
   | { type: "BACK" }
-  | { type: "SET_CONTEXT"; update: ContextUpdate<TContext> };
+  | { type: "SET_CONTEXT"; update: ContextUpdate<TContext> }
+  | { type: "RESTORE"; state: FlowState<TContext> };

@@ -6,6 +6,8 @@ import {
   type FlowDefinition,
   type FlowState,
   flowReducer,
+  type PersistedFlowState,
+  restoreFlowState,
 } from "@useflow/core";
 import { useCallback, useReducer } from "react";
 
@@ -30,6 +32,7 @@ export type UseFlowReducerReturn<
   };
   back: () => void;
   setContext: (update: ContextUpdate<TContext>) => void;
+  restore: (state: FlowState<TContext>) => void;
 };
 
 /**
@@ -41,16 +44,20 @@ export type UseFlowReducerReturn<
  * @internal
  * @param definition - Flow definition
  * @param initialContext - Initial context values
+ * @param restoredState - Optional restored state to initialize with
  * @returns Flow state and control functions
  */
 export function useFlowReducer<TContext extends FlowContext>(
   definition: FlowDefinition<TContext>,
   initialContext: TContext,
+  restoredState?: PersistedFlowState<TContext> | null,
 ): UseFlowReducerReturn<TContext> {
   const [state, dispatch] = useReducer(
     (state: FlowState<TContext>, action: FlowAction<TContext>) =>
       flowReducer(state, action, definition),
-    createInitialState(definition, initialContext),
+    restoredState
+      ? restoreFlowState(restoredState)
+      : createInitialState(definition, initialContext),
   );
 
   const next = useCallback(
@@ -76,6 +83,10 @@ export function useFlowReducer<TContext extends FlowContext>(
     dispatch({ type: "SET_CONTEXT", update });
   }, []);
 
+  const restore = useCallback((restoredState: FlowState<TContext>) => {
+    dispatch({ type: "RESTORE", state: restoredState });
+  }, []);
+
   const currentStep = definition.steps[state.stepId];
 
   return {
@@ -87,5 +98,6 @@ export function useFlowReducer<TContext extends FlowContext>(
     next,
     back,
     setContext,
+    restore,
   };
 }

@@ -662,7 +662,9 @@ describe("flowReducer", () => {
       },
     };
 
-    const state = createInitialState(flow, { userType: "business" });
+    const state = createInitialState<TestContext>(flow, {
+      userType: "business",
+    });
     const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     // Valid target: matches function result

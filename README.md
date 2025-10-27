@@ -9,6 +9,7 @@ useflow is a lightweight library for building multi-step flows like onboarding, 
 - 🎯 **Declarative flow definitions** - Define your flow steps once, components show/hide automatically
 - 🔒 **Type-safe** - Full TypeScript support with intelligent type inference
 - 🔄 **Flexible navigation** - Linear flows, conditional branching, and component-driven routing
+- 💾 **Built-in persistence** - Save and restore flow progress with localStorage, sessionStorage, or custom storage
 - 🎨 **Intuitive API** - Simple `defineFlow()` and `<Flow>` component pattern
 - 📦 **Framework agnostic core** - React adapter included, other frameworks coming soon
 - ⚡ **Lightweight** - Minimal dependencies, tree-shakeable
@@ -266,6 +267,198 @@ React to navigation and context changes:
 - `onComplete` - Fires when flow reaches completion
 
 Perfect for analytics, animations, and external state synchronization.
+
+### Persistence & Progress Restore
+
+Save and restore flow progress automatically with built-in persisters:
+
+```tsx
+import { Flow, defineFlow } from "@useflow/react";
+import { createLocalStoragePersister } from "@useflow/core/web";
+
+// Define your flow with an ID
+export const onboardingFlow = defineFlow({
+  id: "user-onboarding", // Unique ID for this flow
+  start: "welcome",
+  steps: { /* ... */ },
+} as const);
+
+// Create a single persister for all flows
+// Each flow uses: `${prefix}:${flowId}` as the storage key
+const persister = createLocalStoragePersister({
+  prefix: "myapp", // Optional prefix, defaults to "useflow"
+  ttl: 1000 * 60 * 60 * 24 * 7, // 7 days
+});
+
+function App() {
+  return (
+    <Flow
+      flow={onboardingFlow} // Automatically uses "myapp:user-onboarding"
+      components={...}
+      initialContext={{ name: "", email: "" }}
+      persister={persister}
+    />
+  );
+}
+```
+
+**Built-in Persisters:**
+- `createLocalStoragePersister()` - Saves to browser localStorage
+- `createSessionStoragePersister()` - Saves to sessionStorage (cleared on tab close)
+- `createMemoryPersister()` - In-memory storage for testing
+
+**Features:**
+- ✅ **Single persister for multiple flows** - One persister instance handles all your flows
+- ✅ **Automatic storage keys** - Uses flow ID to prevent conflicts: `prefix:flowId`
+- ✅ **Automatic save/restore** - Debounced saves, automatic restoration on mount
+- ✅ **TTL support** - Auto-expire old data
+- ✅ **Schema versioning** - For migrations
+- ✅ **Type-safe** - Full TypeScript support
+
+**Multiple Flows with One Persister:**
+
+```tsx
+// Define flows with unique IDs
+const onboardingFlow = defineFlow({
+  id: "onboarding",
+  /* ... */
+});
+
+const checkoutFlow = defineFlow({
+  id: "checkout",
+  /* ... */
+});
+
+// One persister for all flows
+const persister = createLocalStoragePersister({ prefix: "myapp" });
+
+// Storage keys: "myapp:onboarding" and "myapp:checkout"
+<Flow flow={onboardingFlow} persister={persister} {...props} />
+<Flow flow={checkoutFlow} persister={persister} {...props} />
+```
+
+**Reusable Flows (Multiple Instances):**
+
+Use `instanceId` when you need multiple instances of the same flow with separate persistence:
+
+```tsx
+// Define a reusable feedback flow
+const feedbackFlow = defineFlow({
+  id: "feedback",
+  /* ... */
+});
+
+const persister = createLocalStoragePersister({ prefix: "myapp" });
+
+// Multiple instances with separate state
+// Storage keys: "myapp:feedback:task-123" and "myapp:feedback:task-456"
+<Flow 
+  flow={feedbackFlow} 
+  instanceId="task-123"  // Unique instance
+  persister={persister} 
+  {...props} 
+/>
+
+<Flow 
+  flow={feedbackFlow} 
+  instanceId="task-456"  // Different instance
+  persister={persister} 
+  {...props} 
+/>
+```
+
+Perfect for:
+- 📝 **Task-specific feedback** - Same flow, different tasks
+- 🎫 **Multi-item checkout** - Per-item configuration flows
+- 📊 **Per-entity forms** - Reusable forms for different entities
+- 🔄 **Parallel workflows** - Multiple instances of the same workflow
+
+**React Native:**
+
+Use `createPersister` with AsyncStorage:
+
+```tsx
+import { createPersister } from "@useflow/react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const persister = createPersister({
+  storage: AsyncStorage, // Implements Storage interface
+  prefix: "myapp",
+  ttl: 7 * 24 * 60 * 60 * 1000,
+});
+```
+
+**Custom Storage Backends:**
+
+Implement the `FlowPersister` interface for complete control:
+
+```tsx
+import type { FlowPersister } from "@useflow/react";
+
+const apiPersister: FlowPersister<MyContext> = {
+  async save(flowId, state) {
+    await fetch(`/api/flows/${flowId}/save`, {
+      method: "POST",
+      body: JSON.stringify(state),
+    });
+  },
+  async restore(flowId) {
+    const response = await fetch(`/api/flows/${flowId}`);
+    return response.ok ? response.json() : null;
+  },
+  async clear(flowId) {
+    await fetch(`/api/flows/${flowId}`, { method: "DELETE" });
+  },
+};
+```
+
+Or use `createPersister` with a storage adapter:
+
+```tsx
+import { createPersister, type Storage } from "@useflow/react";
+
+const indexedDBStorage: Storage = {
+  async getItem(key) {
+    // Your IndexedDB implementation
+    return await db.get(key);
+  },
+  async setItem(key, value) {
+    await db.put(key, value);
+  },
+  async removeItem(key) {
+    await db.delete(key);
+  },
+};
+
+const persister = createPersister({
+  storage: indexedDBStorage,
+  prefix: "myapp",
+  ttl: 30 * 24 * 60 * 60 * 1000, // 30 days
+});
+```
+
+**Advanced Options:**
+
+```tsx
+const persister = createLocalStoragePersister({
+  prefix: "myapp", // Storage key prefix
+  ttl: 1000 * 60 * 60 * 24 * 7, // 7 days
+  version: "1.0", // Schema version
+  validate: (state) => {
+    // Custom validation
+    return state.context.email?.includes("@");
+  },
+  onError: (error) => {
+    console.error("Persistence error:", error);
+  },
+});
+```
+
+Perfect for:
+- 📝 **Long forms** - Don't lose user input on page refresh
+- 🛒 **Checkout flows** - Resume where users left off
+- 📊 **Surveys** - Save progress between sessions
+- 🎓 **Onboarding** - Let users complete at their own pace
 
 ### Custom Layouts
 

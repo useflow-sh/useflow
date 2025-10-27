@@ -1,5 +1,9 @@
-import { Flow, FlowStep } from "@useflow/react";
+import { Flow } from "@useflow/react";
 import { useState } from "react";
+import {
+  AnimatedFlowStep,
+  type Direction,
+} from "./components/AnimatedFlowStep";
 import { BusinessDetailsStep } from "./components/BusinessDetailsStep";
 import { CompleteStep } from "./components/CompleteStep";
 import { FlowState } from "./components/FlowState";
@@ -17,6 +21,7 @@ type FlowType = "simple" | "advanced";
 function App() {
   const [flowType, setFlowType] = useState<FlowType>("simple");
   const [flowKey, setFlowKey] = useState(0);
+  const [direction, setDirection] = useState<Direction>("initial");
 
   const handleFlowTypeChange = (type: FlowType) => {
     setFlowType(type);
@@ -25,6 +30,10 @@ function App() {
 
   const handleRestart = () => setFlowKey((k) => k + 1);
   const handleComplete = () => alert("Onboarding completed! 🎉");
+
+  const handleTransition = ({ direction }: { direction: Direction }) => {
+    setDirection(direction);
+  };
 
   return (
     <div className="app-container">
@@ -59,9 +68,10 @@ function App() {
             notifications: false,
           }}
           onComplete={handleComplete}
+          onTransition={handleTransition}
         >
           <FlowState />
-          <FlowStep />
+          <AnimatedFlowStep direction={direction} />
         </Flow>
       ) : (
         <Flow
@@ -99,9 +109,10 @@ function App() {
             startedAt: undefined,
           }}
           onComplete={handleComplete}
+          onTransition={handleTransition}
         >
           <FlowState />
-          <FlowStep />
+          <AnimatedFlowStep direction={direction} />
         </Flow>
       )}
     </div>

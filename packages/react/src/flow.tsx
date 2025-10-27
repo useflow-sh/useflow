@@ -3,9 +3,11 @@ import {
   type ComponentType,
   createContext,
   type ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
 } from "react";
 import type { FlowDefinition } from "./define-flow";
 import type { ExtractContext, FlowConfig, StepNames } from "./type-helpers";
@@ -65,6 +67,29 @@ type FlowProps<TConfig extends FlowConfig<any>> = {
   components: ComponentsFunction<TConfig>;
   initialContext: ExtractContext<TConfig>;
   onComplete?: () => void;
+  onNext?: (event: {
+    from: StepNames<TConfig>;
+    to: StepNames<TConfig>;
+    oldContext: ExtractContext<TConfig>;
+    newContext: ExtractContext<TConfig>;
+  }) => void;
+  onBack?: (event: {
+    from: StepNames<TConfig>;
+    to: StepNames<TConfig>;
+    oldContext: ExtractContext<TConfig>;
+    newContext: ExtractContext<TConfig>;
+  }) => void;
+  onTransition?: (event: {
+    from: StepNames<TConfig>;
+    to: StepNames<TConfig>;
+    direction: "forward" | "backward";
+    oldContext: ExtractContext<TConfig>;
+    newContext: ExtractContext<TConfig>;
+  }) => void;
+  onContextUpdate?: (event: {
+    oldContext: ExtractContext<TConfig>;
+    newContext: ExtractContext<TConfig>;
+  }) => void;
   children?: ReactNode;
 };
 
@@ -115,6 +140,10 @@ export function Flow<TConfig extends FlowConfig<any>>({
   components,
   initialContext,
   onComplete,
+  onNext,
+  onBack,
+  onTransition,
+  onContextUpdate,
   children,
 }: FlowProps<TConfig>) {
   // Extract config from FlowDefinition
@@ -129,11 +158,100 @@ export function Flow<TConfig extends FlowConfig<any>>({
     [id, config],
   );
 
-  const flowState = useFlowReducer(
+  // Initialize flow state (restoration happens after mount)
+  const flowState = useFlowReducer<ExtractContext<TConfig>>(
     flowDefinitionWithoutComponents,
     initialContext,
   );
 
+  // Track previous state for callbacks
+  const previousStateRef = useRef(flowState);
+
+  // Track what type of action caused the state change
+  type LastActionType = "NEXT" | "BACK" | "SET_CONTEXT" | "RESTORE" | null;
+  const lastActionRef = useRef<LastActionType>(null);
+
+  // Wrap next/back/setContext to track action type
+  const wrappedNext = useCallback(
+    (
+      targetOrUpdate?: string | ContextUpdate<ExtractContext<TConfig>>,
+      update?: ContextUpdate<ExtractContext<TConfig>>,
+    ) => {
+      lastActionRef.current = "NEXT";
+      if (typeof targetOrUpdate === "string") {
+        flowState.next(targetOrUpdate, update);
+      } else {
+        flowState.next(targetOrUpdate);
+      }
+    },
+    [flowState],
+  );
+
+  const wrappedBack = useCallback(() => {
+    lastActionRef.current = "BACK";
+    flowState.back();
+  }, [flowState.back]);
+
+  const wrappedSetContext = useCallback(
+    (update: ContextUpdate<ExtractContext<TConfig>>) => {
+      lastActionRef.current = "SET_CONTEXT";
+      flowState.setContext(update);
+    },
+    [flowState.setContext],
+  );
+
+  // Handle callbacks when state changes
+  useEffect(() => {
+    const action = lastActionRef.current;
+    if (!action) return;
+
+    const prevState = previousStateRef.current;
+
+    // Handle navigation callbacks
+    if (action === "NEXT" && prevState.stepId !== flowState.stepId) {
+      onNext?.({
+        from: prevState.stepId as StepNames<TConfig>,
+        to: flowState.stepId as StepNames<TConfig>,
+        oldContext: prevState.context,
+        newContext: flowState.context,
+      });
+      onTransition?.({
+        from: prevState.stepId as StepNames<TConfig>,
+        to: flowState.stepId as StepNames<TConfig>,
+        direction: "forward",
+        oldContext: prevState.context,
+        newContext: flowState.context,
+      });
+    } else if (action === "BACK" && prevState.stepId !== flowState.stepId) {
+      onBack?.({
+        from: prevState.stepId as StepNames<TConfig>,
+        to: flowState.stepId as StepNames<TConfig>,
+        oldContext: prevState.context,
+        newContext: flowState.context,
+      });
+      onTransition?.({
+        from: prevState.stepId as StepNames<TConfig>,
+        to: flowState.stepId as StepNames<TConfig>,
+        direction: "backward",
+        oldContext: prevState.context,
+        newContext: flowState.context,
+      });
+    }
+
+    // Handle context updates
+    if (action === "SET_CONTEXT" || action === "NEXT") {
+      if (prevState.context !== flowState.context) {
+        onContextUpdate?.({
+          oldContext: prevState.context,
+          newContext: flowState.context,
+        });
+      }
+    }
+
+    previousStateRef.current = flowState;
+  }, [flowState, onNext, onBack, onTransition, onContextUpdate]);
+
+  // Handle completion
   useEffect(() => {
     if (flowState.status === "complete") {
       onComplete?.();
@@ -146,9 +264,9 @@ export function Flow<TConfig extends FlowConfig<any>>({
     stepId: flowState.stepId as StepNames<TConfig>,
     status: flowState.status,
     history: flowState.history,
-    next: flowState.next,
-    back: flowState.back,
-    setContext: flowState.setContext,
+    next: wrappedNext,
+    back: wrappedBack,
+    setContext: wrappedSetContext,
   });
 
   // Build RuntimeFlowDefinition with resolved components
@@ -169,8 +287,14 @@ export function Flow<TConfig extends FlowConfig<any>>({
   ) as RuntimeFlowDefinition<ExtractContext<TConfig>>;
 
   const flowValue = useMemo(
-    () => ({ ...flowState, __flow: flowDefinition }),
-    [flowState, flowDefinition],
+    () => ({
+      ...flowState,
+      next: wrappedNext,
+      back: wrappedBack,
+      setContext: wrappedSetContext,
+      __flow: flowDefinition,
+    }),
+    [flowState, wrappedNext, wrappedBack, wrappedSetContext, flowDefinition],
   );
 
   return (

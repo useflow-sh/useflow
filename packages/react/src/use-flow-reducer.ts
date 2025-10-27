@@ -36,8 +36,7 @@ export type UseFlowReducerReturn<
  * Internal hook for managing flow state
  * Wraps the core reducer with React's useReducer
  *
- * This is used internally by FlowProvider.
- * Users should use the useFlow hook from context.tsx instead.
+ * This hook handles ONLY state management - no side effects.
  *
  * @internal
  * @param definition - Flow definition

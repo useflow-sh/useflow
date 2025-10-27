@@ -227,6 +227,46 @@ function WelcomeStep() {
 }
 ```
 
+### Flow Callbacks
+
+React to navigation and context changes:
+
+```tsx
+<Flow
+  flow={myFlow}
+  components={...}
+  initialContext={...}
+  onNext={({ from, to, oldContext, newContext }) => {
+    console.log(`Navigated from ${from} to ${to}`);
+    // oldContext: context before navigation
+    // newContext: context after navigation (may include updates from next())
+  }}
+  onBack={({ from, to, oldContext, newContext }) => {
+    console.log(`Went back from ${from} to ${to}`);
+  }}
+  onTransition={({ from, to, direction, oldContext, newContext }) => {
+    console.log(`Transitioned ${direction} from ${from} to ${to}`);
+    // direction: "forward" or "backward"
+    // Unified callback for all navigation
+  }}
+  onContextUpdate={({ oldContext, newContext }) => {
+    console.log("Context changed");
+  }}
+  onComplete={() => {
+    console.log("Flow completed!");
+  }}
+/>
+```
+
+**Callback Types:**
+- `onNext` - Fires on forward navigation only (includes oldContext and newContext)
+- `onBack` - Fires on backward navigation only (includes oldContext and newContext)
+- `onTransition` - Fires on all navigation (forward or backward, includes direction, oldContext, and newContext)
+- `onContextUpdate` - Fires when context changes
+- `onComplete` - Fires when flow reaches completion
+
+Perfect for analytics, animations, and external state synchronization.
+
 ### Custom Layouts
 
 Control where the current step renders:

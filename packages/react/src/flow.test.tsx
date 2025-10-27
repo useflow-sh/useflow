@@ -678,4 +678,526 @@ describe("FlowStep", () => {
 
     consoleWarnSpy.mockRestore();
   });
+
+  describe("Flow callbacks", () => {
+    it("should call onNext callback when navigating forward", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      const onNext = vi.fn();
+
+      function TestComponent() {
+        const { next } = useFlow();
+        return <button onClick={() => next()}>Next</button>;
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: TestComponent,
+            second: () => <div>Second</div>,
+          })}
+          initialContext={{}}
+          onNext={onNext}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Next"));
+
+      expect(onNext).toHaveBeenCalledTimes(1);
+      expect(onNext).toHaveBeenCalledWith({
+        from: "first",
+        to: "second",
+        oldContext: {},
+        newContext: {},
+      });
+    });
+
+    it("should call onBack callback when navigating backward", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      const onBack = vi.fn();
+
+      function TestComponent() {
+        const { next, back, stepId } = useFlow();
+        return (
+          <div>
+            <div data-testid="stepId">{stepId}</div>
+            <button onClick={() => next()}>Next</button>
+            <button onClick={() => back()}>Back</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: TestComponent,
+            second: TestComponent,
+          })}
+          initialContext={{}}
+          onBack={onBack}
+        />,
+      );
+
+      // Navigate forward first
+      fireEvent.click(screen.getByText("Next"));
+      expect(screen.getByTestId("stepId")).toHaveTextContent("second");
+
+      // Navigate back
+      fireEvent.click(screen.getByText("Back"));
+
+      expect(onBack).toHaveBeenCalledTimes(1);
+      expect(onBack).toHaveBeenCalledWith({
+        from: "second",
+        to: "first",
+        oldContext: {},
+        newContext: {},
+      });
+    });
+
+    it("should call onContextUpdate callback when context changes", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "form",
+        steps: {
+          form: {},
+        },
+      } as const satisfies FlowConfig<{ name: string }>);
+
+      const onContextUpdate = vi.fn();
+
+      function TestComponent() {
+        const { setContext } = useFlow();
+        return (
+          <button onClick={() => setContext({ name: "Alice" })}>
+            Update Context
+          </button>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            form: TestComponent,
+          })}
+          initialContext={{ name: "" }}
+          onContextUpdate={onContextUpdate}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Update Context"));
+
+      expect(onContextUpdate).toHaveBeenCalledTimes(1);
+      expect(onContextUpdate).toHaveBeenCalledWith({
+        oldContext: { name: "" },
+        newContext: { name: "Alice" },
+      });
+    });
+
+    it("should call both onNext and onContextUpdate when navigating with context update", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "menu",
+        steps: {
+          menu: { next: ["option1", "option2"] },
+          option1: {},
+          option2: {},
+        },
+      } as const satisfies FlowConfig<{ choice: string }>);
+
+      const onNext = vi.fn();
+      const onContextUpdate = vi.fn();
+
+      function TestComponent() {
+        const { next } = useFlow();
+        return (
+          <button onClick={() => next("option2", { choice: "option2" })}>
+            Choose Option 2
+          </button>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            menu: TestComponent,
+            option1: () => <div>Option 1</div>,
+            option2: () => <div>Option 2</div>,
+          })}
+          initialContext={{ choice: "" }}
+          onNext={onNext}
+          onContextUpdate={onContextUpdate}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Choose Option 2"));
+
+      expect(onNext).toHaveBeenCalledTimes(1);
+      expect(onNext).toHaveBeenCalledWith({
+        from: "menu",
+        to: "option2",
+        oldContext: { choice: "" },
+        newContext: { choice: "option2" },
+      });
+
+      expect(onContextUpdate).toHaveBeenCalledTimes(1);
+      expect(onContextUpdate).toHaveBeenCalledWith({
+        oldContext: { choice: "" },
+        newContext: { choice: "option2" },
+      });
+    });
+
+    it("should work when no callbacks are provided", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      function TestComponent() {
+        const { next, stepId } = useFlow();
+        return (
+          <div>
+            <div data-testid="stepId">{stepId}</div>
+            <button onClick={() => next()}>Next</button>
+          </div>
+        );
+      }
+
+      // Should not throw when no callbacks provided
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: TestComponent,
+            second: TestComponent,
+          })}
+          initialContext={{}}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Next"));
+      expect(screen.getByTestId("stepId")).toHaveTextContent("second");
+    });
+
+    it("should work when only some callbacks are provided", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      const onNext = vi.fn();
+      // onBack and onContextUpdate not provided
+
+      function TestComponent() {
+        const { next, back } = useFlow();
+        return (
+          <div>
+            <button onClick={() => next()}>Next</button>
+            <button onClick={() => back()}>Back</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: TestComponent,
+            second: TestComponent,
+          })}
+          initialContext={{}}
+          onNext={onNext}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Next"));
+      fireEvent.click(screen.getByText("Back"));
+
+      // onNext should have been called
+      expect(onNext).toHaveBeenCalledTimes(1);
+      // No errors should occur from missing onBack
+    });
+
+    it("should call onTransition callback with forward direction", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<{ count: number }>);
+
+      const onTransition = vi.fn();
+
+      function TestComponent() {
+        const { next, stepId } = useFlow();
+        return (
+          <div>
+            <div data-testid="stepId">{stepId}</div>
+            <button onClick={() => next()}>Next</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: TestComponent,
+            second: TestComponent,
+          })}
+          initialContext={{ count: 0 }}
+          onTransition={onTransition}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Next"));
+
+      expect(onTransition).toHaveBeenCalledTimes(1);
+      expect(onTransition).toHaveBeenCalledWith({
+        from: "first",
+        to: "second",
+        direction: "forward",
+        oldContext: { count: 0 },
+        newContext: { count: 0 },
+      });
+    });
+
+    it("should call onTransition callback with backward direction", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      const onTransition = vi.fn();
+
+      function TestComponent() {
+        const { next, back, stepId } = useFlow();
+        return (
+          <div>
+            <div data-testid="stepId">{stepId}</div>
+            <button onClick={() => next()}>Next</button>
+            <button onClick={() => back()}>Back</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: TestComponent,
+            second: TestComponent,
+          })}
+          initialContext={{}}
+          onTransition={onTransition}
+        />,
+      );
+
+      // Navigate forward
+      fireEvent.click(screen.getByText("Next"));
+
+      // Navigate back
+      fireEvent.click(screen.getByText("Back"));
+
+      expect(onTransition).toHaveBeenCalledTimes(2);
+      expect(onTransition).toHaveBeenNthCalledWith(1, {
+        from: "first",
+        to: "second",
+        direction: "forward",
+        oldContext: {},
+        newContext: {},
+      });
+      expect(onTransition).toHaveBeenNthCalledWith(2, {
+        from: "second",
+        to: "first",
+        direction: "backward",
+        oldContext: {},
+        newContext: {},
+      });
+    });
+
+    it("should call onTransition with updated context", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<{ name: string }>);
+
+      const onTransition = vi.fn();
+
+      function TestComponent() {
+        const { next } = useFlow();
+        return <button onClick={() => next({ name: "Alice" })}>Next</button>;
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: TestComponent,
+            second: () => <div>Second</div>,
+          })}
+          initialContext={{ name: "" }}
+          onTransition={onTransition}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Next"));
+
+      expect(onTransition).toHaveBeenCalledTimes(1);
+      expect(onTransition).toHaveBeenCalledWith({
+        from: "first",
+        to: "second",
+        direction: "forward",
+        oldContext: { name: "" },
+        newContext: { name: "Alice" },
+      });
+    });
+
+    it("should call both onNext and onTransition callbacks", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      const onNext = vi.fn();
+      const onTransition = vi.fn();
+
+      function TestComponent() {
+        const { next } = useFlow();
+        return <button onClick={() => next()}>Next</button>;
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: TestComponent,
+            second: () => <div>Second</div>,
+          })}
+          initialContext={{}}
+          onNext={onNext}
+          onTransition={onTransition}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Next"));
+
+      expect(onNext).toHaveBeenCalledTimes(1);
+      expect(onNext).toHaveBeenCalledWith({
+        from: "first",
+        to: "second",
+        oldContext: {},
+        newContext: {},
+      });
+
+      expect(onTransition).toHaveBeenCalledTimes(1);
+      expect(onTransition).toHaveBeenCalledWith({
+        from: "first",
+        to: "second",
+        direction: "forward",
+        oldContext: {},
+        newContext: {},
+      });
+    });
+
+    it("should call both onBack and onTransition callbacks", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      const onBack = vi.fn();
+      const onTransition = vi.fn();
+
+      function TestComponent() {
+        const { next, back } = useFlow();
+        return (
+          <div>
+            <button onClick={() => next()}>Next</button>
+            <button onClick={() => back()}>Back</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: TestComponent,
+            second: TestComponent,
+          })}
+          initialContext={{}}
+          onBack={onBack}
+          onTransition={onTransition}
+        />,
+      );
+
+      // Navigate forward first
+      fireEvent.click(screen.getByText("Next"));
+
+      // Navigate back
+      fireEvent.click(screen.getByText("Back"));
+
+      expect(onBack).toHaveBeenCalledTimes(1);
+      expect(onBack).toHaveBeenCalledWith({
+        from: "second",
+        to: "first",
+        oldContext: {},
+        newContext: {},
+      });
+
+      expect(onTransition).toHaveBeenCalledTimes(2);
+      expect(onTransition).toHaveBeenNthCalledWith(2, {
+        from: "second",
+        to: "first",
+        direction: "backward",
+        oldContext: {},
+        newContext: {},
+      });
+    });
+  });
 });

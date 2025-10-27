@@ -153,6 +153,26 @@ type FlowProps<TConfig> = {
   components: (flowState) => Record<StepNames, ComponentType>;
   initialContext: ExtractContext<TConfig>;
   onComplete?: () => void;
+  onNext?: (event: {
+    from: StepName;
+    to: StepName;
+    oldContext: TContext;
+    newContext: TContext;
+  }) => void;
+  onBack?: (event: {
+    from: StepName;
+    to: StepName;
+    oldContext: TContext;
+    newContext: TContext;
+  }) => void;
+  onTransition?: (event: {
+    from: StepName;
+    to: StepName;
+    direction: "forward" | "backward";
+    oldContext: TContext;
+    newContext: TContext;
+  }) => void;
+  onContextUpdate?: (event: { oldContext: TContext; newContext: TContext }) => void;
   children?: ReactNode; // Optional for custom layout
 };
 ```
@@ -215,6 +235,7 @@ Hook to access flow state and navigation. Use directly in components or use the 
   context: TContext;           // Current context
   stepId: string;              // Current step ID
   status: "active" | "complete"; // Flow status
+  component: ComponentType | undefined; // Current step's component
   next: (update?) => void;     // Navigate forward
   back: () => void;            // Navigate back
   setContext: (update) => void; // Update context
@@ -442,6 +463,109 @@ function MyFlowLayout() {
   );
 }
 ```
+
+### Flow Callbacks
+
+React to flow navigation events:
+
+```tsx
+<Flow
+  flow={myFlow}
+  components={...}
+  initialContext={...}
+  onNext={({ from, to, oldContext, newContext }) => {
+    console.log(`Navigated from ${from} to ${to}`);
+    // oldContext: context before navigation
+    // newContext: context after navigation (may include updates from next())
+  }}
+  onBack={({ from, to, oldContext, newContext }) => {
+    console.log(`Went back from ${from} to ${to}`);
+  }}
+  onTransition={({ from, to, direction, oldContext, newContext }) => {
+    console.log(`Transitioned ${direction} from ${from} to ${to}`);
+    // direction: "forward" or "backward"
+    // Unified callback for all navigation
+  }}
+  onContextUpdate={({ oldContext, newContext }) => {
+    console.log("Context changed:", { oldContext, newContext });
+    // Sync to external state, localStorage, etc.
+  }}
+  onComplete={() => {
+    console.log("Flow completed!");
+  }}
+/>
+```
+
+**Callback Types:**
+- `onNext` - Fires on forward navigation only (includes oldContext and newContext)
+- `onBack` - Fires on backward navigation only (includes oldContext and newContext)
+- `onTransition` - **Unified callback** that fires on all navigation (forward or backward, includes direction, oldContext, and newContext)
+- `onContextUpdate` - Fires when context changes
+- `onComplete` - Fires when flow reaches completion
+
+**Callback Ordering:**
+When navigating, callbacks fire in this order:
+1. Specific callback (`onNext` or `onBack`)
+2. General callback (`onTransition`)
+3. Context callback (`onContextUpdate` - if context changed)
+
+**Use cases:**
+- **Analytics tracking** - Log step transitions with `onTransition`
+- **Animations** - Use `onTransition` with `direction` to animate forward/backward
+- **Data persistence** - Save context to localStorage with `onContextUpdate`
+- **External state sync** - Update Redux/Zustand stores
+
+**Example: Animations with `onTransition`**
+
+```tsx
+function App() {
+  const [direction, setDirection] = useState<"forward" | "backward">("forward");
+
+  return (
+    <Flow
+      flow={myFlow}
+      components={...}
+      initialContext={...}
+      onTransition={({ direction }) => {
+        setDirection(direction);
+      }}
+    >
+      <AnimatedFlowStep direction={direction} />
+    </Flow>
+  );
+}
+```
+
+### Custom Step Rendering
+
+Access the current component directly for custom rendering:
+
+```tsx
+function AnimatedFlowStep() {
+  const { component: CurrentComponent, stepId } = useFlow();
+  
+  return (
+    <div className="animated-container">
+      {CurrentComponent && (
+        <div key={stepId} className="slide-in">
+          <CurrentComponent />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Use in Flow
+<Flow flow={myFlow} components={...} initialContext={...}>
+  <AnimatedFlowStep />
+</Flow>
+```
+
+This allows you to:
+- Build custom transitions/animations
+- Add loading states
+- Implement cross-fade effects
+- Control component lifecycle
 
 ### Multiple Flows
 

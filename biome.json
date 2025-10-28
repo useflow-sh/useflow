@@ -31,5 +31,17 @@
   "formatter": {
     "indentStyle": "space",
     "indentWidth": 2
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.test.{ts,tsx}"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNonNullAssertion": "off"
+          }
+        }
+      }
+    }
+  ]
 }

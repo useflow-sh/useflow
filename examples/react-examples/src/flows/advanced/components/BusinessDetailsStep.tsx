@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { advancedFlow } from "../flows/advanced-flow";
+import { advancedFlow } from "../flow";
 
 export function BusinessDetailsStep() {
   // Use the hook for automatic type inference!

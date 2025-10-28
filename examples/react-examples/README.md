@@ -1,24 +1,23 @@
-# Vite + React Onboarding Flow Example
+# React Examples - useFlow Demo
 
-This example demonstrates complete user onboarding flows using `@useflow/react`.
+This example demonstrates multiple complete user onboarding flows using `@useflow/react` with a navigatable gallery interface.
 
 ## Features
 
+- **Multiple Flow Examples** with a home page gallery
+- **URL-based Navigation** using React Router v7 (routes persist on page refresh)
+- **Scalable Structure** - easy to add new flow examples
 - **Two complete flows**:
-
   - **Simple Flow**: Linear 4-step onboarding (Welcome → Profile → Preferences → Complete)
   - **Advanced Flow**: Conditional and component-driven branching
-
-- **Multiple navigation patterns demonstrated**:
-
+- **Multiple navigation patterns**:
   - Hook-based components (`useFlow`)
   - Context-driven branching (flow decides based on context)
   - Component-driven branching (component chooses from array of steps)
-
 - **Type-safe state management** with full TypeScript support
-- **Declarative flow control** - define your flow steps once, components render automatically
-- **Conditional routing** - different paths based on user choices
-- **Component reusability** - same `CompleteStep` used in both flows
+- **State persistence** with localStorage
+- **Smooth animations** between steps
+- **Flow debugging tools** with FlowInspector
 
 ## Running the Example
 
@@ -36,29 +35,125 @@ Or from this directory:
 bun run dev
 ```
 
+Navigate to `http://localhost:5173` to see the flow gallery.
+
 ## Project Structure
 
 ```
 src/
-  flows/
-    simple-flow.ts       - Linear onboarding flow
-    advanced-flow.ts     - Flow with conditional branching
-  components/
-    WelcomeStep.tsx           - Hook-based component
-    ProfileStep.tsx           - Hook-based component
-    UserTypeStep.tsx          - Hook-based component (advanced flow)
-    BusinessDetailsStep.tsx    - Hook-based component (advanced flow)
-    SetupPreferenceStep.tsx   - Component-driven branching example
-    PreferencesStep.tsx       - Hook-based component
-    CompleteStep.tsx          - Presentational component (shared)
-    OptionSelector.tsx        - Reusable UI component
-  App.tsx                - Flow renderer and UI
-  App.css                - Styling
+├── flows/
+│   ├── simple/
+│   │   ├── flow.ts              # Simple flow definition
+│   │   ├── FlowDemo.tsx         # Simple flow demo component
+│   │   └── components/          # Components only used in simple flow (currently empty)
+│   └── advanced/
+│       ├── flow.ts              # Advanced flow definition
+│       ├── FlowDemo.tsx         # Advanced flow demo component
+│       └── components/          # Components only used in advanced flow
+│           ├── BusinessDetailsStep.tsx
+│           ├── SetupPreferenceStep.tsx
+│           └── UserTypeStep.tsx
+├── shared-steps/                # Step components shared across flows
+│   ├── CompleteStep.tsx
+│   ├── PreferencesStep.tsx
+│   ├── ProfileStep.tsx
+│   └── WelcomeStep.tsx
+├── components/                  # Reusable UI components
+│   ├── AnimatedFlowStep.css
+│   ├── AnimatedFlowStep.tsx     # Step transition animations
+│   ├── FlowGallery.tsx          # Home page with flow cards
+│   ├── FlowInspector.tsx        # Debug panel for flow state
+│   ├── LoadingView.tsx          # Loading indicator
+│   └── OptionSelector.tsx       # Reusable option selector UI
+├── App.css                       # Global styles
+├── App.tsx                       # React Router setup
+├── index.css                     # Base styles
+└── main.tsx                      # App entry point with BrowserRouter
 ```
+
+## URL Routes
+
+- `/` - Flow gallery home page
+- `/simple` - Simple flow demo
+- `/advanced` - Advanced flow demo
+
+## Adding a New Flow
+
+1. **Create a new flow directory:**
+
+   ```bash
+   mkdir -p src/flows/my-flow/components
+   ```
+
+2. **Define your flow:**
+
+   ```typescript
+   // src/flows/my-flow/flow.ts
+   import { defineFlow } from "@useflow/react";
+
+   export const myFlow = defineFlow({
+     id: "my-flow",
+     start: "step1",
+     steps: {
+       step1: { next: "step2" },
+       step2: { next: "complete" },
+       complete: {},
+     },
+   } as const);
+   ```
+
+3. **Create the FlowDemo component:**
+
+   ```tsx
+   // src/flows/my-flow/FlowDemo.tsx
+   import { Flow } from "@useflow/react";
+   import { myFlow } from "./flow";
+
+   export function MyFlowDemo() {
+     return (
+       <Flow
+         flow={myFlow}
+         components={
+           {
+             /* ... */
+           }
+         }
+         initialContext={
+           {
+             /* ... */
+           }
+         }
+       />
+     );
+   }
+   ```
+
+4. **Add the route to App.tsx:**
+
+   ```tsx
+   import { MyFlowDemo } from "./flows/my-flow/FlowDemo";
+
+   <Route path="/my-flow" element={<MyFlowDemo />} />;
+   ```
+
+5. **Add to the gallery in FlowGallery.tsx:**
+   ```tsx
+   const flows: FlowCard[] = [
+     // ... existing flows
+     {
+       id: "my-flow",
+       title: "My Flow",
+       description: "Description of my flow",
+       path: "/my-flow",
+       complexity: "Simple",
+       features: ["Feature 1", "Feature 2"],
+     },
+   ];
+   ```
 
 ## Flow Definitions
 
-### Simple Flow (simple-flow.ts)
+### Simple Flow
 
 Linear progression through 4 steps:
 
@@ -67,38 +162,15 @@ export const simpleFlow = defineFlow({
   id: "simple-flow",
   start: "welcome",
   steps: {
-    welcome: {
-      next: "profile",
-    },
-    profile: {
-      next: "preferences",
-    },
-    preferences: {
-      next: "complete",
-    },
-    complete: {
-      // No next = final step
-    },
+    welcome: { next: "profile" },
+    profile: { next: "preferences" },
+    preferences: { next: "complete" },
+    complete: {},
   },
-} as const satisfies FlowConfig<SimpleFlowContext>);
+} as const);
 ```
 
-**Components defined at render time:**
-
-```tsx
-<Flow
-  flow={simpleFlow}
-  components={(flowState) => ({
-    welcome: WelcomeStep,
-    profile: ProfileStep,
-    preferences: PreferencesStep,
-    complete: () => <CompleteStep {...flowState.context} />,
-  })}
-  initialContext={{ name: "", ... }}
-/>
-```
-
-### Advanced Flow (advanced-flow.ts)
+### Advanced Flow
 
 Demonstrates both context-driven and component-driven branching:
 
@@ -107,30 +179,22 @@ export const advancedFlow = defineFlow({
   id: "advanced-flow",
   start: "welcome",
   steps: {
-    welcome: {
-      next: "profile",
-    },
-    profile: {
-      next: "userType",
-    },
+    welcome: { next: "profile" },
+    profile: { next: "userType" },
+    // Context-driven branching
     userType: {
-      // Context-driven: Flow decides based on context
       next: (ctx) =>
         ctx.userType === "business" ? "businessDetails" : "setupPreference",
     },
-    businessDetails: {
-      next: "setupPreference",
-    },
+    businessDetails: { next: "setupPreference" },
+    // Component-driven branching
     setupPreference: {
-      // Component-driven: Component explicitly chooses from array
       next: ["preferences", "complete"],
     },
-    preferences: {
-      next: "complete",
-    },
+    preferences: { next: "complete" },
     complete: {},
   },
-} as const satisfies FlowConfig<AdvancedFlowContext>);
+} as const);
 ```
 
 ## Navigation Patterns
@@ -142,8 +206,7 @@ Flow automatically routes based on context values:
 ```tsx
 // In flow definition
 userType: {
-  next: (ctx) =>
-    ctx.userType === "business" ? "businessDetails" : "setupPreference",
+  next: (ctx) => ctx.userType === "business" ? "businessDetails" : "setupPreference",
 }
 
 // In component
@@ -152,7 +215,7 @@ function UserTypeStep() {
 
   const handleSelect = (type: "business" | "personal") => {
     setContext({ userType: type });
-    next(); // Flow decides where to go
+    next(); // Flow decides where to go based on context
   };
 }
 ```
@@ -190,7 +253,7 @@ Most steps use hooks for simplicity:
 
 ```tsx
 function ProfileStep() {
-  const { context, next, back, setContext } = useFlow<FlowContext>();
+  const { context, next, back, setContext } = useFlow();
 
   return (
     <div>
@@ -205,113 +268,20 @@ function ProfileStep() {
 }
 ```
 
-**Pros:**
+## State Persistence
 
-- Direct and simple
-- Less boilerplate
-- Good for flow-specific steps
-
-**Cons:**
-
-- Harder to test in isolation
-- Can't easily reuse across flows
-
-## Key Concepts
-
-### Type Safety
-
-Each flow has its own context type:
+Each flow uses localStorage to persist state across page refreshes:
 
 ```tsx
-type SimpleFlowContext = {
-  name: string;
-  theme?: "light" | "dark";
-  notifications: boolean;
-  startedAt?: number;
-};
-
-type AdvancedFlowContext = {
-  name: string;
-  userType?: "business" | "personal";
-  theme?: "light" | "dark";
-  notifications: boolean;
-  startedAt?: number;
-  // Business-specific fields
-  businessIndustry?: string;
-  companyName?: string;
-};
-```
-
-### Custom Layouts
-
-This example uses `<FlowStep />` to control layout:
-
-```tsx
-<Flow flow={simpleFlow} components={...} initialContext={...}>
-  <FlowState />  {/* Debug component showing current state */}
-  <FlowStep />   {/* Current step renders here */}
-</Flow>
-```
-
-### Component Function
-
-Components are defined as a function receiving `flowState`:
-
-```tsx
-components={(flowState) => ({
-  welcome: WelcomeStep,
-  profile: ProfileStep,
-  // Access flow state for dynamic rendering
-  complete: () => (
-    <CompleteStep
-      name={flowState.context.name}
-      theme={flowState.context.theme}
-    />
-  ),
-})}
-```
-
-This allows:
-
-- Access to current context
-- Access to current stepId
-- Dynamic component selection based on state
-
-## Rendering the Flow
-
-```tsx
-function App() {
-  const [flowType, setFlowType] = useState<"simple" | "advanced">("simple");
-  const [flowKey, setFlowKey] = useState(0);
-
-  return (
-    <>
-      {flowType === "simple" ? (
-        <Flow
-          key={flowKey}
-          flow={simpleFlow}
-          components={(flowState) => ({ ... })}
-          initialContext={{ name: "", theme: undefined, notifications: false }}
-          onComplete={() => alert("Completed!")}
-        >
-          <FlowState />
-          <FlowStep />
-        </Flow>
-      ) : (
-        <Flow
-          key={flowKey}
-          flow={advancedFlow}
-          components={(flowState) => ({ ... })}
-          initialContext={{ ... }}
-          onComplete={() => alert("Completed!")}
-        >
-          <FlowState />
-          <FlowStep />
-        </Flow>
-      )}
-    </>
-  );
-}
+const persister = useMemo(() => {
+  return createPersister({
+    storage: kvJsonStorageAdapter({
+      store: localStorage,
+      prefix: "myapp",
+    }),
+    ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+}, []);
 ```
 
 ## Building
@@ -324,8 +294,6 @@ The built files will be in the `dist/` directory.
 
 ## Learning Resources
 
-After exploring this example, check out:
-
 - [@useflow/react documentation](../../packages/react/README.md)
 - [@useflow/core documentation](../../packages/core/README.md)
-- [Main README](../../README.md) for more patterns
+- [Main README](../../README.md)

@@ -1,5 +1,5 @@
-import { advancedFlow } from "../flows/advanced-flow";
-import { OptionSelector } from "./OptionSelector";
+import { OptionSelector } from "../../../components/OptionSelector";
+import { advancedFlow } from "../flow";
 
 const setupOptions = [
   {

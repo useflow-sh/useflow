@@ -6,7 +6,7 @@ import {
 } from "./components/AnimatedFlowStep";
 import { BusinessDetailsStep } from "./components/BusinessDetailsStep";
 import { CompleteStep } from "./components/CompleteStep";
-import { FlowState } from "./components/FlowState";
+import { FlowInspector } from "./components/FlowInspector";
 import { LoadingView } from "./components/LoadingView";
 import { PreferencesStep } from "./components/PreferencesStep";
 import { ProfileStep } from "./components/ProfileStep";
@@ -24,13 +24,17 @@ function App() {
   const [flowKey, setFlowKey] = useState(0);
   const [direction, setDirection] = useState<Direction>("initial");
 
-  // Create a single persister for all flows with a common prefix
+  // Create storage and persister for all flows with a common prefix
+  const storage = useMemo(() => {
+    return kvJsonStorageAdapter({
+      store: localStorage,
+      prefix: "myapp",
+    });
+  }, []);
+
   const persister = useMemo(() => {
     return createPersister({
-      storage: kvJsonStorageAdapter({
-        store: localStorage,
-        prefix: "myapp",
-      }),
+      storage,
       ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
   }, []);
@@ -91,7 +95,7 @@ function App() {
           saveDebounce={300}
           loadingComponent={<LoadingView />}
         >
-          <FlowState />
+          <FlowInspector flowId={simpleFlow.id} storage={storage} />
           <AnimatedFlowStep direction={direction} />
         </Flow>
       ) : (
@@ -135,7 +139,7 @@ function App() {
           saveDebounce={300}
           loadingComponent={<LoadingView />}
         >
-          <FlowState />
+          <FlowInspector flowId={advancedFlow.id} storage={storage} />
           <AnimatedFlowStep direction={direction} />
         </Flow>
       )}

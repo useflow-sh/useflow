@@ -260,6 +260,7 @@ React to navigation and context changes:
 ```
 
 **Callback Types:**
+
 - `onNext` - Fires on forward navigation only (includes oldContext and newContext)
 - `onBack` - Fires on backward navigation only (includes oldContext and newContext)
 - `onTransition` - Fires on all navigation (forward or backward, includes direction, oldContext, and newContext)
@@ -303,11 +304,13 @@ function App() {
 ```
 
 **Built-in Persisters:**
+
 - `createLocalStoragePersister()` - Saves to browser localStorage
 - `createSessionStoragePersister()` - Saves to sessionStorage (cleared on tab close)
 - `createMemoryPersister()` - In-memory storage for testing
 
 **Features:**
+
 - ✅ **Single persister for multiple flows** - One persister instance handles all your flows
 - ✅ **Automatic storage keys** - Uses flow ID to prevent conflicts: `prefix:flowId`
 - ✅ **Automatic save/restore** - Debounced saves, automatic restoration on mount
@@ -352,22 +355,23 @@ const persister = createLocalStoragePersister({ prefix: "myapp" });
 
 // Multiple instances with separate state
 // Storage keys: "myapp:feedback:task-123" and "myapp:feedback:task-456"
-<Flow 
-  flow={feedbackFlow} 
+<Flow
+  flow={feedbackFlow}
   instanceId="task-123"  // Unique instance
-  persister={persister} 
-  {...props} 
+  persister={persister}
+  {...props}
 />
 
-<Flow 
-  flow={feedbackFlow} 
+<Flow
+  flow={feedbackFlow}
   instanceId="task-456"  // Different instance
-  persister={persister} 
-  {...props} 
+  persister={persister}
+  {...props}
 />
 ```
 
 Perfect for:
+
 - 📝 **Task-specific feedback** - Same flow, different tasks
 - 🎫 **Multi-item checkout** - Per-item configuration flows
 - 📊 **Per-entity forms** - Reusable forms for different entities
@@ -455,6 +459,7 @@ const persister = createLocalStoragePersister({
 ```
 
 Perfect for:
+
 - 📝 **Long forms** - Don't lose user input on page refresh
 - 🛒 **Checkout flows** - Resume where users left off
 - 📊 **Surveys** - Save progress between sessions
@@ -478,7 +483,7 @@ Control where the current step renders:
 
 ## Examples
 
-See the [vite-react example](./examples/vite-react) for complete working implementations:
+See the [react-examples example](./examples/react-examples) for complete working implementations:
 
 - **Simple Flow** - Linear step-by-step navigation
 - **Advanced Flow** - Conditional branching with business/personal paths
@@ -541,7 +546,7 @@ bun test
 bun run build
 
 # Run example app
-cd examples/vite-react
+cd examples/react-examples
 bun dev
 ```
 

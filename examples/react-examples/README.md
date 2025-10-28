@@ -26,7 +26,7 @@ From the repository root:
 
 ```bash
 bun install
-cd examples/vite-react
+cd examples/react-examples
 bun run dev
 ```
 

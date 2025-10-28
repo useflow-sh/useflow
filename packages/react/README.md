@@ -1462,7 +1462,7 @@ function ProfileStep() {
 
 ## Examples
 
-See the [vite-react example](../../examples/vite-react) for complete implementations:
+See the [react-examples example](../../examples/react-examples) for complete implementations:
 
 - **Simple Flow** - Linear step-by-step navigation
 - **Advanced Flow** - Conditional branching with business/personal paths

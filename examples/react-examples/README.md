@@ -1,23 +1,18 @@
 # React Examples - useFlow Demo
 
-This example demonstrates multiple complete user onboarding flows using `@useflow/react` with a navigatable gallery interface.
+Interactive demonstration of `@useflow/react` featuring multiple complete flow examples with a navigatable gallery interface.
 
 ## Features
 
-- **Multiple Flow Examples** with a home page gallery
-- **URL-based Navigation** using React Router v7 (routes persist on page refresh)
-- **Scalable Structure** - easy to add new flow examples
-- **Two complete flows**:
-  - **Simple Flow**: Linear 4-step onboarding (Welcome → Profile → Preferences → Complete)
-  - **Branching Flow**: Conditional and component-driven branching
-- **Multiple navigation patterns**:
-  - Hook-based components (`useFlow`)
-  - Context-driven branching (flow decides based on context)
-  - Component-driven branching (component chooses from array of steps)
-- **Type-safe state management** with full TypeScript support
-- **State persistence** with localStorage
-- **Smooth animations** between steps
-- **Flow debugging tools** with FlowInspector
+- **4 Complete Flow Examples** showcasing different patterns and use cases
+- **Interactive Gallery** with flow cards and descriptions
+- **Drawer Navigation** for easy switching between flows
+- **URL-based Routing** using React Router v7 (routes persist on refresh)
+- **localStorage Persistence** - all flows save state automatically (try refreshing!)
+- **Smooth Animations** - slide-up transitions between steps
+- **Debug Tools** - FlowInspector and FlowVisualizer overlays
+- **Type-safe** - Full TypeScript support throughout
+- **Reset Functionality** - Clear all flow progress from home page
 
 ## Running the Example
 
@@ -179,31 +174,56 @@ src/
 ├── flows/
 │   ├── simple/
 │   │   ├── flow.ts              # Simple flow definition
-│   │   ├── FlowDemo.tsx         # Simple flow demo component
-│   │   └── components/          # Components only used in simple flow (currently empty)
-│   └── branching/
-│       ├── flow.ts              # Branching flow definition
-│       ├── FlowDemo.tsx         # Branching flow demo component
-│       └── components/          # Components only used in advanced flow
-│           ├── BusinessDetailsStep.tsx
-│           ├── SetupPreferenceStep.tsx
-│           └── UserTypeStep.tsx
-├── shared-steps/                # Step components shared across flows
+│   │   └── FlowDemo.tsx         # Flow demo component
+│   ├── branching/
+│   │   ├── flow.ts              # Branching flow definition
+│   │   ├── FlowDemo.tsx         # Flow demo component
+│   │   └── components/          # Branching-specific steps
+│   │       ├── BusinessDetailsStep.tsx
+│   │       ├── SetupPreferenceStep.tsx
+│   │       └── UserTypeStep.tsx
+│   ├── task/
+│   │   ├── flow.ts              # Task flow definition
+│   │   ├── FlowDemo.tsx         # Flow demo component
+│   │   └── components/          # Task-specific steps
+│   │       ├── AssignStep.tsx
+│   │       ├── DetailsStep.tsx
+│   │       ├── ReviewStep.tsx
+│   │       ├── TaskCompleteStep.tsx
+│   │       └── TaskTypeStep.tsx
+│   └── survey/
+│       ├── flow.ts              # Survey flow definition
+│       ├── FlowDemo.tsx         # Flow demo component
+│       └── components/          # Survey-specific steps
+│           ├── IntroStep.tsx
+│           ├── QuestionStep.tsx
+│           ├── RatingInput.tsx
+│           └── ResultsStep.tsx
+├── shared-steps/                # Steps shared across flows
 │   ├── CompleteStep.tsx
 │   ├── PreferencesStep.tsx
 │   ├── ProfileStep.tsx
 │   └── WelcomeStep.tsx
 ├── components/                  # Reusable UI components
-│   ├── AnimatedFlowStep.css
+│   ├── ui/                      # shadcn/ui components
+│   │   ├── button.tsx
+│   │   ├── card.tsx
+│   │   ├── input.tsx
+│   │   ├── label.tsx
+│   │   └── switch.tsx
 │   ├── AnimatedFlowStep.tsx     # Step transition animations
-│   ├── FlowGallery.tsx          # Home page with flow cards
-│   ├── FlowInspector.tsx        # Debug panel for flow state
+│   ├── FlowGallery.tsx          # Home page gallery
+│   ├── FlowInspector.tsx        # Debug panel (bottom-right)
+│   ├── FlowVisualizer.tsx       # Flow structure diagram (bottom-left)
 │   ├── LoadingView.tsx          # Loading indicator
-│   └── OptionSelector.tsx       # Reusable option selector UI
-├── App.css                       # Global styles
-├── App.tsx                       # React Router setup
-├── index.css                     # Base styles
-└── main.tsx                      # App entry point with BrowserRouter
+│   ├── OptionSelector.tsx       # Option selector UI
+│   └── SideNav.tsx              # Drawer navigation
+├── lib/
+│   ├── storage.ts               # Storage and persister setup
+│   └── utils.ts                 # Utility functions
+├── App.tsx                      # React Router setup
+├── index.css                    # Global styles + animations
+└── main.tsx                     # App entry point
 ```
 
 ## URL Routes
@@ -211,20 +231,130 @@ src/
 - `/` - Flow gallery home page
 - `/simple` - Simple flow demo
 - `/branching` - Branching flow demo
+- `/task` - Task flow demo
+- `/survey` - Survey flow demo
+
+## Navigation
+
+### Drawer Menu
+
+- Hamburger button (top-left) opens navigation drawer
+- All flows accessible from any page
+- Auto-closes on navigation
+- Shows active flow
+
+### Home Page
+
+- Flow cards with descriptions and features
+- Complexity badges (Simple, Intermediate, Advanced)
+- "Reset All Flows" button to clear all saved data
+- Persistence notice
+
+## Debug Tools
+
+### FlowInspector (Bottom-Right)
+
+- Current flow state (status, step, history, context)
+- Persisted state (with storage key)
+- Clear current flow button
+- Clear all flows button
+- Collapsible with smooth animation
+
+### FlowVisualizer (Bottom-Left - Simple & Branching Flows)
+
+- Visual flow structure diagram
+- Current step highlighting
+- Completed steps marked with checkmarks
+- Connection bars show traversed paths
+- Branching paths displayed
+- Semi-transparent overlay
+
+### Event Log (Bottom-Left - Survey Flow)
+
+- Real-time event tracking
+- Color-coded event types (NEXT, BACK, TRANSITION, COMPLETE)
+- Timestamps for each event
+- Shows last 10 events
+- Semi-transparent overlay
+
+## State Persistence
+
+All flows use `saveMode="always"` for instant localStorage persistence:
+
+```tsx
+<Flow
+  flow={myFlow}
+  persister={persister}
+  saveMode="always" // Saves on every state change
+  {...props}
+/>
+```
+
+**Persistence Strategy:**
+
+- `saveMode="always"` - Saves immediately on every update (no debounce)
+- Perfect for localStorage (fast, synchronous)
+- Progress survives page refreshes
+- Can be cleared via FlowInspector or home page button
+
+**Storage Setup:**
+
+```typescript
+// lib/storage.ts
+export const storage = kvJsonStorageAdapter({
+  store: localStorage,
+  prefix: "useflow-examples",
+});
+
+export const persister = createPersister({
+  storage,
+  ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
+});
+```
+
+## Animations
+
+### Step Transitions
+
+Smooth slide-up animations defined in `index.css`:
+
+```css
+.flow-step-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.flow-step-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+```
+
+### Component Animations
+
+- FlowInspector: Smooth expand/collapse with rotating arrow
+- Task details: Animated accordion expansion
+- Navigation drawer: Slide-in from left
+- All use CSS transitions for 60fps performance
 
 ## Adding a New Flow
 
-1. **Create a new flow directory:**
+1. **Create flow directory:**
 
    ```bash
    mkdir -p src/flows/my-flow/components
    ```
 
-2. **Define your flow:**
+2. **Define flow:**
 
    ```typescript
    // src/flows/my-flow/flow.ts
    import { defineFlow } from "@useflow/react";
+
+   export type MyFlowContext = {
+     // Define your context type
+   };
 
    export const myFlow = defineFlow({
      id: "my-flow",
@@ -237,106 +367,84 @@ src/
    } as const);
    ```
 
-3. **Create the FlowDemo component:**
+3. **Create demo component:**
 
    ```tsx
    // src/flows/my-flow/FlowDemo.tsx
    import { Flow } from "@useflow/react";
+   import { persister, storage } from "../../lib/storage";
+   import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
+   import { FlowInspector } from "../../components/FlowInspector";
+   import { LoadingView } from "../../components/LoadingView";
    import { myFlow } from "./flow";
 
    export function MyFlowDemo() {
      return (
        <Flow
          flow={myFlow}
-         components={
-           {
-             /* ... */
-           }
-         }
-         initialContext={
-           {
-             /* ... */
-           }
-         }
-       />
+         components={{
+           step1: Step1Component,
+           step2: Step2Component,
+           complete: CompleteComponent,
+         }}
+         initialContext={{}}
+         persister={persister}
+         saveMode="always"
+         loadingComponent={<LoadingView />}
+       >
+         <FlowInspector flowId={myFlow.id} storage={storage} position="right" />
+         <AnimatedFlowStep />
+       </Flow>
      );
    }
    ```
 
-4. **Add the route to App.tsx:**
+4. **Add route:**
 
    ```tsx
+   // App.tsx
    import { MyFlowDemo } from "./flows/my-flow/FlowDemo";
 
    <Route path="/my-flow" element={<MyFlowDemo />} />;
    ```
 
-5. **Add to the gallery in FlowGallery.tsx:**
+5. **Add to gallery and navigation:**
+
    ```tsx
+   // components/FlowGallery.tsx
    const flows: FlowCard[] = [
      // ... existing flows
      {
        id: "my-flow",
        title: "My Flow",
-       description: "Description of my flow",
+       description: "Description here",
        path: "/my-flow",
        complexity: "Simple",
-       features: ["Feature 1", "Feature 2"],
+       features: ["Feature 1", "Feature 2", "Feature 3", "Feature 4"],
+       icon: <YourIcon className="h-6 w-6" />,
      },
    ];
    ```
 
-## Flow Definitions
-
-### Simple Flow
-
-Linear progression through 4 steps:
-
-```tsx
-export const simpleFlow = defineFlow({
-  id: "simple-flow",
-  start: "welcome",
-  steps: {
-    welcome: { next: "profile" },
-    profile: { next: "preferences" },
-    preferences: { next: "complete" },
-    complete: {},
-  },
-} as const);
-```
-
-### Advanced Flow
-
-Demonstrates both context-driven and component-driven branching:
-
-```tsx
-export const advancedFlow = defineFlow({
-  id: "advanced-flow",
-  start: "welcome",
-  steps: {
-    welcome: { next: "profile" },
-    profile: { next: "userType" },
-    // Context-driven branching
-    userType: {
-      next: (ctx) =>
-        ctx.userType === "business" ? "businessDetails" : "setupPreference",
-    },
-    businessDetails: { next: "setupPreference" },
-    // Component-driven branching
-    setupPreference: {
-      next: ["preferences", "complete"],
-    },
-    preferences: { next: "complete" },
-    complete: {},
-  },
-} as const);
-```
+   ```tsx
+   // components/SideNav.tsx
+   const navItems = [
+     // ... existing items
+     {
+       id: "my-flow",
+       label: "My Flow",
+       path: "/my-flow",
+       icon: <YourIcon className="h-5 w-5" />,
+       description: "Short description",
+     },
+   ];
+   ```
 
 ## Navigation Patterns
 
 ### Pattern 1: Context-Driven Branching
 
-Flow automatically routes based on context values:
+Flow automatically routes based on context:
 
 ```tsx
 // In flow definition
@@ -350,19 +458,19 @@ function UserTypeStep() {
 
   const handleSelect = (type: "business" | "personal") => {
     setContext({ userType: type });
-    next(); // Flow decides where to go based on context
+    next(); // Flow decides destination
   };
 }
 ```
 
 ### Pattern 2: Component-Driven Branching
 
-Component explicitly chooses which step to navigate to:
+Component explicitly chooses destination:
 
 ```tsx
 // In flow definition
 setupPreference: {
-  next: ["preferences", "complete"],  // Array of possible steps
+  next: ["preferences", "complete"],  // Array of options
 }
 
 // In component
@@ -371,52 +479,53 @@ function SetupPreferenceStep() {
 
   return (
     <>
-      <button onClick={() => next("preferences")}>
-        Configure Preferences
-      </button>
-      <button onClick={() => next("complete")}>
-        Skip Setup
-      </button>
+      <button onClick={() => next("preferences")}>Configure</button>
+      <button onClick={() => next("complete")}>Skip</button>
     </>
   );
 }
 ```
 
-### Pattern 3: Hook-Based Components
+### Pattern 3: Multi-Instance Flows
 
-Most steps use hooks for simplicity:
+Reusable flows with independent state:
 
 ```tsx
-function ProfileStep() {
-  const { context, next, back, setContext } = useFlow();
+// Generate unique instance ID
+const taskId = `task-${Date.now()}`;
 
-  return (
-    <div>
-      <input
-        value={context.name}
-        onChange={(e) => setContext({ name: e.target.value })}
-      />
-      <button onClick={back}>Back</button>
-      <button onClick={() => next()}>Next</button>
-    </div>
-  );
-}
+<Flow
+  flow={taskFlow}
+  instanceId={taskId} // Each instance has separate storage
+  persister={persister}
+  {...props}
+/>;
+
+// List all instances
+const instances = await storage.listInstances?.(taskFlow.id);
 ```
 
-## State Persistence
+### Pattern 4: Event Hooks
 
-Each flow uses localStorage to persist state across page refreshes:
+React to flow transitions:
 
 ```tsx
-const persister = useMemo(() => {
-  return createPersister({
-    storage: kvJsonStorageAdapter({
-      store: localStorage,
-      prefix: "myapp",
-    }),
-    ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
-  });
-}, []);
+<Flow
+  flow={surveyFlow}
+  onNext={({ from, to, newContext }) => {
+    console.log(`Moving from ${from} to ${to}`);
+  }}
+  onBack={({ from, to }) => {
+    console.log(`Going back from ${from} to ${to}`);
+  }}
+  onTransition={({ from, to, direction }) => {
+    console.log(`Transition: ${from} → ${to} (${direction})`);
+  }}
+  onComplete={() => {
+    console.log("Flow completed!");
+  }}
+  {...props}
+/>
 ```
 
 ## Building
@@ -425,7 +534,18 @@ const persister = useMemo(() => {
 bun run build
 ```
 
-The built files will be in the `dist/` directory.
+Built files will be in `dist/`.
+
+## Key Learnings
+
+Each flow demonstrates different aspects of `@useflow/react`:
+
+1. **Simple Flow** - Foundation (linear steps, hooks, persistence)
+2. **Branching Flow** - Advanced routing (dynamic paths, multiple patterns)
+3. **Task Flow** - Scalability (multi-instance, draft management)
+4. **Survey Flow** - Observability (event hooks, progress tracking)
+
+Together they showcase a complete picture of building production-ready flows.
 
 ## Learning Resources
 

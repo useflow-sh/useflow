@@ -371,6 +371,30 @@ describe("Flow", () => {
     expect(screen.getByTestId("name")).toHaveTextContent("Alice");
     expect(screen.getByTestId("step")).toHaveTextContent("test");
   });
+
+  it("should render components from components dictionary", () => {
+    const flow = defineFlow({
+      id: "test",
+      start: "step1",
+      steps: {
+        step1: { next: "step2" },
+        step2: {},
+      },
+    } as const satisfies FlowConfig<object>);
+
+    render(
+      <Flow
+        flow={flow}
+        components={{
+          step1: () => <div data-testid="step1">Step 1</div>,
+          step2: () => <div data-testid="step2">Step 2</div>,
+        }}
+        initialContext={{}}
+      />,
+    );
+
+    expect(screen.getByTestId("step1")).toBeInTheDocument();
+  });
 });
 
 describe("useFlow", () => {
@@ -722,8 +746,8 @@ describe("FlowStep", () => {
     render(
       <Flow
         flow={flow}
+        // @ts-expect-error - Testing missing component
         components={() => ({
-          // @ts-expect-error - Testing missing component
           test: undefined,
         })}
         initialContext={{}}

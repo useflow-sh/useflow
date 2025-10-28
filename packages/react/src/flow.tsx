@@ -72,10 +72,22 @@ type ComponentsFunction<TConfig extends FlowConfig<any>> = (flowState: {
   // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
 }) => Record<StepNames<TConfig>, ComponentType<any>>;
 
+// biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
+type ComponentsDict<TConfig extends FlowConfig<any>> = Record<
+  StepNames<TConfig>,
+  // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
+  ComponentType<any>
+>;
+
+// biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
+type ComponentsProp<TConfig extends FlowConfig<any>> =
+  | ComponentsDict<TConfig>
+  | ComponentsFunction<TConfig>;
+
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
 type FlowProps<TConfig extends FlowConfig<any>> = {
   flow: FlowDefinition<TConfig>;
-  components: ComponentsFunction<TConfig>;
+  components: ComponentsProp<TConfig>;
   initialContext: ExtractContext<TConfig>;
   instanceId?: string;
   onComplete?: () => void;
@@ -365,17 +377,33 @@ export function Flow<TConfig extends FlowConfig<any>>({
     onPersistenceError,
   ]);
 
-  // Resolve components as a function with flow state
-  const resolvedComponents = components({
-    context: flowState.context,
-    stepId: flowState.stepId as StepNames<TConfig>,
-    status: flowState.status,
-    history: flowState.history,
-    next: wrappedNext,
-    back: wrappedBack,
-    setContext: wrappedSetContext,
-    isRestoring,
-  });
+  // Resolve components - either use directly if dict, or call function if it's a function
+  const resolvedComponents = useMemo(
+    () =>
+      typeof components === "function"
+        ? components({
+            context: flowState.context,
+            stepId: flowState.stepId as StepNames<TConfig>,
+            status: flowState.status,
+            history: flowState.history,
+            next: wrappedNext,
+            back: wrappedBack,
+            setContext: wrappedSetContext,
+            isRestoring,
+          })
+        : components,
+    [
+      components,
+      flowState.context,
+      flowState.stepId,
+      flowState.status,
+      flowState.history,
+      wrappedNext,
+      wrappedBack,
+      wrappedSetContext,
+      isRestoring,
+    ],
+  );
 
   // Build RuntimeFlowDefinition with resolved components
   const flowDefinition = useMemo(

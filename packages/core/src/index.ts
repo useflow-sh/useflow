@@ -2,6 +2,7 @@
 export type {
   FlowPersister,
   FlowStorage,
+  KVFlowStorage,
   KVJSONStorageAdapterOptions,
   PersistedFlowState,
   PersisterOptions,

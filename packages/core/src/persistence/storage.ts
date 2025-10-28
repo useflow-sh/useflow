@@ -55,3 +55,38 @@ export interface FlowStorage {
    */
   removeAll?(): Promise<void> | void;
 }
+
+/**
+ * Extended FlowStorage interface for key-value based storage adapters
+ *
+ * This interface extends FlowStorage with a getKey() method that exposes
+ * the storage key format. This is useful for:
+ * - Debugging and inspection tools
+ * - Logging storage operations
+ * - Manual key inspection in dev tools
+ * - Data migration utilities
+ *
+ * Implement this interface if your storage adapter uses string keys
+ * (localStorage, sessionStorage, Redis, etc.)
+ *
+ * @example
+ * ```ts
+ * const storage: KVFlowStorage = kvJsonStorageAdapter({
+ *   store: localStorage,
+ *   prefix: "myapp"
+ * });
+ *
+ * // Can inspect the actual key being used
+ * const key = storage.getKey("onboarding");
+ * console.log(key); // "myapp:onboarding"
+ * ```
+ */
+export interface KVFlowStorage extends FlowStorage {
+  /**
+   * Get the storage key for a flow ID and optional instance ID
+   * @param flowId - Flow identifier
+   * @param instanceId - Optional instance identifier for reusable flows
+   * @returns The storage key used for this flow
+   */
+  getKey(flowId: string, instanceId?: string): string;
+}

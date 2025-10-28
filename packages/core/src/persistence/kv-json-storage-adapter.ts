@@ -40,7 +40,7 @@
  */
 
 import { deserializeFlowState, type PersistedFlowState } from "./state";
-import type { FlowStorage } from "./storage";
+import type { KVFlowStorage } from "./storage";
 
 /**
  * Options for KV JSON storage adapter
@@ -129,7 +129,7 @@ export type KVJSONStorageAdapterOptions = {
  */
 export function kvJsonStorageAdapter(
   options: KVJSONStorageAdapterOptions,
-): FlowStorage {
+): KVFlowStorage {
   const { store, prefix = "useflow" } = options;
 
   // Build key function - ALWAYS adds prefix
@@ -190,5 +190,7 @@ export function kvJsonStorageAdapter(
         }
       });
     },
+
+    getKey,
   };
 }

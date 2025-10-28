@@ -29,4 +29,4 @@ export {
   validatePersistedState,
 } from "./state";
 // Storage
-export type { FlowStorage } from "./storage";
+export type { FlowStorage, KVFlowStorage } from "./storage";

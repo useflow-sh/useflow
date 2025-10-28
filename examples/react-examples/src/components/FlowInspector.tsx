@@ -1,4 +1,4 @@
-import type { FlowStorage, PersistedFlowState } from "@useflow/react";
+import type { KVFlowStorage, PersistedFlowState } from "@useflow/react";
 import { useFlow } from "@useflow/react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ export function FlowInspector({
   storage,
 }: {
   flowId: string;
-  storage: FlowStorage;
+  storage: KVFlowStorage;
 }) {
   const { context, stepId, status, history, isRestoring } = useFlow();
   const [showDebug, setShowDebug] = useState(true);
@@ -105,7 +105,7 @@ export function FlowInspector({
               )}
             </div>
             <div className="text-[0.65rem] text-muted-foreground">
-              Key: <code>myapp:{flowId}</code>
+              Key: <code>{storage.getKey(flowId)}</code>
             </div>
           </div>
 

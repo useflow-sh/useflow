@@ -1,4 +1,4 @@
-import type { PersistedFlowState } from "./state";
+import type { PersistedFlowState } from "../types";
 
 /**
  * Flow storage interface
@@ -106,10 +106,10 @@ export interface FlowStorage {
  */
 export interface KVFlowStorage extends FlowStorage {
   /**
-   * Get the storage key for a flow ID and optional instance ID
+   * Format a storage key for a flow ID and optional instance ID
    * @param flowId - Flow identifier
    * @param instanceId - Optional instance identifier for reusable flows
-   * @returns The storage key used for this flow
+   * @returns The storage key to use for this flow
    */
-  getKey(flowId: string, instanceId?: string): string;
+  formatKey(flowId: string, instanceId?: string): string;
 }

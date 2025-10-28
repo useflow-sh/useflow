@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import type { PersistedFlowState } from "../types";
 import { createPersister } from "./persister";
-import type { PersistedFlowState } from "./state";
 import type { FlowStorage } from "./storage";
 
 describe("createPersister", () => {

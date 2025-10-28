@@ -4,7 +4,6 @@ export type {
   FlowStorage,
   KVFlowStorage,
   KVJSONStorageAdapterOptions,
-  PersistedFlowState,
   PersisterOptions,
   ValidationResult,
 } from "./persistence";
@@ -12,9 +11,7 @@ export {
   createMemoryStorage,
   createPersister,
   deserializeFlowState,
-  extractPersistedState,
   kvJsonStorageAdapter,
-  restoreFlowState,
   serializeFlowState,
   validatePersistedState,
 } from "./persistence";
@@ -31,6 +28,7 @@ export type {
   FlowContext,
   FlowDefinition,
   FlowState,
+  PersistedFlowState,
   StepDefinition,
   StepTransition,
 } from "./types";

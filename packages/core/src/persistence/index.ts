@@ -20,11 +20,9 @@ export { createMemoryStorage } from "./memory";
 export type { FlowPersister, PersisterOptions } from "./persister";
 export { createPersister } from "./persister";
 // State utilities
-export type { PersistedFlowState, ValidationResult } from "./state";
+export type { ValidationResult } from "./state";
 export {
   deserializeFlowState,
-  extractPersistedState,
-  restoreFlowState,
   serializeFlowState,
   validatePersistedState,
 } from "./state";

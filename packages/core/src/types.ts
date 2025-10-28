@@ -36,10 +36,13 @@ export type StepDefinition<TContext extends FlowContext = FlowContext> = {
 };
 
 /**
- * Persisted state structure (simplified for migration typing)
- * Full type is in persistence module to avoid circular dependencies
+ * Persistable flow state - can be serialized to JSON
+ * Includes optional metadata for versioning, TTL, etc.
+ *
+ * Note: This type accepts any FlowContext. Type safety is enforced
+ * at the Flow component level, not at the storage/persister level.
  */
-export type PersistedState<TContext extends FlowContext = FlowContext> = {
+export type PersistedFlowState<TContext extends FlowContext = FlowContext> = {
   stepId: string;
   context: TContext;
   history: string[];
@@ -47,6 +50,7 @@ export type PersistedState<TContext extends FlowContext = FlowContext> = {
   __meta?: {
     savedAt?: number;
     version?: string;
+    instanceId?: string;
     [key: string]: unknown;
   };
 };
@@ -135,9 +139,9 @@ export type FlowDefinition<TContext extends FlowContext = FlowContext> = {
    * ```
    */
   migrate?: (
-    persistedState: PersistedState<TContext>,
+    persistedState: PersistedFlowState<TContext>,
     fromVersion: string | undefined,
-  ) => PersistedState<TContext> | null;
+  ) => PersistedFlowState<TContext> | null;
 };
 
 /**

@@ -11,7 +11,7 @@
  * ```
  */
 
-import type { PersistedFlowState } from "./state";
+import type { PersistedFlowState } from "../types";
 import type { FlowStorage } from "./storage";
 
 /**

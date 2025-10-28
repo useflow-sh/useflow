@@ -1,4 +1,4 @@
-import type { PersistedFlowState } from "./state";
+import type { FlowState, PersistedFlowState } from "../types";
 import type { FlowStorage } from "./storage";
 
 /**
@@ -150,6 +150,7 @@ export function createPersister(options: PersisterOptions): FlowPersister {
           __meta: {
             savedAt: Date.now(),
             version: saveOptions?.version,
+            instanceId: saveOptions?.instanceId,
           },
         };
         await storage.set(flowId, withMeta, saveOptions?.instanceId);

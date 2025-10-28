@@ -1,23 +1,4 @@
-import type { FlowContext, FlowDefinition, FlowState } from "../types";
-
-/**
- * Persistable flow state - can be serialized to JSON
- * Includes optional metadata for versioning, TTL, etc.
- *
- * Note: This type accepts any FlowContext. Type safety is enforced
- * at the Flow component level, not at the storage/persister level.
- */
-export type PersistedFlowState<TContext extends FlowContext = FlowContext> = {
-  stepId: string;
-  context: TContext;
-  history: string[];
-  status: "active" | "complete";
-  __meta?: {
-    savedAt?: number;
-    version?: string;
-    [key: string]: unknown;
-  };
-};
+import type { FlowContext, FlowDefinition, PersistedFlowState } from "../types";
 
 /**
  * Validation result
@@ -26,37 +7,6 @@ export type ValidationResult = {
   valid: boolean;
   errors?: string[];
 };
-
-/**
- * Extract persistable state from FlowState
- * Removes any non-serializable data and optionally adds metadata
- */
-export function extractPersistedState<TContext extends FlowContext>(
-  state: FlowState<TContext>,
-  meta?: Record<string, unknown>,
-): PersistedFlowState<TContext> {
-  return {
-    stepId: state.stepId,
-    context: state.context,
-    history: [...state.history],
-    status: state.status,
-    __meta: meta,
-  };
-}
-
-/**
- * Convert persisted state back to FlowState
- */
-export function restoreFlowState<TContext extends FlowContext>(
-  persisted: PersistedFlowState<TContext>,
-): FlowState<TContext> {
-  return {
-    stepId: persisted.stepId,
-    context: persisted.context,
-    history: [...persisted.history],
-    status: persisted.status,
-  };
-}
 
 /**
  * Validate that persisted state is compatible with flow definition

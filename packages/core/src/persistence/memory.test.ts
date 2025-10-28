@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { PersistedFlowState } from "../types";
 import { createMemoryStorage } from "./memory";
-import type { PersistedFlowState } from "./state";
 
 describe("createMemoryStorage", () => {
   it("should get state from memory", () => {

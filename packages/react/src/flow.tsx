@@ -300,8 +300,13 @@ export function Flow<TConfig extends FlowConfig<any>>({
       }
     }
 
+    // Handle onComplete callback
+    if (flowState.status === "complete" && prevState.status !== "complete") {
+      onComplete?.();
+    }
+
     previousStateRef.current = flowState;
-  }, [flowState, onNext, onBack, onTransition, onContextUpdate]);
+  }, [flowState, onNext, onBack, onTransition, onContextUpdate, onComplete]);
 
   // Handle persistence
   useEffect(() => {
@@ -359,13 +364,6 @@ export function Flow<TConfig extends FlowConfig<any>>({
     onSave,
     onPersistenceError,
   ]);
-
-  // Handle completion
-  useEffect(() => {
-    if (flowState.status === "complete") {
-      onComplete?.();
-    }
-  }, [flowState.status, onComplete]);
 
   // Resolve components as a function with flow state
   const resolvedComponents = components({

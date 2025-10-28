@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { defineFlow } from "./define-flow";
 import { Flow, FlowStep, useFlow } from "./flow";
@@ -211,6 +212,69 @@ describe("Flow", () => {
     fireEvent.click(screen.getByText("Go to Complete"));
 
     expect(onComplete).toHaveBeenCalled();
+  });
+  it("should call onComplete only once when callback is redefined each render", () => {
+    const flow = defineFlow({
+      id: "test",
+      start: "active",
+      steps: {
+        active: {
+          next: "complete",
+        },
+        complete: {
+          // No next = final step
+        },
+      },
+    } as const satisfies FlowConfig<object>);
+
+    const onCompleteSpy = vi.fn();
+
+    function TestComponent() {
+      const { next } = useFlow();
+      return <button onClick={() => next()}>Go to Complete</button>;
+    }
+
+    function ParentComponent() {
+      const [count, setCount] = useState(0);
+
+      // This creates a new function on every render AND causes parent to re-render
+      const handleComplete = () => {
+        onCompleteSpy();
+        // Stop re-rendering after 10 times to prevent infinite loop in tests
+        if (count < 10) {
+          setCount((c) => c + 1);
+        }
+      };
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <Flow
+            flow={flow}
+            components={() => ({
+              active: () => <div>Active</div>,
+              complete: () => <div>Complete</div>,
+            })}
+            initialContext={{}}
+            onComplete={handleComplete}
+          >
+            <TestComponent />
+          </Flow>
+        </div>
+      );
+    }
+
+    render(<ParentComponent />);
+
+    expect(onCompleteSpy).not.toHaveBeenCalled();
+    expect(screen.getByTestId("count")).toHaveTextContent("0");
+
+    fireEvent.click(screen.getByText("Go to Complete"));
+
+    // Should only be called once, not multiple times
+    // If onComplete is in the effect dependencies, it will be called multiple times
+    expect(onCompleteSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("count")).toHaveTextContent("1");
   });
 
   it("should support conditional next with function", () => {

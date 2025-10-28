@@ -14,14 +14,14 @@ import { WelcomeStep } from "../../shared-steps/WelcomeStep";
 import { BusinessDetailsStep } from "./components/BusinessDetailsStep";
 import { SetupPreferenceStep } from "./components/SetupPreferenceStep";
 import { UserTypeStep } from "./components/UserTypeStep";
-import { advancedFlow } from "./flow";
+import { branchingFlow } from "./flow";
 
-export function AdvancedFlowDemo() {
+export function BranchingFlowDemo() {
   const [flowKey, setFlowKey] = useState(0);
   const [direction, setDirection] = useState<Direction>("initial");
 
   const handleRestart = () => {
-    persister.remove?.(advancedFlow.id);
+    persister.remove?.(branchingFlow.id);
     setFlowKey((k) => k + 1);
   };
 
@@ -34,7 +34,7 @@ export function AdvancedFlowDemo() {
   return (
     <Flow
       key={flowKey}
-      flow={advancedFlow}
+      flow={branchingFlow}
       components={({ context }) => ({
         welcome: WelcomeStep,
         profile: ProfileStep,
@@ -70,7 +70,7 @@ export function AdvancedFlowDemo() {
       saveDebounce={300}
       loadingComponent={<LoadingView />}
     >
-      <FlowInspector flowId={advancedFlow.id} storage={storage} />
+      <FlowInspector flowId={branchingFlow.id} storage={storage} />
       <AnimatedFlowStep direction={direction} />
     </Flow>
   );

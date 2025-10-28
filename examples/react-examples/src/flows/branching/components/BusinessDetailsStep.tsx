@@ -10,10 +10,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { advancedFlow } from "../flow";
+import { branchingFlow } from "../flow";
 
 export function BusinessDetailsStep() {
-  const { context, next, back, setContext } = advancedFlow.useFlow({
+  const { context, next, back, setContext } = branchingFlow.useFlow({
     step: "businessDetails",
   });
 

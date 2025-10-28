@@ -16,6 +16,7 @@ type CompleteStepProps = {
   businessIndustry?: string;
   companyName?: string;
   startedAt?: number;
+  skippedPreferences?: boolean;
   onRestart?: () => void;
 };
 
@@ -27,6 +28,7 @@ export function CompleteStep({
   businessIndustry,
   companyName,
   startedAt,
+  skippedPreferences,
   onRestart,
 }: CompleteStepProps) {
   return (
@@ -61,10 +63,16 @@ export function CompleteStep({
                 <dd className="inline font-medium">{companyName}</dd>
               </div>
             )}
-            {theme && (
+            {theme && !skippedPreferences && (
               <div>
                 <dt className="inline text-muted-foreground">Theme: </dt>
                 <dd className="inline font-medium capitalize">{theme}</dd>
+              </div>
+            )}
+            {skippedPreferences && (
+              <div>
+                <dt className="inline text-muted-foreground">Preferences: </dt>
+                <dd className="inline font-medium">Used defaults (skipped)</dd>
               </div>
             )}
             <div>

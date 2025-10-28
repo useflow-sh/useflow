@@ -13,9 +13,11 @@ import {
 export function FlowInspector({
   flowId,
   storage,
+  instanceId,
 }: {
   flowId: string;
   storage: KVFlowStorage;
+  instanceId?: string;
 }) {
   const { context, stepId, status, history, isRestoring } = useFlow();
   const [showDebug, setShowDebug] = useState(true);
@@ -25,7 +27,7 @@ export function FlowInspector({
   // Poll storage for updates to persisted state
   useEffect(() => {
     const updatePersistedState = async () => {
-      const state = await storage.get(flowId);
+      const state = await storage.get(flowId, instanceId);
       setPersistedState(state || null);
     };
 
@@ -35,10 +37,10 @@ export function FlowInspector({
     // Poll every 500ms to show real-time updates
     const interval = setInterval(updatePersistedState, 500);
     return () => clearInterval(interval);
-  }, [flowId, storage]);
+  }, [flowId, storage, instanceId]);
 
   const handleClearCurrentFlow = async () => {
-    await storage.remove(flowId);
+    await storage.remove(flowId, instanceId);
     setPersistedState(null);
     window.location.reload();
   };
@@ -105,7 +107,7 @@ export function FlowInspector({
               )}
             </div>
             <div className="text-[0.65rem] text-muted-foreground">
-              Key: <code>{storage.getKey(flowId)}</code>
+              Key: <code>{storage.getKey(flowId, instanceId)}</code>
             </div>
           </div>
 

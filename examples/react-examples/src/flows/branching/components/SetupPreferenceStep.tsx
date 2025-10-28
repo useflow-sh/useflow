@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { advancedFlow } from "../flow";
+import { branchingFlow } from "../flow";
 
 const setupOptions = [
   {
@@ -24,7 +24,7 @@ const setupOptions = [
 ] as const;
 
 export function SetupPreferenceStep() {
-  const { context, next, back, setContext } = advancedFlow.useFlow({
+  const { context, next, back, setContext } = branchingFlow.useFlow({
     step: "setupPreference",
   });
 

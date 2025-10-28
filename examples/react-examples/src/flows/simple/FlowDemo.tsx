@@ -42,6 +42,7 @@ export function SimpleFlowDemo() {
             theme={context.theme}
             notifications={context.notifications}
             startedAt={context.startedAt}
+            skippedPreferences={context.skippedPreferences}
             onRestart={handleRestart}
           />
         ),

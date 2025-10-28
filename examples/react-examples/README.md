@@ -9,7 +9,7 @@ This example demonstrates multiple complete user onboarding flows using `@useflo
 - **Scalable Structure** - easy to add new flow examples
 - **Two complete flows**:
   - **Simple Flow**: Linear 4-step onboarding (Welcome → Profile → Preferences → Complete)
-  - **Advanced Flow**: Conditional and component-driven branching
+  - **Branching Flow**: Conditional and component-driven branching
 - **Multiple navigation patterns**:
   - Hook-based components (`useFlow`)
   - Context-driven branching (flow decides based on context)
@@ -46,9 +46,9 @@ src/
 │   │   ├── flow.ts              # Simple flow definition
 │   │   ├── FlowDemo.tsx         # Simple flow demo component
 │   │   └── components/          # Components only used in simple flow (currently empty)
-│   └── advanced/
-│       ├── flow.ts              # Advanced flow definition
-│       ├── FlowDemo.tsx         # Advanced flow demo component
+│   └── branching/
+│       ├── flow.ts              # Branching flow definition
+│       ├── FlowDemo.tsx         # Branching flow demo component
 │       └── components/          # Components only used in advanced flow
 │           ├── BusinessDetailsStep.tsx
 │           ├── SetupPreferenceStep.tsx
@@ -75,7 +75,7 @@ src/
 
 - `/` - Flow gallery home page
 - `/simple` - Simple flow demo
-- `/advanced` - Advanced flow demo
+- `/branching` - Branching flow demo
 
 ## Adding a New Flow
 

@@ -36,10 +36,10 @@ const flows: FlowCard[] = [
     icon: <Layers className="h-6 w-6" />,
   },
   {
-    id: "advanced",
-    title: "Advanced Flow",
+    id: "branching",
+    title: "Branching Flow",
     description: "Branching flow with conditional paths based on user choices",
-    path: "/advanced",
+    path: "/branching",
     complexity: "Advanced",
     features: [
       "Conditional branching",

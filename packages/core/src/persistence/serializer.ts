@@ -47,8 +47,8 @@ export type StringSerializer = Serializer<string>;
  * ```ts
  * import { kvStorageAdapter, JsonSerializer } from '@useflow/react';
  *
- * const storage = kvStorageAdapter({
- *   store: localStorage,
+ * const store = kvStorageAdapter({
+ *   storage: localStorage,
  *   formatKey: (flowId, instanceId) =>
  *     instanceId ? `app:${flowId}:${instanceId}` : `app:${flowId}`,
  *   serializer: JsonSerializer // Optional - this is the default

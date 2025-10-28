@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getGalleryItems } from "@/config/pages";
-import { storage } from "@/lib/storage";
+import { store } from "@/lib/storage";
 
 export function FlowGallery() {
   const [isResetting, setIsResetting] = useState(false);
@@ -28,7 +28,7 @@ export function FlowGallery() {
 
     setIsResetting(true);
     try {
-      await storage.removeAll?.();
+      await store.removeAll?.();
       // Give visual feedback
       setTimeout(() => {
         setIsResetting(false);

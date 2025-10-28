@@ -607,9 +607,9 @@ export const onboardingFlow = defineFlow({
   steps: { /* ... */ },
 } as const);
 
-// Create storage adapter and persister
-const storage = kvStorageAdapter({
-  store: localStorage,
+// Create store and persister
+const store = kvStorageAdapter({
+  storage: localStorage,
   formatKey: (flowId, instanceId) =>
     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
   listKeys: (flowId) => {
@@ -622,7 +622,7 @@ const storage = kvStorageAdapter({
   serializer: JsonSerializer
 });
 const persister = createPersister({
-  storage,
+  store,
   ttl: 1000 * 60 * 60 * 24 * 7, // 7 days
 });
 
@@ -651,42 +651,49 @@ When users return, they'll automatically resume from where they left off!
 **Web Storage (localStorage/sessionStorage):**
 
 ```tsx
-import { kvStorageAdapter, JsonSerializer, createPersister } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
+import {
+  kvStorageAdapter,
+  JsonSerializer,
+  createPersister,
+} from "@useflow/react";
 
 // localStorage - supports both sync and async storage
-const storage = kvStorageAdapter({
-  store: localStorage,
+const store = kvStorageAdapter({
+  storage: localStorage,
   formatKey: (flowId, instanceId) =>
     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
   listKeys: (flowId) => {
     const allKeys = Object.keys(localStorage);
-    if (!flowId) return allKeys.filter(k => k.startsWith('myapp:'));
+    if (!flowId) return allKeys.filter((k) => k.startsWith("myapp:"));
     const baseKey = `myapp:${flowId}`;
-    return allKeys.filter(k => k === baseKey || k.startsWith(`${baseKey}:`));
-  }
-  ,
-  serializer: JsonSerializer
+    return allKeys.filter((k) => k === baseKey || k.startsWith(`${baseKey}:`));
+  },
+  serializer: JsonSerializer,
 });
 
+const persister = createPersister({ store });
 // sessionStorage (cleared when tab closes)
-const storage = kvStorageAdapter({
-  store: sessionStorage,
+const store = kvStorageAdapter({
+  storage: sessionStorage,
   formatKey: (flowId, instanceId) =>
     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
   listKeys: (flowId) => {
     const allKeys = Object.keys(sessionStorage);
-    if (!flowId) return allKeys.filter(k => k.startsWith('myapp:'));
+    if (!flowId) return allKeys.filter((k) => k.startsWith("myapp:"));
     const baseKey = `myapp:${flowId}`;
-    return allKeys.filter(k => k === baseKey || k.startsWith(`${baseKey}:`));
-  }
-  ,
-  serializer: JsonSerializer
+    return allKeys.filter((k) => k === baseKey || k.startsWith(`${baseKey}:`));
+  },
+  serializer: JsonSerializer,
+});
+
+const persister = createPersister({
+  store,
+  ttl: 1000 * 60 * 60 * 24 * 7, // 7 days
 });
 
 // Custom key generation (e.g., user-specific)
-const storage = kvStorageAdapter({
-  store: localStorage,
+const store = kvStorageAdapter({
+  storage: localStorage,
   formatKey: (flowId, instanceId) => {
     const base = `user:${userId}:${flowId}`;
     return instanceId ? `${base}:${instanceId}` : base;
@@ -694,16 +701,15 @@ const storage = kvStorageAdapter({
   listKeys: (flowId) => {
     const allKeys = Object.keys(localStorage);
     const prefix = `user:${userId}:`;
-    if (!flowId) return allKeys.filter(k => k.startsWith(prefix));
+    if (!flowId) return allKeys.filter((k) => k.startsWith(prefix));
     const baseKey = `${prefix}${flowId}`;
-    return allKeys.filter(k => k === baseKey || k.startsWith(`${baseKey}:`));
-  }
-  ,
-  serializer: JsonSerializer
+    return allKeys.filter((k) => k === baseKey || k.startsWith(`${baseKey}:`));
+  },
+  serializer: JsonSerializer,
 });
 
 const persister = createPersister({
-  storage,
+  store,
   ttl: 1000 * 60 * 60 * 24 * 7, // 7 days
 });
 ```
@@ -711,36 +717,38 @@ const persister = createPersister({
 **React Native AsyncStorage:**
 
 ```tsx
-import { kvStorageAdapter, JsonSerializer, createPersister } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
+import {
+  kvStorageAdapter,
+  JsonSerializer,
+  createPersister,
+} from "@useflow/react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Works with async storage automatically
-const storage = kvStorageAdapter({
-  store: AsyncStorage,
+const store = kvStorageAdapter({
+  storage: AsyncStorage,
   formatKey: (flowId, instanceId) =>
     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
   listKeys: async (flowId) => {
     const allKeys = await AsyncStorage.getAllKeys();
-    if (!flowId) return allKeys.filter(k => k.startsWith('myapp:'));
+    if (!flowId) return allKeys.filter((k) => k.startsWith("myapp:"));
     const baseKey = `myapp:${flowId}`;
-    return allKeys.filter(k => k === baseKey || k.startsWith(`${baseKey}:`));
-  }
-  ,
-  serializer: JsonSerializer
+    return allKeys.filter((k) => k === baseKey || k.startsWith(`${baseKey}:`));
+  },
+  serializer: JsonSerializer,
 });
 
-const persister = createPersister({ storage });
+const persister = createPersister({ store });
 ```
 
 **Memory Storage (for testing):**
 
 ```tsx
-import { createMemoryStorage, createPersister } from "@useflow/react";
+import { createMemoryStore, createPersister } from "@useflow/react";
 import { JsonSerializer } from "@useflow/react";
 
-const storage = createMemoryStorage();
-const persister = createPersister({ storage });
+const store = createMemoryStore();
+const persister = createPersister({ store });
 ```
 
 **Multiple Flows, One Persister:**
@@ -750,8 +758,8 @@ const onboardingFlow = defineFlow({ id: "onboarding", /* ... */ });
 const checkoutFlow = defineFlow({ id: "checkout", /* ... */ });
 
 // One storage and persister for all flows
-const storage = kvStorageAdapter({
-  store: localStorage,
+const store = kvStorageAdapter({
+  storage: localStorage,
   formatKey: (flowId, instanceId) =>
     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
   listKeys: (flowId) => {
@@ -759,11 +767,10 @@ const storage = kvStorageAdapter({
     if (!flowId) return allKeys.filter(k => k.startsWith('myapp:'));
     const baseKey = `myapp:${flowId}`;
     return allKeys.filter(k => k === baseKey || k.startsWith(`${baseKey}:`));
-  }
-  ,
+  },
   serializer: JsonSerializer
 });
-const persister = createPersister({ storage });
+const persister = createPersister({ store });
 
 // Automatic storage keys:
 // - "myapp:onboarding"
@@ -777,17 +784,26 @@ const persister = createPersister({ storage });
 #### Advanced Configuration
 
 ```tsx
-import { kvStorageAdapter, JsonSerializer, createPersister } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
+import {
+  kvStorageAdapter,
+  JsonSerializer,
+  createPersister,
+} from "@useflow/react";
 
-const storage = kvStorageAdapter({
-  store: localStorage,
-  getKey: (flowId) => `myapp:${flowId}`,
-  ,
-  serializer: JsonSerializer
+const store = kvStorageAdapter({
+  storage: localStorage,
+  formatKey: (flowId, instanceId) =>
+    instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+  listKeys: (flowId) => {
+    const allKeys = Object.keys(localStorage);
+    if (!flowId) return allKeys.filter((k) => k.startsWith("myapp:"));
+    const baseKey = `myapp:${flowId}`;
+    return allKeys.filter((k) => k === baseKey || k.startsWith(`${baseKey}:`));
+  },
+  serializer: JsonSerializer,
 });
 const persister = createPersister({
-  storage,
+  store,
 
   // Time-to-live: auto-clear old data
   ttl: 1000 * 60 * 60 * 24 * 7, // 7 days
@@ -820,18 +836,16 @@ const persister = createPersister({
 });
 ```
 
-#### Custom Storage Adapters
+#### Custom Stores
 
-Implement the `FlowStorage` interface for custom storage backends. Storage methods can be either synchronous or asynchronous:
+Implement the `FlowStore` interface for custom storage backends. Store methods can be either synchronous or asynchronous:
 
 ```tsx
-import type { FlowStorage, PersistedFlowState } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
+import type { FlowStore, PersistedFlowState } from "@useflow/react";
 import { createPersister } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
 
 // remote API-based storage
-const remoteStorage: FlowStorage<MyContext> = {
+const remoteApiStore: FlowStore = {
   async get(flowId: string) {
     const response = await fetch(`/api/flows/${flowId}`);
     if (!response.ok) return null;
@@ -851,7 +865,7 @@ const remoteStorage: FlowStorage<MyContext> = {
   },
 };
 
-const persister = createPersister({ storage: remoteStorage });
+const persister = createPersister({ store: remoteApiStore });
 
 // Use with Flow
 <Flow
@@ -949,9 +963,8 @@ const feedbackFlow = defineFlow({
   },
 } as const satisfies FlowConfig<FeedbackContext>);
 
-const persister = createPersister({
-  storage: kvStorageAdapter({ store: localStorage, serializer: JsonSerializer }),
-});
+// Assuming you have a store already created (see Storage Adapters section)
+const persister = createPersister({ store });
 
 // In your app - multiple instances with separate state
 function TaskList({ tasks }: { tasks: Task[] }) {
@@ -1103,12 +1116,11 @@ function App() {
 **Option 2: Persister-level callbacks** (recommended for global tracking):
 
 ```tsx
-import { createPersister, kvStorageAdapter, JsonSerializer } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
+import { createPersister } from "@useflow/react";
 
-const storage = kvStorageAdapter({ store: localStorage, serializer: JsonSerializer });
+// Assuming you have a store already created (see Storage Adapters section)
 const persister = createPersister({
-  storage,
+  store,
 
   // Track ALL saves across ALL flows
   onSave: (flowId, state) => {
@@ -1226,14 +1238,7 @@ const onboardingFlow = defineFlow({
 } as const);
 
 // Persister doesn't need version config - it's on the flow
-const storage = kvStorageAdapter({
-  store: localStorage,
-  getKey: (flowId) => `myapp:${flowId}`,
-  ,
-  serializer: JsonSerializer
-});
-const persister = createPersister({ storage });
-
+// Assuming you have a store and persister already created (see Storage Adapters section)
 <Flow flow={onboardingFlow} persister={persister} {...props} />;
 ```
 
@@ -1361,31 +1366,36 @@ describe("onboarding flow migrations", () => {
 **4. Set appropriate TTL:**
 
 ```tsx
+// Assuming you have a store already created (see Storage Adapters section)
+
 // Short forms: 1 day
-const storage = kvStorageAdapter({ store: localStorage, serializer: JsonSerializer });
 const persister = createPersister({
-  storage,
+  store,
   ttl: 1000 * 60 * 60 * 24,
 });
 
 // Long onboarding: 30 days
-const persister = createPersister({
-  storage,
+const persister2 = createPersister({
+  store,
   ttl: 1000 * 60 * 60 * 24 * 30,
 });
 
-// Session-only: use sessionStorage
-const storage = kvStorageAdapter({ store: sessionStorage });
-const persister = createPersister({ storage });
+// Session-only: use sessionStorage instead of localStorage
+const sessionStore = kvStorageAdapter({
+  storage: sessionStorage,
+  // ... other options
+});
+const persister3 = createPersister({ store: sessionStore });
 ```
 
 **5. Handle sensitive data:**
 
 ```tsx
+// Assuming you have a store already created (see Storage Adapters section)
+
 // Validate sensitive data isn't in state
-const storage = kvStorageAdapter({ store: localStorage, serializer: JsonSerializer });
 const persister = createPersister({
-  storage,
+  store,
   validate: (state) => {
     // Reject if sensitive fields are present
     if (state.context.creditCard || state.context.password) {

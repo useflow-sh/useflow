@@ -4,7 +4,7 @@ import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { FlowVisualizer } from "../../components/FlowVisualizer";
 import { LoadingView } from "../../components/LoadingView";
-import { persister, storage } from "../../lib/storage";
+import { persister, store } from "../../lib/storage";
 import { CompleteStep } from "../../shared-steps/CompleteStep";
 import { PreferencesStep } from "../../shared-steps/PreferencesStep";
 import { ProfileStep } from "../../shared-steps/ProfileStep";
@@ -59,11 +59,7 @@ export function SimpleFlowDemo() {
         />
       </div>
 
-      <FlowInspector
-        flowId={simpleFlow.id}
-        storage={storage}
-        position="right"
-      />
+      <FlowInspector flowId={simpleFlow.id} store={store} position="right" />
 
       {/* Main content - centered in viewport */}
       <div className="flex items-center justify-center min-h-screen">

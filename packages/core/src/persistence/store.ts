@@ -1,8 +1,8 @@
 import type { PersistedFlowState } from "../types";
 
 /**
- * Flow storage interface
- * Storage backends implement this to persist flow state
+ * Flow store interface
+ * Stores implement this to persist flow state
  *
  * Methods can be sync or async to support different backends:
  * - Web: localStorage, sessionStorage, IndexedDB
@@ -10,10 +10,10 @@ import type { PersistedFlowState } from "../types";
  * - Node.js: file system, databases
  * - Custom: API endpoints, cloud storage
  *
- * Note: Storage is not generic - it works with any context type.
+ * Note: Store is not typed with a specific context type - it works with any context type.
  * Type safety is enforced at the Flow component level.
  */
-export interface FlowStorage {
+export interface FlowStore {
   /**
    * Get flow state by flow ID and optional instance ID
    * @param flowId - Flow identifier
@@ -51,7 +51,7 @@ export interface FlowStorage {
   removeFlow?(flowId: string): Promise<void> | void;
 
   /**
-   * Remove all flows managed by this storage adapter
+   * Remove all flows managed by this store
    */
   removeAll?(): Promise<void> | void;
 
@@ -62,7 +62,7 @@ export interface FlowStorage {
    *
    * @example
    * ```ts
-   * const instances = await storage.list("task-flow");
+   * const instances = await store.list("task-flow");
    * // [
    * //   { instanceId: undefined, state: {...} },  // Base flow without instanceId
    * //   { instanceId: "task-123", state: {...} },
@@ -80,37 +80,37 @@ export interface FlowStorage {
 }
 
 /**
- * Extended FlowStorage interface for key-value based storage adapters
+ * Extended FlowStore interface for key-value based stores
  *
- * This interface extends FlowStorage with a formatKey() method that exposes
- * the storage key format. This is useful for:
+ * This interface extends FlowStore with a formatKey() method that exposes
+ * the store key format. This is useful for:
  * - Debugging and inspection tools
- * - Logging storage operations
+ * - Logging store operations
  * - Manual key inspection in dev tools
  * - Data migration utilities
  *
- * Implement this interface if your storage adapter uses string keys
+ * Implement this interface if your store implementation uses string keys
  * (localStorage, sessionStorage, Redis, etc.)
  *
  * @example
  * ```ts
- * const storage: KVFlowStorage = createMyKVAdapter();
+ * const store: KVFlowStore = createMyKVStore();
  *
  * // Can inspect the actual key being used
- * const key = storage.formatKey("onboarding");
+ * const key = store.formatKey("onboarding");
  * console.log(key); // Implementation-dependent format
  *
  * // With instance ID
- * const instanceKey = storage.formatKey("onboarding", "user-123");
+ * const instanceKey = store.formatKey("onboarding", "user-123");
  * console.log(instanceKey); // Implementation-dependent format
  * ```
  */
-export interface KVFlowStorage extends FlowStorage {
+export interface KVFlowStore extends FlowStore {
   /**
-   * Format a storage key for a flow ID and optional instance ID
+   * Format a store key for a flow ID and optional instance ID
    * @param flowId - Flow identifier
    * @param instanceId - Optional instance identifier for reusable flows
-   * @returns The storage key to use for this flow
+   * @returns The store key to use for this flow
    */
   formatKey(flowId: string, instanceId?: string): string;
 }

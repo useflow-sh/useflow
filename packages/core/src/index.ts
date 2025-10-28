@@ -1,8 +1,8 @@
 // Persistence module
 export type {
   FlowPersister,
-  FlowStorage,
-  KVFlowStorage,
+  FlowStore,
+  KVFlowStore,
   KVStorageAdapterOptions,
   KVStore,
   PersisterOptions,
@@ -11,7 +11,7 @@ export type {
   ValidationResult,
 } from "./persistence";
 export {
-  createMemoryStorage,
+  createMemoryStore,
   createPersister,
   JsonSerializer,
   kvStorageAdapter,

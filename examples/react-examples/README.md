@@ -117,7 +117,7 @@ Task Type → Details → Assign → Review → Complete
 **Key Concepts:**
 
 - `instanceId` prop for multi-instance flows
-- `storage.list()` to load all instances
+- `store.list()` to load all instances
 - Draft management (save incomplete flows)
 - Completed task tracking
 

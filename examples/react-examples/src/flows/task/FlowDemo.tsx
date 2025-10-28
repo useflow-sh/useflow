@@ -12,7 +12,7 @@ import {
 import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { LoadingView } from "../../components/LoadingView";
-import { persister, storage } from "../../lib/storage";
+import { persister, store } from "../../lib/storage";
 import { AssignStep } from "./components/AssignStep";
 import { DetailsStep } from "./components/DetailsStep";
 import { ReviewStep } from "./components/ReviewStep";
@@ -46,11 +46,11 @@ export function TaskFlowDemo() {
     new Set(),
   );
 
-  // Load draft tasks and completed tasks from storage on mount
+  // Load draft tasks and completed tasks from store on mount
   useEffect(() => {
     const loadTasks = async () => {
-      // Load draft tasks from flow storage
-      const instances = await storage.list(taskFlow.id);
+      // Load draft tasks from flow store
+      const instances = await store.list(taskFlow.id);
 
       if (instances) {
         // Filter for active (incomplete) flows only
@@ -140,7 +140,7 @@ export function TaskFlowDemo() {
   };
 
   const handleCancelTask = () => {
-    // Keep the draft in storage so user can resume later
+    // Keep the draft in store so user can resume later
     setActiveTaskId(null);
   };
 
@@ -394,7 +394,7 @@ export function TaskFlowDemo() {
 
       <FlowInspector
         flowId={taskFlow.id}
-        storage={storage}
+        store={store}
         instanceId={activeTaskId}
         position="right"
       />

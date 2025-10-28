@@ -1,4 +1,4 @@
-import type { KVFlowStorage, PersistedFlowState } from "@useflow/react";
+import type { KVFlowStore, PersistedFlowState } from "@useflow/react";
 import { useFlow } from "@useflow/react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,12 @@ import {
 
 export function FlowInspector({
   flowId,
-  storage,
+  store,
   instanceId,
   position = "right",
 }: {
   flowId: string;
-  storage: KVFlowStorage;
+  store: KVFlowStore;
   instanceId?: string;
   position?: "left" | "right";
 }) {
@@ -29,7 +29,7 @@ export function FlowInspector({
   // Poll storage for updates to persisted state
   useEffect(() => {
     const updatePersistedState = async () => {
-      const state = await storage.get(flowId, instanceId);
+      const state = await store.get(flowId, instanceId);
       setPersistedState(state || null);
     };
 
@@ -39,16 +39,16 @@ export function FlowInspector({
     // Poll every 500ms to show real-time updates
     const interval = setInterval(updatePersistedState, 500);
     return () => clearInterval(interval);
-  }, [flowId, storage, instanceId]);
+  }, [flowId, store, instanceId]);
 
   const handleClearCurrentFlow = async () => {
-    await storage.remove(flowId, instanceId);
+    await store.remove(flowId, instanceId);
     setPersistedState(null);
     window.location.reload();
   };
 
   const handleClearAllFlows = async () => {
-    await storage.removeAll?.();
+    await store.removeAll?.();
     setPersistedState(null);
     window.location.reload();
   };
@@ -110,7 +110,7 @@ export function FlowInspector({
               )}
             </div>
             <div className="text-[0.65rem] text-muted-foreground">
-              Key: <code>{storage.formatKey(flowId, instanceId)}</code>
+              Key: <code>{store.formatKey(flowId, instanceId)}</code>
             </div>
           </div>
 

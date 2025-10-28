@@ -1,19 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import type { PersistedFlowState } from "../types";
 import { createPersister } from "./persister";
-import type { FlowStorage } from "./storage";
+import type { FlowStore } from "./store";
 
 describe("createPersister", () => {
   describe("callbacks", () => {
     it("should call onSave when state is saved", async () => {
       const onSave = vi.fn();
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage, onSave });
+      const persister = createPersister({ store, onSave });
 
       const state: PersistedFlowState = {
         stepId: "profile",
@@ -49,13 +49,13 @@ describe("createPersister", () => {
         __meta: { savedAt: Date.now(), version: "v1" },
       };
 
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(savedState),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage, onRestore });
+      const persister = createPersister({ store, onRestore });
 
       const restored = await persister.restore("test-flow");
 
@@ -82,7 +82,7 @@ describe("createPersister", () => {
         __meta: { version: "v2" },
       };
 
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(oldState),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
@@ -90,7 +90,7 @@ describe("createPersister", () => {
 
       const migrate = vi.fn().mockReturnValue(migratedState);
 
-      const persister = createPersister({ storage, onRestore });
+      const persister = createPersister({ store, onRestore });
 
       const restored = await persister.restore("test-flow", {
         version: "v2",
@@ -104,13 +104,13 @@ describe("createPersister", () => {
 
     it("should not call onRestore if state is null", async () => {
       const onRestore = vi.fn();
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage, onRestore });
+      const persister = createPersister({ store, onRestore });
 
       const restored = await persister.restore("test-flow");
 
@@ -127,7 +127,7 @@ describe("createPersister", () => {
         status: "active",
       };
 
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(savedState),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
@@ -135,7 +135,7 @@ describe("createPersister", () => {
 
       const validate = vi.fn().mockReturnValue(false);
 
-      const persister = createPersister({ storage, validate, onRestore });
+      const persister = createPersister({ store, validate, onRestore });
 
       const restored = await persister.restore("test-flow");
 
@@ -153,14 +153,14 @@ describe("createPersister", () => {
         __meta: { savedAt: Date.now() - 10000 }, // 10 seconds ago
       };
 
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(savedState),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
       const persister = createPersister({
-        storage,
+        store,
         ttl: 5000, // 5 seconds
         onRestore,
       });
@@ -169,19 +169,19 @@ describe("createPersister", () => {
 
       expect(onRestore).not.toHaveBeenCalled();
       expect(restored).toBeNull();
-      expect(storage.remove).toHaveBeenCalledWith("test-flow", undefined);
+      expect(store.remove).toHaveBeenCalledWith("test-flow", undefined);
     });
 
     it("should call onError on save failure", async () => {
       const onError = vi.fn();
       const error = new Error("Storage error");
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockRejectedValue(error),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage, onError });
+      const persister = createPersister({ store, onError });
 
       const state: PersistedFlowState = {
         stepId: "profile",
@@ -199,13 +199,13 @@ describe("createPersister", () => {
     it("should call onError on restore failure", async () => {
       const onError = vi.fn();
       const error = new Error("Storage error");
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockRejectedValue(error),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage, onError });
+      const persister = createPersister({ store, onError });
 
       const restored = await persister.restore("test-flow");
 
@@ -224,7 +224,7 @@ describe("createPersister", () => {
         __meta: { version: "v1" },
       };
 
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(oldState),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
@@ -232,7 +232,7 @@ describe("createPersister", () => {
 
       const migrate = vi.fn().mockReturnValue(null); // Migration fails/returns null
 
-      const persister = createPersister({ storage, onRestore });
+      const persister = createPersister({ store, onRestore });
 
       const restored = await persister.restore("test-flow", {
         version: "v2",
@@ -254,13 +254,13 @@ describe("createPersister", () => {
         __meta: { version: "v1" },
       };
 
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(oldState),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage, onRestore });
+      const persister = createPersister({ store, onRestore });
 
       const restored = await persister.restore("test-flow", {
         version: "v2",
@@ -274,13 +274,13 @@ describe("createPersister", () => {
     it("should call onError on remove failure", async () => {
       const onError = vi.fn();
       const error = new Error("Delete error");
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockRejectedValue(error),
       };
 
-      const persister = createPersister({ storage, onError });
+      const persister = createPersister({ store, onError });
 
       await persister.remove?.("test-flow");
 
@@ -289,13 +289,13 @@ describe("createPersister", () => {
     });
 
     it("should save with version in saveOptions", async () => {
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage });
+      const persister = createPersister({ store });
 
       const state: PersistedFlowState = {
         stepId: "profile",
@@ -306,7 +306,7 @@ describe("createPersister", () => {
 
       await persister.save("test-flow", state, { version: "v2" });
 
-      expect(storage.set).toHaveBeenCalledWith(
+      expect(store.set).toHaveBeenCalledWith(
         "test-flow",
         expect.objectContaining({
           stepId: "profile",
@@ -323,13 +323,13 @@ describe("createPersister", () => {
     });
 
     it("should save without version when saveOptions is undefined", async () => {
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage });
+      const persister = createPersister({ store });
 
       const state: PersistedFlowState = {
         stepId: "profile",
@@ -340,7 +340,7 @@ describe("createPersister", () => {
 
       await persister.save("test-flow", state);
 
-      expect(storage.set).toHaveBeenCalledWith(
+      expect(store.set).toHaveBeenCalledWith(
         "test-flow",
         expect.objectContaining({
           stepId: "profile",
@@ -358,13 +358,13 @@ describe("createPersister", () => {
 
     it("should successfully remove state", async () => {
       const removeFn = vi.fn().mockResolvedValue(undefined);
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: removeFn,
       };
 
-      const persister = createPersister({ storage });
+      const persister = createPersister({ store });
 
       await persister.remove?.("test-flow");
 
@@ -375,13 +375,13 @@ describe("createPersister", () => {
 
   describe("instanceId support", () => {
     it("should save with instanceId", async () => {
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage });
+      const persister = createPersister({ store });
 
       const state: PersistedFlowState = {
         stepId: "profile",
@@ -392,7 +392,7 @@ describe("createPersister", () => {
 
       await persister.save("test-flow", state, { instanceId: "task-123" });
 
-      expect(storage.set).toHaveBeenCalledWith(
+      expect(store.set).toHaveBeenCalledWith(
         "test-flow",
         expect.objectContaining({
           stepId: "profile",
@@ -410,44 +410,44 @@ describe("createPersister", () => {
         status: "active",
       };
 
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(savedState),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage });
+      const persister = createPersister({ store });
 
       const restored = await persister.restore("test-flow", {
         instanceId: "task-123",
       });
 
-      expect(storage.get).toHaveBeenCalledWith("test-flow", "task-123");
+      expect(store.get).toHaveBeenCalledWith("test-flow", "task-123");
       expect(restored).toEqual(savedState);
     });
 
     it("should remove with instanceId", async () => {
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage });
+      const persister = createPersister({ store });
 
       await persister.remove?.("test-flow", "task-123");
 
-      expect(storage.remove).toHaveBeenCalledWith("test-flow", "task-123");
+      expect(store.remove).toHaveBeenCalledWith("test-flow", "task-123");
     });
 
     it("should save with both instanceId and version", async () => {
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage });
+      const persister = createPersister({ store });
 
       const state: PersistedFlowState = {
         stepId: "profile",
@@ -461,7 +461,7 @@ describe("createPersister", () => {
         version: "v2",
       });
 
-      expect(storage.set).toHaveBeenCalledWith(
+      expect(store.set).toHaveBeenCalledWith(
         "test-flow",
         expect.objectContaining({
           __meta: expect.objectContaining({
@@ -481,14 +481,14 @@ describe("createPersister", () => {
         __meta: { savedAt: Date.now() - 10000 }, // 10 seconds ago
       };
 
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(savedState),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
       const persister = createPersister({
-        storage,
+        store,
         ttl: 5000, // 5 seconds
       });
 
@@ -497,21 +497,21 @@ describe("createPersister", () => {
       });
 
       expect(restored).toBeNull();
-      expect(storage.remove).toHaveBeenCalledWith("test-flow", "task-123");
+      expect(store.remove).toHaveBeenCalledWith("test-flow", "task-123");
     });
   });
 
   describe("removeFlow", () => {
-    it("should call storage.removeFlow when available", async () => {
+    it("should call store.removeFlow when available", async () => {
       const removeFlow = vi.fn().mockResolvedValue(undefined);
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
         removeFlow,
       };
 
-      const persister = createPersister({ storage });
+      const persister = createPersister({ store });
 
       await persister.removeFlow?.("test-flow");
 
@@ -523,14 +523,14 @@ describe("createPersister", () => {
       const onError = vi.fn();
       const error = new Error("removeFlow failed");
       const removeFlow = vi.fn().mockRejectedValue(error);
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
         removeFlow,
       };
 
-      const persister = createPersister({ storage, onError });
+      const persister = createPersister({ store, onError });
 
       await persister.removeFlow?.("test-flow");
 
@@ -538,30 +538,30 @@ describe("createPersister", () => {
       expect(onError).toHaveBeenCalledWith(error);
     });
 
-    it("should not have removeFlow if storage does not implement it", () => {
-      const storage: FlowStorage = {
+    it("should not have removeFlow if store does not implement it", () => {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage });
+      const persister = createPersister({ store });
 
       expect(persister.removeFlow).toBeUndefined();
     });
   });
 
   describe("removeAll", () => {
-    it("should call storage.removeAll when available", async () => {
+    it("should call store.removeAll when available", async () => {
       const removeAll = vi.fn().mockResolvedValue(undefined);
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
         removeAll,
       };
 
-      const persister = createPersister({ storage });
+      const persister = createPersister({ store });
 
       await persister.removeAll?.();
 
@@ -572,14 +572,14 @@ describe("createPersister", () => {
       const onError = vi.fn();
       const error = new Error("removeAll failed");
       const removeAll = vi.fn().mockRejectedValue(error);
-      const storage: FlowStorage = {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
         removeAll,
       };
 
-      const persister = createPersister({ storage, onError });
+      const persister = createPersister({ store, onError });
 
       await persister.removeAll?.();
 
@@ -587,14 +587,14 @@ describe("createPersister", () => {
       expect(onError).toHaveBeenCalledWith(error);
     });
 
-    it("should not have removeAll if storage does not implement it", () => {
-      const storage: FlowStorage = {
+    it("should not have removeAll if store does not implement it", () => {
+      const store: FlowStore = {
         get: vi.fn().mockResolvedValue(null),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       };
 
-      const persister = createPersister({ storage });
+      const persister = createPersister({ store });
 
       expect(persister.removeAll).toBeUndefined();
     });

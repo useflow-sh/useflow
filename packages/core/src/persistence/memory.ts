@@ -1,35 +1,35 @@
 /**
- * In-memory storage adapter (useful for testing)
+ * In-memory store (useful for testing)
  * State is lost when the process ends or page refreshes
  *
  * @example
  * ```ts
- * import { createMemoryStorage, createPersister } from "@useflow/core";
+ * import { createMemoryStore, createPersister } from "@useflow/core";
  *
- * const storage = createMemoryStorage();
- * const persister = createPersister({ storage });
+ * const store = createMemoryStore();
+ * const persister = createPersister({ store });
  * ```
  */
 
 import type { PersistedFlowState } from "../types";
-import type { FlowStorage } from "./storage";
+import type { FlowStore } from "./store";
 
 /**
- * Creates a FlowStorage adapter using in-memory Map storage
+ * Creates a FlowStore using in-memory Map
  * Useful for testing or temporary state that doesn't need persistence
  *
  * @example
  * ```tsx
- * // Create memory storage
- * const storage = createMemoryStorage();
+ * // Create memory store
+ * const store = createMemoryStore();
  *
  * // Use with persister
  * import { createPersister } from '@useflow/core';
- * const persister = createPersister({ storage });
+ * const persister = createPersister({ store });
  * ```
  */
-export function createMemoryStorage(): FlowStorage {
-  const store = new Map<string, PersistedFlowState>();
+export function createMemoryStore() {
+  const storage = new Map<string, PersistedFlowState>();
 
   // Internal key generation
   const makeKey = (flowId: string, instanceId?: string) =>
@@ -37,30 +37,30 @@ export function createMemoryStorage(): FlowStorage {
 
   return {
     get(flowId: string, instanceId?: string): PersistedFlowState | null {
-      return store.get(makeKey(flowId, instanceId)) ?? null;
+      return storage.get(makeKey(flowId, instanceId)) ?? null;
     },
 
     set(flowId: string, state: PersistedFlowState, instanceId?: string): void {
-      store.set(makeKey(flowId, instanceId), state);
+      storage.set(makeKey(flowId, instanceId), state);
     },
 
     remove(flowId: string, instanceId?: string): void {
-      store.delete(makeKey(flowId, instanceId));
+      storage.delete(makeKey(flowId, instanceId));
     },
 
     removeFlow(flowId: string): void {
       const baseKey = flowId;
       const pattern = `${baseKey}:`;
 
-      Array.from(store.keys()).forEach((key) => {
+      Array.from(storage.keys()).forEach((key) => {
         if (key === baseKey || key.startsWith(pattern)) {
-          store.delete(key);
+          storage.delete(key);
         }
       });
     },
 
     removeAll(): void {
-      store.clear();
+      storage.clear();
     },
 
     list(
@@ -73,7 +73,7 @@ export function createMemoryStorage(): FlowStorage {
         state: PersistedFlowState;
       }> = [];
 
-      Array.from(store.entries()).forEach(([key, state]) => {
+      Array.from(storage.entries()).forEach(([key, state]) => {
         // Check if this key is the base flow or an instance
         if (key === baseKey || key.startsWith(pattern)) {
           // Extract instance ID from key (everything after the pattern)
@@ -86,5 +86,5 @@ export function createMemoryStorage(): FlowStorage {
 
       return instances;
     },
-  };
+  } satisfies FlowStore;
 }

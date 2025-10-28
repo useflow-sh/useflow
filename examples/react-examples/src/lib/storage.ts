@@ -1,9 +1,8 @@
 import { JsonSerializer } from "@useflow/core";
 import { createPersister, kvStorageAdapter } from "@useflow/react";
 
-// Global storage adapter for the application
-export const storage = kvStorageAdapter({
-  store: localStorage,
+export const store = kvStorageAdapter({
+  storage: localStorage,
   serializer: JsonSerializer,
   formatKey: (flowId, instanceId) =>
     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
@@ -19,8 +18,7 @@ export const storage = kvStorageAdapter({
   },
 });
 
-// Global persister with 7-day TTL
 export const persister = createPersister({
-  storage,
+  store,
   ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
 });

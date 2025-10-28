@@ -4,17 +4,16 @@
  * This module provides everything needed to persist and restore flow state:
  * - State transformation utilities (extract, restore, validate)
  * - Persister interface and factory
- * - Storage interface
- * - Storage adapters
- * - Storage implementations
+ * - Store interface
+ * - Store adapters
+ * - Store implementations
  * - Serializers
  */
 
-// Storage adapters
+// Store adapters and implementations
 export type { KVStorageAdapterOptions, KVStore } from "./kv-storage-adapter";
 export { kvStorageAdapter } from "./kv-storage-adapter";
-// Storage implementations
-export { createMemoryStorage } from "./memory";
+export { createMemoryStore } from "./memory";
 // Persister
 export type { FlowPersister, PersisterOptions } from "./persister";
 export { createPersister } from "./persister";
@@ -26,5 +25,5 @@ export { JsonSerializer } from "./serializer";
 export type { ValidationResult } from "./state";
 export { validatePersistedState } from "./state";
 
-// Storage
-export type { FlowStorage, KVFlowStorage } from "./storage";
+// Store
+export type { FlowStore, KVFlowStore } from "./store";

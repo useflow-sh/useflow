@@ -11,7 +11,7 @@ import {
 import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { LoadingView } from "../../components/LoadingView";
-import { persister, storage } from "../../lib/storage";
+import { persister, store } from "../../lib/storage";
 import { IntroStep } from "./components/IntroStep";
 import { QuestionStep } from "./components/QuestionStep";
 import { ResultsStep } from "./components/ResultsStep";
@@ -272,7 +272,7 @@ export function SurveyFlowDemo() {
     >
       <FlowInspector
         flowId={surveyFlow.id}
-        storage={storage}
+        store={store}
         instanceId="survey-instance"
         position="right"
       />

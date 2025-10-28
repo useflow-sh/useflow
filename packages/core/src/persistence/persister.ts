@@ -1,5 +1,5 @@
 import type { FlowState, PersistedFlowState } from "../types";
-import type { FlowStorage } from "./storage";
+import type { FlowStore } from "./store";
 
 /**
  * Flow persister interface
@@ -55,7 +55,7 @@ export interface FlowPersister {
 
   /**
    * Remove all instances of a specific flow (base + all instances)
-   * Optional - only available if storage adapter supports it
+   * Optional - only available if store supports it
    *
    * @param flowId - Unique identifier for the flow
    */
@@ -63,19 +63,19 @@ export interface FlowPersister {
 
   /**
    * Remove all flows managed by this persister
-   * Optional - only available if storage adapter supports it
+   * Optional - only available if store supports it
    */
   removeAll?(): void | Promise<void>;
 }
 
 /**
- * Options for storage-based persisters
+ * Options for persisters
  */
 export type PersisterOptions = {
   /**
-   * Storage implementation for persisting flow state
+   * Store implementation for persisting flow state
    */
-  storage: FlowStorage;
+  store: FlowStore;
 
   /**
    * Custom validation function (read-only)
@@ -109,7 +109,7 @@ export type PersisterOptions = {
 };
 
 /**
- * Generic factory for creating persisters from storage backends
+ * Generic factory for creating persisters from stores
  * Handles all common logic (TTL, versioning, validation)
  *
  * This is framework-agnostic and can be used across React, Vue, Svelte, etc.
@@ -123,15 +123,9 @@ export type PersisterOptions = {
  * ```ts
  * import { createPersister } from '@useflow/core';
  *
- * // With a storage adapter
- * const persister = createPersister({
- *   storage: myStorageAdapter,
- *   ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
- * });
- *
  * // With validation and callbacks
  * const persister = createPersister({
- *   storage: myStorageAdapter,
+ *   store: myStore,
  *   validate: (state) => state.stepId !== 'invalid',
  *   onSave: (flowId, state) => console.log('Saved:', flowId),
  *   onError: (error) => console.error('Error:', error),
@@ -139,7 +133,7 @@ export type PersisterOptions = {
  * ```
  */
 export function createPersister(options: PersisterOptions): FlowPersister {
-  const { storage, ttl, validate, onSave, onRestore, onError } = options;
+  const { store, ttl, validate, onSave, onRestore, onError } = options;
 
   return {
     save: async (flowId, state, saveOptions) => {
@@ -152,7 +146,7 @@ export function createPersister(options: PersisterOptions): FlowPersister {
             instanceId: saveOptions?.instanceId,
           },
         };
-        await storage.set(flowId, withMeta, saveOptions?.instanceId);
+        await store.set(flowId, withMeta, saveOptions?.instanceId);
         onSave?.(flowId, withMeta);
         return withMeta;
       } catch (error) {
@@ -163,14 +157,14 @@ export function createPersister(options: PersisterOptions): FlowPersister {
 
     restore: async (flowId, restoreOptions) => {
       try {
-        const state = await storage.get(flowId, restoreOptions?.instanceId);
+        const state = await store.get(flowId, restoreOptions?.instanceId);
         if (!state) return null;
 
         // TTL check
         if (ttl && state.__meta?.savedAt) {
           const age = Date.now() - state.__meta.savedAt;
           if (age > ttl) {
-            await storage.remove(flowId, restoreOptions?.instanceId);
+            await store.remove(flowId, restoreOptions?.instanceId);
             return null;
           }
         }
@@ -212,26 +206,26 @@ export function createPersister(options: PersisterOptions): FlowPersister {
 
     remove: async (flowId, instanceId) => {
       try {
-        await storage.remove(flowId, instanceId);
+        await store.remove(flowId, instanceId);
       } catch (error) {
         onError?.(error as Error);
       }
     },
 
-    removeFlow: storage.removeFlow
+    removeFlow: store.removeFlow
       ? async (flowId) => {
           try {
-            await storage.removeFlow?.(flowId);
+            await store.removeFlow?.(flowId);
           } catch (error) {
             onError?.(error as Error);
           }
         }
       : undefined,
 
-    removeAll: storage.removeAll
+    removeAll: store.removeAll
       ? async () => {
           try {
-            await storage.removeAll?.();
+            await store.removeAll?.();
           } catch (error) {
             onError?.(error as Error);
           }

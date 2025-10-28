@@ -2,8 +2,8 @@
 // Re-export persister types and factory from core (framework-agnostic)
 export type {
   FlowPersister,
-  FlowStorage,
-  KVFlowStorage,
+  FlowStore,
+  KVFlowStore,
   KVStorageAdapterOptions,
   KVStore,
   PersistedFlowState,
@@ -13,7 +13,7 @@ export type {
   ValidationResult,
 } from "@useflow/core";
 export {
-  createMemoryStorage,
+  createMemoryStore,
   createPersister,
   JsonSerializer,
   kvStorageAdapter,

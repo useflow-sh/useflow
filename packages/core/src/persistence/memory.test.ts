@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { PersistedFlowState } from "../types";
-import { createMemoryStorage } from "./memory";
+import { createMemoryStore } from "./memory";
 
-describe("createMemoryStorage", () => {
+describe("createMemoryStore", () => {
   it("should get state from memory", () => {
-    const storage = createMemoryStorage();
+    const store = createMemoryStore();
 
     const state: PersistedFlowState = {
       stepId: "step1",
@@ -13,22 +13,22 @@ describe("createMemoryStorage", () => {
       status: "active",
     };
 
-    storage.set("test-flow", state);
-    const result = storage.get("test-flow");
+    store.set("test-flow", state);
+    const result = store.get("test-flow");
 
     expect(result).toEqual(state);
   });
 
   it("should return null when no state exists", () => {
-    const storage = createMemoryStorage();
+    const store = createMemoryStore();
 
-    const result = storage.get("test-flow");
+    const result = store.get("test-flow");
 
     expect(result).toBeNull();
   });
 
   it("should set state to memory", () => {
-    const storage = createMemoryStorage();
+    const store = createMemoryStore();
 
     const state: PersistedFlowState = {
       stepId: "step1",
@@ -37,14 +37,14 @@ describe("createMemoryStorage", () => {
       status: "active",
     };
 
-    storage.set("test-flow", state);
-    const result = storage.get("test-flow");
+    store.set("test-flow", state);
+    const result = store.get("test-flow");
 
     expect(result).toEqual(state);
   });
 
   it("should remove state from memory", () => {
-    const storage = createMemoryStorage();
+    const store = createMemoryStore();
 
     const state: PersistedFlowState = {
       stepId: "step1",
@@ -53,15 +53,15 @@ describe("createMemoryStorage", () => {
       status: "active",
     };
 
-    storage.set("test-flow", state);
-    expect(storage.get("test-flow")).toEqual(state);
+    store.set("test-flow", state);
+    expect(store.get("test-flow")).toEqual(state);
 
-    storage.remove("test-flow");
-    expect(storage.get("test-flow")).toBeNull();
+    store.remove("test-flow");
+    expect(store.get("test-flow")).toBeNull();
   });
 
   it("should store multiple flows independently", () => {
-    const storage = createMemoryStorage();
+    const store = createMemoryStore();
 
     const state1: PersistedFlowState = {
       stepId: "step1",
@@ -77,15 +77,15 @@ describe("createMemoryStorage", () => {
       status: "active",
     };
 
-    storage.set("flow1", state1);
-    storage.set("flow2", state2);
+    store.set("flow1", state1);
+    store.set("flow2", state2);
 
-    expect(storage.get("flow1")).toEqual(state1);
-    expect(storage.get("flow2")).toEqual(state2);
+    expect(store.get("flow1")).toEqual(state1);
+    expect(store.get("flow2")).toEqual(state2);
   });
 
   it("should overwrite existing state", () => {
-    const storage = createMemoryStorage();
+    const store = createMemoryStore();
 
     const state1: PersistedFlowState = {
       stepId: "step1",
@@ -101,15 +101,15 @@ describe("createMemoryStorage", () => {
       status: "active",
     };
 
-    storage.set("test-flow", state1);
-    expect(storage.get("test-flow")).toEqual(state1);
+    store.set("test-flow", state1);
+    expect(store.get("test-flow")).toEqual(state1);
 
-    storage.set("test-flow", state2);
-    expect(storage.get("test-flow")).toEqual(state2);
+    store.set("test-flow", state2);
+    expect(store.get("test-flow")).toEqual(state2);
   });
 
   it("should store state with metadata", () => {
-    const storage = createMemoryStorage();
+    const store = createMemoryStore();
 
     const savedAt = Date.now();
     const state: PersistedFlowState = {
@@ -123,8 +123,8 @@ describe("createMemoryStorage", () => {
       },
     };
 
-    storage.set("test-flow", state);
-    const result = storage.get("test-flow");
+    store.set("test-flow", state);
+    const result = store.get("test-flow");
 
     expect(result).toEqual({
       stepId: "step1",
@@ -140,7 +140,7 @@ describe("createMemoryStorage", () => {
 
   describe("instanceId support", () => {
     it("should store state with instanceId", () => {
-      const storage = createMemoryStorage();
+      const store = createMemoryStore();
 
       const state: PersistedFlowState = {
         stepId: "step1",
@@ -149,14 +149,14 @@ describe("createMemoryStorage", () => {
         status: "active",
       };
 
-      storage.set("test-flow", state, "instance-123");
-      const result = storage.get("test-flow", "instance-123");
+      store.set("test-flow", state, "instance-123");
+      const result = store.get("test-flow", "instance-123");
 
       expect(result).toEqual(state);
     });
 
     it("should keep instances separate", () => {
-      const storage = createMemoryStorage();
+      const store = createMemoryStore();
 
       const state1: PersistedFlowState = {
         stepId: "step1",
@@ -172,15 +172,15 @@ describe("createMemoryStorage", () => {
         status: "active",
       };
 
-      storage.set("test-flow", state1, "instance-1");
-      storage.set("test-flow", state2, "instance-2");
+      store.set("test-flow", state1, "instance-1");
+      store.set("test-flow", state2, "instance-2");
 
-      expect(storage.get("test-flow", "instance-1")).toEqual(state1);
-      expect(storage.get("test-flow", "instance-2")).toEqual(state2);
+      expect(store.get("test-flow", "instance-1")).toEqual(state1);
+      expect(store.get("test-flow", "instance-2")).toEqual(state2);
     });
 
     it("should remove state with instanceId", () => {
-      const storage = createMemoryStorage();
+      const store = createMemoryStore();
 
       const state: PersistedFlowState = {
         stepId: "step1",
@@ -189,15 +189,15 @@ describe("createMemoryStorage", () => {
         status: "active",
       };
 
-      storage.set("test-flow", state, "instance-123");
-      expect(storage.get("test-flow", "instance-123")).toEqual(state);
+      store.set("test-flow", state, "instance-123");
+      expect(store.get("test-flow", "instance-123")).toEqual(state);
 
-      storage.remove("test-flow", "instance-123");
-      expect(storage.get("test-flow", "instance-123")).toBeNull();
+      store.remove("test-flow", "instance-123");
+      expect(store.get("test-flow", "instance-123")).toBeNull();
     });
 
     it("should keep flow without instanceId separate from instances", () => {
-      const storage = createMemoryStorage();
+      const store = createMemoryStore();
 
       const state1: PersistedFlowState = {
         stepId: "step1",
@@ -213,17 +213,17 @@ describe("createMemoryStorage", () => {
         status: "active",
       };
 
-      storage.set("test-flow", state1);
-      storage.set("test-flow", state2, "instance-1");
+      store.set("test-flow", state1);
+      store.set("test-flow", state2, "instance-1");
 
-      expect(storage.get("test-flow")).toEqual(state1);
-      expect(storage.get("test-flow", "instance-1")).toEqual(state2);
+      expect(store.get("test-flow")).toEqual(state1);
+      expect(store.get("test-flow", "instance-1")).toEqual(state2);
     });
   });
 
   describe("removeFlow", () => {
     it("should remove flow without instances", () => {
-      const storage = createMemoryStorage();
+      const store = createMemoryStore();
 
       const state: PersistedFlowState = {
         stepId: "step1",
@@ -232,17 +232,17 @@ describe("createMemoryStorage", () => {
         status: "active",
       };
 
-      storage.set("test-flow", state);
-      storage.set("other-flow", state);
+      store.set("test-flow", state);
+      store.set("other-flow", state);
 
-      storage.removeFlow!("test-flow");
+      store.removeFlow!("test-flow");
 
-      expect(storage.get("test-flow")).toBeNull();
-      expect(storage.get("other-flow")).toEqual(state);
+      expect(store.get("test-flow")).toBeNull();
+      expect(store.get("other-flow")).toEqual(state);
     });
 
     it("should remove flow with all instances", () => {
-      const storage = createMemoryStorage();
+      const store = createMemoryStore();
 
       const state: PersistedFlowState = {
         stepId: "step1",
@@ -251,23 +251,23 @@ describe("createMemoryStorage", () => {
         status: "active",
       };
 
-      storage.set("test-flow", state);
-      storage.set("test-flow", state, "instance-1");
-      storage.set("test-flow", state, "instance-2");
-      storage.set("other-flow", state);
+      store.set("test-flow", state);
+      store.set("test-flow", state, "instance-1");
+      store.set("test-flow", state, "instance-2");
+      store.set("other-flow", state);
 
-      storage.removeFlow!("test-flow");
+      store.removeFlow!("test-flow");
 
-      expect(storage.get("test-flow")).toBeNull();
-      expect(storage.get("test-flow", "instance-1")).toBeNull();
-      expect(storage.get("test-flow", "instance-2")).toBeNull();
-      expect(storage.get("other-flow")).toEqual(state);
+      expect(store.get("test-flow")).toBeNull();
+      expect(store.get("test-flow", "instance-1")).toBeNull();
+      expect(store.get("test-flow", "instance-2")).toBeNull();
+      expect(store.get("other-flow")).toEqual(state);
     });
   });
 
   describe("removeAll", () => {
     it("should remove all flows and instances", () => {
-      const storage = createMemoryStorage();
+      const store = createMemoryStore();
 
       const state: PersistedFlowState = {
         stepId: "step1",
@@ -276,21 +276,21 @@ describe("createMemoryStorage", () => {
         status: "active",
       };
 
-      storage.set("flow1", state);
-      storage.set("flow2", state);
-      storage.set("flow2", state, "instance-1");
+      store.set("flow1", state);
+      store.set("flow2", state);
+      store.set("flow2", state, "instance-1");
 
-      storage.removeAll!();
+      store.removeAll!();
 
-      expect(storage.get("flow1")).toBeNull();
-      expect(storage.get("flow2")).toBeNull();
-      expect(storage.get("flow2", "instance-1")).toBeNull();
+      expect(store.get("flow1")).toBeNull();
+      expect(store.get("flow2")).toBeNull();
+      expect(store.get("flow2", "instance-1")).toBeNull();
     });
   });
 
   describe("list", () => {
     it("should list all instances of a flow", () => {
-      const storage = createMemoryStorage();
+      const store = createMemoryStore();
 
       const state1: PersistedFlowState = {
         stepId: "step1",
@@ -306,11 +306,11 @@ describe("createMemoryStorage", () => {
         status: "active",
       };
 
-      storage.set("test-flow", state1, "instance-1");
-      storage.set("test-flow", state2, "instance-2");
-      storage.set("other-flow", state1, "instance-1");
+      store.set("test-flow", state1, "instance-1");
+      store.set("test-flow", state2, "instance-2");
+      store.set("other-flow", state1, "instance-1");
 
-      const instances = storage.list!("test-flow");
+      const instances = store.list("test-flow");
 
       expect(instances).toHaveLength(2);
       expect(instances).toEqual([
@@ -320,7 +320,7 @@ describe("createMemoryStorage", () => {
     });
 
     it("should return empty array when no instances exist", () => {
-      const storage = createMemoryStorage();
+      const store = createMemoryStore();
 
       const state: PersistedFlowState = {
         stepId: "step1",
@@ -329,15 +329,15 @@ describe("createMemoryStorage", () => {
         status: "active",
       };
 
-      storage.set("other-flow", state, "instance-1");
+      store.set("other-flow", state, "instance-1");
 
-      const instances = storage.list!("test-flow");
+      const instances = store.list("test-flow");
 
       expect(instances).toEqual([]);
     });
 
     it("should include base flow key with undefined instanceId", () => {
-      const storage = createMemoryStorage();
+      const store = createMemoryStore();
 
       const baseState: PersistedFlowState = {
         stepId: "step1",
@@ -360,11 +360,11 @@ describe("createMemoryStorage", () => {
         status: "active",
       };
 
-      storage.set("test-flow", baseState); // Base flow without instanceId
-      storage.set("test-flow", instance1State, "instance-1");
-      storage.set("test-flow", instance2State, "instance-2");
+      store.set("test-flow", baseState); // Base flow without instanceId
+      store.set("test-flow", instance1State, "instance-1");
+      store.set("test-flow", instance2State, "instance-2");
 
-      const instances = storage.list!("test-flow");
+      const instances = store.list("test-flow");
 
       expect(instances).toHaveLength(3);
       expect(instances).toEqual(
@@ -377,7 +377,7 @@ describe("createMemoryStorage", () => {
     });
 
     it("should only list instances for the specified flow", () => {
-      const storage = createMemoryStorage();
+      const store = createMemoryStore();
 
       const state: PersistedFlowState = {
         stepId: "step1",
@@ -386,12 +386,12 @@ describe("createMemoryStorage", () => {
         status: "active",
       };
 
-      storage.set("flow1", state);
-      storage.set("flow1", state, "instance-1");
-      storage.set("flow2", state);
-      storage.set("flow2", state, "instance-1");
+      store.set("flow1", state);
+      store.set("flow1", state, "instance-1");
+      store.set("flow2", state);
+      store.set("flow2", state, "instance-1");
 
-      const instances = storage.list!("flow1") as Array<{
+      const instances = store.list("flow1") as Array<{
         instanceId: string | undefined;
         state: PersistedFlowState;
       }>;

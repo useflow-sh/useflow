@@ -18,12 +18,12 @@ export interface FlowPersister {
    */
   save(
     flowId: string,
-    state: PersistedFlowState,
+    state: FlowState,
     options?: {
       version?: string;
       instanceId?: string;
     },
-  ): void | Promise<void>;
+  ): PersistedFlowState | Promise<PersistedFlowState | null> | null;
 
   /**
    * Restore flow state for a specific flow ID
@@ -148,15 +148,16 @@ export function createPersister(options: PersisterOptions): FlowPersister {
         const withMeta: PersistedFlowState = {
           ...state,
           __meta: {
-            ...state.__meta,
             savedAt: Date.now(),
             version: saveOptions?.version,
           },
         };
         await storage.set(flowId, withMeta, saveOptions?.instanceId);
         onSave?.(flowId, withMeta);
+        return withMeta;
       } catch (error) {
         onError?.(error as Error);
+        return null;
       }
     },
 

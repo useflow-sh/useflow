@@ -870,29 +870,6 @@ function MyStep() {
 - `saveMode="always"` - Auto-save on every context update
 - `saveMode="manual"` - No auto-save, use `save()` method to save manually
 
-**Low-level utilities** from `@useflow/core`:
-
-```tsx
-import {
-  extractPersistedState,
-  restoreFlowState,
-  serializeFlowState,
-  deserializeFlowState,
-} from "@useflow/react";
-
-// Extract state for saving
-const persistedState = extractPersistedState(flowState);
-
-// Serialize to JSON string
-const json = serializeFlowState(persistedState);
-
-// Deserialize from JSON
-const state = deserializeFlowState(json);
-
-// Restore to flow state
-const restoredState = restoreFlowState(persistedState, flowConfig);
-```
-
 #### Instance IDs for Reusable Flows
 
 When you need to use the same flow definition multiple times with separate persistence, use the `instanceId` prop:

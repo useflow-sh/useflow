@@ -13,9 +13,7 @@ export {
   createMemoryStorage,
   createPersister,
   deserializeFlowState,
-  extractPersistedState,
   kvJsonStorageAdapter,
-  restoreFlowState,
   serializeFlowState,
   validatePersistedState,
 } from "@useflow/core";

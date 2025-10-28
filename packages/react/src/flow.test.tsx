@@ -1635,7 +1635,9 @@ describe("FlowStep", () => {
       } as const satisfies FlowConfig<{ count: number }>);
 
       const persister = {
-        save: vi.fn().mockResolvedValue(undefined),
+        save: vi
+          .fn()
+          .mockImplementation((_flowId, state) => Promise.resolve(state)),
         restore: vi.fn().mockResolvedValue(null),
       };
 
@@ -2294,7 +2296,9 @@ describe("FlowStep", () => {
       } as const satisfies FlowConfig<Record<string, never>>);
 
       const persister = {
-        save: vi.fn().mockResolvedValue(undefined),
+        save: vi
+          .fn()
+          .mockImplementation((_flowId, state) => Promise.resolve(state)),
         restore: vi.fn().mockResolvedValue(null),
       };
 

@@ -212,27 +212,8 @@ describe("useFlowReducer", () => {
     expect(result.current.history).toEqual(["first", "second"]);
   });
 
-  it("should expose readonly history to prevent direct mutation", () => {
-    const definition: FlowDefinition<object> = {
-      id: "test",
-      start: "first",
-      steps: {
-        first: {},
-      },
-    };
-
-    const { result } = renderHook(() => useFlowReducer(definition, {}));
-
-    // History should be readonly array
-    const history = result.current.history;
-
-    // Verify it's an array with expected value
-    expect(Array.isArray(history)).toBe(true);
-    expect(history).toEqual(["first"]);
-  });
-
   describe("persistence", () => {
-    it("should initialize with restored state", () => {
+    it("should initialize with given initial state", () => {
       const definition = {
         id: "test",
         start: "first",
@@ -242,7 +223,7 @@ describe("useFlowReducer", () => {
         },
       };
 
-      const restoredState = {
+      const initialState = {
         stepId: "second",
         context: { count: 5 },
         history: ["first", "second"],
@@ -250,7 +231,7 @@ describe("useFlowReducer", () => {
       };
 
       const { result } = renderHook(() =>
-        useFlowReducer(definition, { count: 0 }, restoredState),
+        useFlowReducer(definition, { count: 0 }, initialState),
       );
 
       expect(result.current.stepId).toBe("second");

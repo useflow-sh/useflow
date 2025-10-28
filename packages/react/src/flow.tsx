@@ -4,7 +4,7 @@ import type {
   FlowPersister,
   PersistedFlowState,
 } from "@useflow/core";
-import { extractPersistedState, validatePersistedState } from "@useflow/core";
+import { validatePersistedState } from "@useflow/core";
 import {
   type ComponentType,
   createContext,
@@ -225,7 +225,6 @@ export function Flow<TConfig extends FlowConfig<any>>({
   const flowState = useFlowReducer<ExtractContext<TConfig>>(
     flowDefinitionWithoutComponents,
     initialContext,
-    null,
   );
 
   // Track previous state for callbacks
@@ -320,62 +319,65 @@ export function Flow<TConfig extends FlowConfig<any>>({
     previousStateRef.current = flowState;
   }, [flowState, onNext, onBack, onTransition, onContextUpdate, onComplete]);
 
+  const save = useCallback(async () => {
+    if (!persister) return;
+    try {
+      const version =
+        "version" in config
+          ? (config as { version?: string }).version
+          : undefined;
+
+      // Extract only the persistable state (no methods)
+      const stateToSave = {
+        stepId: flowState.stepId,
+        context: flowState.context,
+        history: flowState.history,
+        status: flowState.status,
+      };
+
+      const persistedState = await persister.save(flow.id, stateToSave, {
+        version,
+        instanceId,
+      });
+
+      if (persistedState) {
+        onSave?.(persistedState as PersistedFlowState<ExtractContext<TConfig>>);
+      }
+    } catch (error) {
+      console.error("[Flow] Failed to save state:", error);
+      onPersistenceError?.(error as Error);
+    }
+  }, [
+    flow.id,
+    flowState.stepId,
+    flowState.context,
+    flowState.history,
+    flowState.status,
+    config,
+    instanceId,
+    persister,
+    onSave,
+    onPersistenceError,
+  ]);
+
   // Handle persistence
   useEffect(() => {
-    if (!persister) return;
-
-    const action = lastActionRef.current;
-
     // Check if we should save based on saveMode
     if (saveMode === "manual") return;
+
+    const action = lastActionRef.current;
     if (saveMode === "navigation" && action !== "NEXT" && action !== "BACK")
       return;
 
-    const persistedState = extractPersistedState({
-      stepId: flowState.stepId,
-      context: flowState.context,
-      history: flowState.history as string[],
-      status: flowState.status,
-    });
-
-    const saveState = async () => {
-      try {
-        const version =
-          "version" in config
-            ? (config as { version?: string }).version
-            : undefined;
-
-        await persister.save(flow.id, persistedState, {
-          version,
-          instanceId,
-        });
-
-        onSave?.(persistedState);
-      } catch (error) {
-        console.error("[Flow] Failed to save state:", error);
-        onPersistenceError?.(error as Error);
-      }
-    };
-
     if (saveDebounce && saveDebounce > 0) {
       const timer = setTimeout(() => {
-        saveState();
+        save();
       }, saveDebounce);
       return () => clearTimeout(timer);
     }
 
-    saveState();
-  }, [
-    flowState,
-    persister,
-    saveMode,
-    saveDebounce,
-    flow.id,
-    instanceId,
-    config,
-    onSave,
-    onPersistenceError,
-  ]);
+    save();
+  }, [saveMode, saveDebounce, save]);
 
   // Resolve components - either use directly if dict, or call function if it's a function
   const resolvedComponents = useMemo(
@@ -421,34 +423,6 @@ export function Flow<TConfig extends FlowConfig<any>>({
     }),
     [config, resolvedComponents],
   ) as RuntimeFlowDefinition<ExtractContext<TConfig>>;
-
-  // Manual save function for saveMode="manual" mode
-  const save = useCallback(async () => {
-    if (!persister) return;
-
-    try {
-      const persistedState = extractPersistedState({
-        ...flowState,
-        history: [...flowState.history], // Convert readonly array to mutable
-      });
-      await persister.save(flow.id, persistedState, {
-        version: config.version,
-        instanceId,
-      });
-      onSave?.(persistedState);
-    } catch (error) {
-      console.error("[Flow] Failed to save state:", error);
-      onPersistenceError?.(error as Error);
-    }
-  }, [
-    flowState,
-    persister,
-    flow.id,
-    config.version,
-    instanceId,
-    onSave,
-    onPersistenceError,
-  ]);
 
   const flowValue = useMemo(
     () => ({

@@ -2,6 +2,7 @@ import { Flow } from "@useflow/react";
 import { useState } from "react";
 import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
+import { FlowVisualizer } from "../../components/FlowVisualizer";
 import { LoadingView } from "../../components/LoadingView";
 import { persister, storage } from "../../lib/storage";
 import { CompleteStep } from "../../shared-steps/CompleteStep";
@@ -55,11 +56,43 @@ export function BranchingFlowDemo() {
         startedAt: undefined,
       }}
       persister={persister}
-      saveDebounce={300}
+      saveMode="always"
       loadingComponent={<LoadingView />}
     >
-      <FlowInspector flowId={branchingFlow.id} storage={storage} />
-      <AnimatedFlowStep />
+      {/* Flow Visualizer - Fixed on bottom left */}
+      <div className="hidden xl:block fixed left-4 bottom-4 w-80">
+        <FlowVisualizer
+          steps={{
+            welcome: { label: "Welcome", next: "profile" },
+            profile: { label: "Profile", next: "userType" },
+            userType: {
+              label: "User Type",
+              next: ["businessDetails", "setupPreference"],
+            },
+            businessDetails: {
+              label: "Business Details",
+              next: "setupPreference",
+            },
+            setupPreference: {
+              label: "Setup Preference",
+              next: ["preferences", "complete"],
+            },
+            preferences: { label: "Preferences", next: "complete" },
+            complete: { label: "Complete" },
+          }}
+        />
+      </div>
+
+      <FlowInspector
+        flowId={branchingFlow.id}
+        storage={storage}
+        position="right"
+      />
+
+      {/* Main content - centered in viewport */}
+      <div className="flex items-center justify-center min-h-screen">
+        <AnimatedFlowStep />
+      </div>
     </Flow>
   );
 }

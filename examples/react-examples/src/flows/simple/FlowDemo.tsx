@@ -2,6 +2,7 @@ import { Flow } from "@useflow/react";
 import { useState } from "react";
 import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
+import { FlowVisualizer } from "../../components/FlowVisualizer";
 import { LoadingView } from "../../components/LoadingView";
 import { persister, storage } from "../../lib/storage";
 import { CompleteStep } from "../../shared-steps/CompleteStep";
@@ -43,11 +44,31 @@ export function SimpleFlowDemo() {
         notifications: false,
       }}
       persister={persister}
-      saveDebounce={300}
+      saveMode="always"
       loadingComponent={<LoadingView />}
     >
-      <FlowInspector flowId={simpleFlow.id} storage={storage} />
-      <AnimatedFlowStep />
+      {/* Flow Visualizer - Fixed on bottom left */}
+      <div className="hidden xl:block fixed left-4 bottom-4 w-80">
+        <FlowVisualizer
+          steps={{
+            welcome: { label: "Welcome", next: "profile" },
+            profile: { label: "Profile", next: "preferences" },
+            preferences: { label: "Preferences", next: "complete" },
+            complete: { label: "Complete" },
+          }}
+        />
+      </div>
+
+      <FlowInspector
+        flowId={simpleFlow.id}
+        storage={storage}
+        position="right"
+      />
+
+      {/* Main content - centered in viewport */}
+      <div className="flex items-center justify-center min-h-screen">
+        <AnimatedFlowStep />
+      </div>
     </Flow>
   );
 }

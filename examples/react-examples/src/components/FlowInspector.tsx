@@ -14,10 +14,12 @@ export function FlowInspector({
   flowId,
   storage,
   instanceId,
+  position = "right",
 }: {
   flowId: string;
   storage: KVFlowStorage;
   instanceId?: string;
+  position?: "left" | "right";
 }) {
   const { context, stepId, status, history, isRestoring } = useFlow();
   const [showDebug, setShowDebug] = useState(true);
@@ -51,10 +53,21 @@ export function FlowInspector({
     window.location.reload();
   };
 
+  const positionClass =
+    position === "right" ? "bottom-4 right-4" : "bottom-4 left-4";
+
   return (
-    <Card className="fixed bottom-4 left-4 w-96 z-50 text-sm">
-      {showDebug && (
-        <CardContent className="space-y-4 pb-2 p-6">
+    <Card
+      className={`fixed ${positionClass} w-96 z-50 text-sm max-h-[calc(100vh-2rem)] flex flex-col bg-background/80 backdrop-blur-sm`}
+    >
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          showDebug
+            ? "max-h-[calc(100vh-6rem)] opacity-100"
+            : "max-h-0 opacity-0"
+        }`}
+      >
+        <CardContent className="space-y-4 pb-2 p-6 overflow-y-auto">
           {/* Current Flow State */}
           <div className="space-y-2">
             <CardDescription className="font-semibold text-xs uppercase tracking-wide">
@@ -75,7 +88,7 @@ export function FlowInspector({
               </div>
               <div>
                 <strong>Context:</strong>
-                <pre className="mt-1 text-[0.7rem] overflow-auto bg-muted p-2 rounded max-h-36">
+                <pre className="mt-1 text-[0.7rem] overflow-auto bg-muted p-2 rounded max-h-48">
                   {JSON.stringify(context, null, 2)}
                 </pre>
               </div>
@@ -87,7 +100,7 @@ export function FlowInspector({
             <CardDescription className="font-semibold text-xs uppercase tracking-wide">
               Persisted State
             </CardDescription>
-            <div className="bg-muted p-2 rounded text-[0.7rem] font-mono max-h-36 overflow-auto">
+            <div className="bg-muted p-2 rounded text-[0.7rem] font-mono max-h-48 overflow-auto">
               {persistedState ? (
                 <pre className="m-0 whitespace-pre-wrap">
                   {JSON.stringify(persistedState, null, 2)}
@@ -122,15 +135,20 @@ export function FlowInspector({
             </Button>
           </div>
         </CardContent>
-      )}
+      </div>
 
       <CardHeader className="py-2">
         <button
           onClick={() => setShowDebug(!showDebug)}
-          className="w-full flex justify-between items-center text-left p-0 bg-transparent border-none cursor-pointer"
+          className="w-full flex justify-between items-center text-left p-0 bg-transparent border-none cursor-pointer hover:opacity-80 transition-opacity"
         >
           <CardTitle className="text-base">Flow Inspector</CardTitle>
-          <span className="text-muted-foreground">{showDebug ? "▲" : "▼"}</span>
+          <span
+            className="text-muted-foreground transition-transform duration-300"
+            style={{ transform: showDebug ? "rotate(0deg)" : "rotate(180deg)" }}
+          >
+            ▲
+          </span>
         </button>
       </CardHeader>
     </Card>

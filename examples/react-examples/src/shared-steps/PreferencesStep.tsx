@@ -46,7 +46,7 @@ export function PreferencesStep() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
+        <div>
           <Label>Choose Your Theme</Label>
           <OptionSelector
             options={themeOptions}
@@ -57,7 +57,9 @@ export function PreferencesStep() {
 
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <Label htmlFor="notifications">Enable Notifications</Label>
+            <Label htmlFor="notifications" className="mb-0">
+              Enable Notifications
+            </Label>
             <p className="text-sm text-muted-foreground">
               Receive updates about your account
             </p>

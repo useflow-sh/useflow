@@ -37,6 +37,141 @@ bun run dev
 
 Navigate to `http://localhost:5173` to see the flow gallery.
 
+## Flow Examples
+
+### 1. Simple Flow (Linear Progression)
+
+**Complexity:** Simple  
+**Path:** `/simple`
+
+A basic linear 4-step onboarding flow demonstrating core concepts.
+
+**Features:**
+
+- Linear step progression
+- Context updates with `setContext`
+- Navigation control (next/back)
+- State persistence with `persister`
+
+**Flow Structure:**
+
+```
+Welcome → Profile → Preferences → Complete
+```
+
+**Key Concepts:**
+
+- Basic flow definition
+- Hook-based components (`useFlow`)
+- State management across steps
+
+---
+
+### 2. Branching Flow (Conditional Navigation)
+
+**Complexity:** Intermediate  
+**Path:** `/branching`
+
+Demonstrates dynamic routing based on user choices.
+
+**Features:**
+
+- Context-driven branching (flow decides path)
+- Component-driven navigation (component chooses)
+- Conditional steps
+- State persistence
+
+**Flow Structure:**
+
+```
+Welcome → Profile → User Type
+                      ├─→ Business → Business Details → Setup
+                      └─→ Personal → Setup
+Setup: Skip to Complete OR Configure Preferences → Complete
+```
+
+**Key Concepts:**
+
+- Context-driven branching: `next: (ctx) => ctx.userType === "business" ? "details" : "setup"`
+- Component-driven branching: `next: ["preferences", "complete"]` + `next("complete")`
+- Multiple navigation patterns in one flow
+
+---
+
+### 3. Task Flow (Multi-Instance)
+
+**Complexity:** Intermediate  
+**Path:** `/task`
+
+Demonstrates reusable flow instances for creating multiple independent tasks.
+
+**Features:**
+
+- Reusable flow instances with unique `instanceId`
+- Independent state per instance
+- Resume incomplete flows (drafts)
+- Per-instance persistence
+- localStorage for completed tasks
+
+**Flow Structure:**
+
+```
+Task Type → Details → Assign → Review → Complete
+```
+
+**Key Concepts:**
+
+- `instanceId` prop for multi-instance flows
+- `storage.list()` to load all instances
+- Draft management (save incomplete flows)
+- Completed task tracking
+
+**UI Features:**
+
+- Draft tasks list with resume/delete
+- Created tasks list with expandable details
+- Animated task detail expansion
+- Back to task manager button
+
+---
+
+### 4. Survey Flow (Event Hooks)
+
+**Complexity:** Intermediate  
+**Path:** `/survey`
+
+Showcases event hooks for tracking and reacting to flow transitions.
+
+**Features:**
+
+- Event hooks: `onNext`, `onBack`, `onTransition`, `onComplete`
+- Progress tracking with visual indicators
+- State persistence
+- Real-time event logging
+
+**Flow Structure:**
+
+```
+Intro → Question 1 → Question 2 → Question 3 → Question 4 → Results
+```
+
+**Key Concepts:**
+
+- `onNext` - Triggered when moving forward
+- `onBack` - Triggered when moving backward
+- `onTransition` - Triggered on any navigation (with direction info)
+- `onComplete` - Triggered when flow finishes
+- Event-driven UI updates (progress bar, event log)
+
+**UI Features:**
+
+- Progress tracker with step indicators
+- Event hooks demo panel (bottom-left)
+- Real-time event logging
+- Score calculation
+
+---
+
 ## Project Structure
 
 ```

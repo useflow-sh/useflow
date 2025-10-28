@@ -1,8 +1,10 @@
-import { createPersister, kvJsonStorageAdapter } from "@useflow/react";
+import { JsonSerializer } from "@useflow/core";
+import { createPersister, kvStorageAdapter } from "@useflow/react";
 
 // Global storage adapter for the application
-export const storage = kvJsonStorageAdapter({
+export const storage = kvStorageAdapter({
   store: localStorage,
+  serializer: JsonSerializer,
   formatKey: (flowId, instanceId) =>
     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
   listKeys: (flowId) => {

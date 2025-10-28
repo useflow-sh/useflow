@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { PersistedFlowState } from "../types";
-import { kvJsonStorageAdapter } from "./kv-json-storage-adapter";
+import { kvStorageAdapter } from "./kv-storage-adapter";
+import { JsonSerializer } from "./serializer";
 
 // Helper to create a minimal Storage mock
 function createStorageMock(overrides: Partial<Storage> = {}): Storage {
@@ -19,6 +20,9 @@ function createStorageMock(overrides: Partial<Storage> = {}): Storage {
 const defaultFormatKey = (flowId: string, instanceId?: string) =>
   instanceId ? `useflow:${flowId}:${instanceId}` : `useflow:${flowId}`;
 
+// Default serializer for tests
+const defaultSerializer = JsonSerializer;
+
 // Default listKeys function for tests with mockData
 const createListKeys =
   (mockData: Record<string, string>) => (flowId?: string) => {
@@ -31,7 +35,7 @@ const createListKeys =
     );
   };
 
-describe("kvJsonStorageAdapter", () => {
+describe("kvStorageAdapter", () => {
   it("should get state from storage", async () => {
     const state: PersistedFlowState = {
       stepId: "step1",
@@ -44,9 +48,10 @@ describe("kvJsonStorageAdapter", () => {
       getItem: vi.fn().mockResolvedValue(JSON.stringify(state)),
     });
 
-    const storage = kvJsonStorageAdapter({
+    const storage = kvStorageAdapter({
       store,
       formatKey: defaultFormatKey,
+      serializer: defaultSerializer,
     });
 
     const result = await storage.get("test-flow");
@@ -60,9 +65,10 @@ describe("kvJsonStorageAdapter", () => {
       getItem: vi.fn().mockResolvedValue(null),
     });
 
-    const storage = kvJsonStorageAdapter({
+    const storage = kvStorageAdapter({
       store,
       formatKey: defaultFormatKey,
+      serializer: defaultSerializer,
     });
 
     const result = await storage.get("test-flow");
@@ -75,9 +81,10 @@ describe("kvJsonStorageAdapter", () => {
       getItem: vi.fn().mockResolvedValue("invalid json"),
     });
 
-    const storage = kvJsonStorageAdapter({
+    const storage = kvStorageAdapter({
       store,
       formatKey: defaultFormatKey,
+      serializer: defaultSerializer,
     });
 
     const result = await storage.get("test-flow");
@@ -90,9 +97,10 @@ describe("kvJsonStorageAdapter", () => {
       getItem: vi.fn().mockRejectedValue(new Error("Storage error")),
     });
 
-    const storage = kvJsonStorageAdapter({
+    const storage = kvStorageAdapter({
       store,
       formatKey: defaultFormatKey,
+      serializer: defaultSerializer,
     });
 
     const result = await storage.get("test-flow");
@@ -111,9 +119,10 @@ describe("kvJsonStorageAdapter", () => {
     const setItem = vi.fn().mockResolvedValue(undefined);
     const store = createStorageMock({ setItem });
 
-    const storage = kvJsonStorageAdapter({
+    const storage = kvStorageAdapter({
       store,
       formatKey: defaultFormatKey,
+      serializer: defaultSerializer,
     });
 
     await storage.set("test-flow", state);
@@ -128,9 +137,10 @@ describe("kvJsonStorageAdapter", () => {
     const removeItem = vi.fn().mockResolvedValue(undefined);
     const store = createStorageMock({ removeItem });
 
-    const storage = kvJsonStorageAdapter({
+    const storage = kvStorageAdapter({
       store,
       formatKey: defaultFormatKey,
+      serializer: defaultSerializer,
     });
 
     await storage.remove("test-flow");
@@ -157,7 +167,11 @@ describe("kvJsonStorageAdapter", () => {
         : `myapp:user:${flowId}`,
     );
 
-    const storage = kvJsonStorageAdapter({ store, formatKey });
+    const storage = kvStorageAdapter({
+      store,
+      formatKey,
+      serializer: defaultSerializer,
+    });
 
     await storage.get("test-flow");
     await storage.set("test-flow", state);
@@ -185,9 +199,10 @@ describe("kvJsonStorageAdapter", () => {
       getItem: vi.fn().mockReturnValue(JSON.stringify(state)),
     });
 
-    const storage = kvJsonStorageAdapter({
+    const storage = kvStorageAdapter({
       store,
       formatKey: defaultFormatKey,
+      serializer: defaultSerializer,
     });
 
     const result = await storage.get("test-flow");
@@ -211,9 +226,10 @@ describe("kvJsonStorageAdapter", () => {
       getItem: vi.fn().mockResolvedValue(JSON.stringify(state)),
     });
 
-    const storage = kvJsonStorageAdapter({
+    const storage = kvStorageAdapter({
       store,
       formatKey: defaultFormatKey,
+      serializer: defaultSerializer,
     });
 
     const result = await storage.get("test-flow");
@@ -238,9 +254,10 @@ describe("kvJsonStorageAdapter", () => {
         getItem: vi.fn().mockResolvedValue(JSON.stringify(state)),
       });
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
       });
 
       const result = await storage.get("test-flow", "instance-123");
@@ -262,9 +279,10 @@ describe("kvJsonStorageAdapter", () => {
       const setItem = vi.fn().mockResolvedValue(undefined);
       const store = createStorageMock({ setItem });
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
       });
 
       await storage.set("test-flow", state, "instance-123");
@@ -279,9 +297,10 @@ describe("kvJsonStorageAdapter", () => {
       const removeItem = vi.fn().mockResolvedValue(undefined);
       const store = createStorageMock({ removeItem });
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
       });
 
       await storage.remove("test-flow", "instance-123");
@@ -304,7 +323,11 @@ describe("kvJsonStorageAdapter", () => {
         instanceId ? `custom:${flowId}:${instanceId}` : `custom:${flowId}`,
       );
 
-      const storage = kvJsonStorageAdapter({ store, formatKey });
+      const storage = kvStorageAdapter({
+        store,
+        formatKey,
+        serializer: defaultSerializer,
+      });
 
       await storage.get("test-flow", "task-456");
 
@@ -326,7 +349,7 @@ describe("kvJsonStorageAdapter", () => {
       });
 
       // Use mockData as the store, with listKeys to enumerate
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: 0,
           clear: vi.fn(),
@@ -336,6 +359,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem,
         }) as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         listKeys: createListKeys(mockData),
       });
 
@@ -359,7 +383,7 @@ describe("kvJsonStorageAdapter", () => {
         delete mockData[key];
       });
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: 0,
           clear: vi.fn(),
@@ -369,6 +393,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem,
         }) as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         listKeys: createListKeys(mockData),
       });
 
@@ -396,7 +421,7 @@ describe("kvJsonStorageAdapter", () => {
         instanceId ? `user123:${flowId}:${instanceId}` : `user123:${flowId}`,
       );
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: 0,
           clear: vi.fn(),
@@ -406,6 +431,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem,
         }) as Storage,
         formatKey,
+        serializer: defaultSerializer,
         listKeys: (flowId) => {
           const allKeys = Object.keys(mockData);
           if (!flowId) return allKeys;
@@ -456,7 +482,7 @@ describe("kvJsonStorageAdapter", () => {
         (index: number) => Object.keys(mockData)[index] || null,
       );
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: Object.keys(mockData).length,
           clear: vi.fn(),
@@ -466,6 +492,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem: vi.fn(),
         }) as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         listKeys: createListKeys(mockData),
       });
 
@@ -488,7 +515,7 @@ describe("kvJsonStorageAdapter", () => {
         (index: number) => Object.keys(mockData)[index] || null,
       );
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: Object.keys(mockData).length,
           clear: vi.fn(),
@@ -498,6 +525,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem: vi.fn(),
         }) as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         listKeys: createListKeys(mockData),
       });
 
@@ -531,7 +559,7 @@ describe("kvJsonStorageAdapter", () => {
         (index: number) => Object.keys(mockData)[index] || null,
       );
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: Object.keys(mockData).length,
           clear: vi.fn(),
@@ -541,6 +569,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem: vi.fn(),
         }) as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         listKeys: createListKeys(mockData),
       });
 
@@ -592,7 +621,7 @@ describe("kvJsonStorageAdapter", () => {
         (index: number) => Object.keys(mockData)[index] || null,
       );
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: Object.keys(mockData).length,
           clear: vi.fn(),
@@ -602,6 +631,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem: vi.fn(),
         }) as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         listKeys: createListKeys(mockData),
       });
 
@@ -661,7 +691,7 @@ describe("kvJsonStorageAdapter", () => {
         (index: number) => Object.keys(mockData)[index] || null,
       );
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: Object.keys(mockData).length,
           clear: vi.fn(),
@@ -671,6 +701,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem: vi.fn(),
         }) as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         listKeys: createListKeys(mockData),
       });
 
@@ -730,7 +761,7 @@ describe("kvJsonStorageAdapter", () => {
           : `myapp:user123:${flowId}`,
       );
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: Object.keys(mockData).length,
           clear: vi.fn(),
@@ -740,6 +771,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem: vi.fn(),
         }) as Storage,
         formatKey,
+        serializer: defaultSerializer,
         listKeys: (flowId) => {
           const allKeys = Object.keys(mockData);
           if (!flowId) return allKeys;
@@ -783,7 +815,7 @@ describe("kvJsonStorageAdapter", () => {
         (index: number) => Object.keys(mockData)[index] || null,
       );
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: Object.keys(mockData).length,
           clear: vi.fn(),
@@ -793,6 +825,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem: vi.fn(),
         }) as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         listKeys: createListKeys(mockData),
       });
 
@@ -832,7 +865,7 @@ describe("kvJsonStorageAdapter", () => {
         delete mockData[key];
       });
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: 0,
           clear: vi.fn(),
@@ -842,6 +875,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem,
         }) as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         listKeys: () =>
           Object.keys(mockData).filter((key) => key.startsWith("useflow:")),
       });
@@ -866,7 +900,7 @@ describe("kvJsonStorageAdapter", () => {
         delete mockData[key];
       });
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: 0,
           clear: vi.fn(),
@@ -879,6 +913,7 @@ describe("kvJsonStorageAdapter", () => {
           instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
         listKeys: () =>
           Object.keys(mockData).filter((key) => key.startsWith("myapp:")),
+        serializer: defaultSerializer,
       });
 
       await storage.removeAll!();
@@ -899,7 +934,7 @@ describe("kvJsonStorageAdapter", () => {
         delete mockData[key];
       });
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: Object.assign(mockData, {
           length: 0,
           clear: vi.fn(),
@@ -909,6 +944,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem,
         }) as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         listKeys: () =>
           Object.keys(mockData).filter((key) => key.startsWith("useflow:")),
       });
@@ -924,7 +960,7 @@ describe("kvJsonStorageAdapter", () => {
     it("should be a no-op when listKeys is not provided", async () => {
       const removeItem = vi.fn();
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: {
           length: 0,
           clear: vi.fn(),
@@ -934,6 +970,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem,
         } as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         // No listKeys provided
       });
 
@@ -947,7 +984,7 @@ describe("kvJsonStorageAdapter", () => {
     it("should be a no-op when listKeys is not provided", async () => {
       const removeItem = vi.fn();
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: {
           length: 0,
           clear: vi.fn(),
@@ -957,6 +994,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem,
         } as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         // No listKeys provided
       });
 
@@ -968,7 +1006,7 @@ describe("kvJsonStorageAdapter", () => {
 
   describe("list with edge cases", () => {
     it("should return empty array when listKeys is not provided", async () => {
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: {
           length: 0,
           clear: vi.fn(),
@@ -978,6 +1016,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem: vi.fn(),
         } as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         // No listKeys provided
       });
 
@@ -1008,7 +1047,7 @@ describe("kvJsonStorageAdapter", () => {
         return mockData[key] || null;
       });
 
-      const storage = kvJsonStorageAdapter({
+      const storage = kvStorageAdapter({
         store: {
           length: 0,
           clear: vi.fn(),
@@ -1018,6 +1057,7 @@ describe("kvJsonStorageAdapter", () => {
           removeItem: vi.fn(),
         } as Storage,
         formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
         listKeys: () => Object.keys(mockData),
       });
 

@@ -3,16 +3,18 @@ export type {
   FlowPersister,
   FlowStorage,
   KVFlowStorage,
-  KVJSONStorageAdapterOptions,
+  KVStorageAdapterOptions,
+  KVStore,
   PersisterOptions,
+  Serializer,
+  StringSerializer,
   ValidationResult,
 } from "./persistence";
 export {
   createMemoryStorage,
   createPersister,
-  deserializeFlowState,
-  kvJsonStorageAdapter,
-  serializeFlowState,
+  JsonSerializer,
+  kvStorageAdapter,
   validatePersistedState,
 } from "./persistence";
 export {

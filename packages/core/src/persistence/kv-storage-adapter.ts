@@ -1,8 +1,8 @@
 /**
- * Key-Value JSON storage adapter
+ * Key-Value storage adapter
  *
  * Adapts any Storage-like interface (localStorage, sessionStorage, AsyncStorage, etc.)
- * to FlowStorage with automatic JSON serialization and key generation from flowId.
+ * to FlowStorage with customizable serialization and key generation from flowId.
  *
  * Works with any storage that implements (sync or async):
  * - getItem(key: string): string | null | Promise<string | null>
@@ -17,10 +17,10 @@
  *
  * @example
  * ```ts
- * import { kvJsonStorageAdapter, createPersister } from "@useflow/core";
+ * import { kvStorageAdapter, createPersister } from "@useflow/core";
  *
- * // Browser localStorage
- * const storage = kvJsonStorageAdapter({
+ * // Browser localStorage (uses default JSON serializer)
+ * const storage = kvStorageAdapter({
  *   store: localStorage,
  *   formatKey: (flowId, instanceId) =>
  *     instanceId ? `useflow:${flowId}:${instanceId}` : `useflow:${flowId}`,
@@ -28,7 +28,7 @@
  * });
  *
  * // Custom key format
- * const storage = kvJsonStorageAdapter({
+ * const storage = kvStorageAdapter({
  *   store: localStorage,
  *   formatKey: (flowId, instanceId) =>
  *     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
@@ -37,7 +37,7 @@
  *
  * // React Native AsyncStorage
  * import AsyncStorage from '@react-native-async-storage/async-storage';
- * const storage = kvJsonStorageAdapter({
+ * const storage = kvStorageAdapter({
  *   store: AsyncStorage,
  *   formatKey: (flowId, instanceId) =>
  *     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
@@ -49,23 +49,33 @@
  */
 
 import type { PersistedFlowState } from "../types";
-import { deserializeFlowState, serializeFlowState } from "./state";
+import type { Serializer } from "./serializer";
 import type { KVFlowStorage } from "./storage";
 
 /**
- * Options for KV JSON storage adapter
+ * Generic key-value store interface
  */
-export type KVJSONStorageAdapterOptions = {
+export interface KVStore<T> {
+  getItem(key: string): T | null | Promise<T | null>;
+  setItem(key: string, value: T): void | Promise<void>;
+  removeItem(key: string): void | Promise<void>;
+}
+
+/**
+ * Options for KV storage adapter
+ */
+export type KVStorageAdapterOptions<T = string> = {
   /**
    * Key-value storage backend (required)
    * Any object with getItem/setItem/removeItem methods
    *
    * Examples:
-   * - Browser: localStorage, sessionStorage
-   * - React Native: AsyncStorage
+   * - Browser: localStorage, sessionStorage (string-based)
+   * - React Native: AsyncStorage (string-based)
+   * - Custom binary stores (Uint8Array-based)
    * - Node.js: localStorage polyfills
    */
-  store: Storage;
+  store: KVStore<T>;
 
   /**
    * Key formatting function (required).
@@ -92,7 +102,7 @@ export type KVJSONStorageAdapterOptions = {
 
   /**
    * Optional function to enumerate storage keys.
-   * Required for removeAll() and list() to work.
+   * Required for removeAll(), removeFlow(), and list() to work.
    *
    * @param flowId - Optional flow ID to filter keys (for removeFlow and list operations)
    * @returns Array of storage keys, or Promise<string[]>
@@ -124,61 +134,88 @@ export type KVJSONStorageAdapterOptions = {
    * ```
    */
   listKeys?: (flowId?: string) => string[] | Promise<string[]>;
+
+  /**
+   * Serializer (required)
+   * Converts flow state to/from storage format
+   *
+   * Implement the Serializer<T> interface to provide custom serialization:
+   * - Serializer<string> for text-based stores (JSON, YAML, compressed strings)
+   * - Serializer<Uint8Array> for binary stores (MessagePack, Protocol Buffers)
+   *
+   * @example
+   * ```ts
+   * import { kvStorageAdapter, JsonSerializer } from '@useflow/react';
+   *
+   * // String-based serialization (default: JSON)
+   * const storage = kvStorageAdapter({
+   *   store: localStorage,
+   *   formatKey: (flowId, instanceId) =>
+   *     instanceId ? `app:${flowId}:${instanceId}` : `app:${flowId}`,
+   *   serializer: JsonSerializer
+   * });
+   * ```
+   */
+  serializer: Serializer<T>;
 };
 
 /**
- * Creates a FlowStorage adapter with JSON serialization for key-value stores
+ * Creates a FlowStorage adapter for key-value stores
  *
  * This adapter:
- * - Converts flowId to storage keys (configurable via getKey)
- * - Handles JSON serialization/deserialization automatically
- * - Works with any Storage-like interface (localStorage, AsyncStorage, etc.)
+ * - Converts flowId to storage keys (configurable via formatKey)
+ * - Handles serialization/deserialization with any Serializer<T>
+ * - Works with any KV store interface
  * - Validates structure on deserialization
  * - Gracefully handles errors
  *
  * @example
  * ```tsx
- * // Browser localStorage
- * const storage = kvJsonStorageAdapter({
+ * // Browser localStorage (JSON serialization)
+ * const storage = kvStorageAdapter({
  *   store: localStorage,
  *   formatKey: (flowId, instanceId) =>
  *     instanceId ? `useflow:${flowId}:${instanceId}` : `useflow:${flowId}`,
- *   listKeys: () => Object.keys(localStorage)
+ *   listKeys: () => Object.keys(localStorage),
+ *   serializer: JsonSerializer
  * });
  *
  * // sessionStorage
- * const storage = kvJsonStorageAdapter({
+ * const storage = kvStorageAdapter({
  *   store: sessionStorage,
  *   formatKey: (flowId, instanceId) =>
  *     instanceId ? `useflow:${flowId}:${instanceId}` : `useflow:${flowId}`,
- *   listKeys: () => Object.keys(sessionStorage)
+ *   listKeys: () => Object.keys(sessionStorage),
+ *   serializer: JsonSerializer
  * });
  *
  * // React Native AsyncStorage
  * import AsyncStorage from '@react-native-async-storage/async-storage';
- * const storage = kvJsonStorageAdapter({
+ * const storage = kvStorageAdapter({
  *   store: AsyncStorage,
  *   formatKey: (flowId, instanceId) =>
  *     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
- *   listKeys: async () => await AsyncStorage.getAllKeys()
+ *   listKeys: async () => await AsyncStorage.getAllKeys(),
+ *   serializer: JsonSerializer
  * });
  *
  * // Custom key generation (e.g., user-specific)
- * const storage = kvJsonStorageAdapter({
+ * const storage = kvStorageAdapter({
  *   store: localStorage,
  *   formatKey: (flowId, instanceId) => {
  *     const base = `user:${currentUserId}:${flowId}`;
  *     return instanceId ? `${base}:${instanceId}` : base;
  *   },
- *   listKeys: () => Object.keys(localStorage)
+ *   listKeys: () => Object.keys(localStorage),
+ *   serializer: JsonSerializer
  * });
  *
  * // Use with persister
  * const persister = createPersister({ storage, ttl: 7 * 24 * 60 * 60 * 1000 });
  * ```
  */
-export function kvJsonStorageAdapter(options: KVJSONStorageAdapterOptions) {
-  const { store, listKeys, formatKey } = options;
+export function kvStorageAdapter<T>(options: KVStorageAdapterOptions<T>) {
+  const { store, listKeys, formatKey, serializer } = options;
 
   return {
     async get(
@@ -187,8 +224,8 @@ export function kvJsonStorageAdapter(options: KVJSONStorageAdapterOptions) {
     ): Promise<PersistedFlowState | null> {
       try {
         const key = formatKey(flowId, instanceId);
-        const json = await store.getItem(key);
-        return json ? deserializeFlowState(json) : null;
+        const data = await store.getItem(key);
+        return data ? serializer.deserialize(data) : null;
       } catch {
         return null;
       }
@@ -200,7 +237,8 @@ export function kvJsonStorageAdapter(options: KVJSONStorageAdapterOptions) {
       instanceId?: string,
     ): Promise<void> {
       const key = formatKey(flowId, instanceId);
-      await store.setItem(key, serializeFlowState(state));
+      const serialized = serializer.serialize(state);
+      await store.setItem(key, serialized);
     },
 
     async remove(flowId: string, instanceId?: string): Promise<void> {
@@ -247,14 +285,18 @@ export function kvJsonStorageAdapter(options: KVJSONStorageAdapterOptions) {
       // Load each key and get instanceId from the state itself
       for (const key of keys) {
         try {
-          const json = await store.getItem(key);
-          if (!json) continue;
+          const data = await store.getItem(key);
+          if (!data) continue;
 
-          const state = deserializeFlowState(json);
+          const state = serializer.deserialize(data);
           if (!state) continue;
 
           instances.push({ instanceId: state.__meta?.instanceId, state });
-        } catch {}
+        } catch {
+          // Skip invalid entries
+          // biome-ignore lint/complexity/noUselessContinue: defensive programming
+          continue;
+        }
       }
 
       return instances;

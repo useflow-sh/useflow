@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { FlowDefinition, PersistedFlowState } from "../types";
-import {
-  deserializeFlowState,
-  serializeFlowState,
-  validatePersistedState,
-} from "./state";
+import { JsonSerializer } from "./serializer";
+import { validatePersistedState } from "./state";
+
+// Use the JsonSerializer's methods for testing
+const serializeFlowState = JsonSerializer.serialize.bind(JsonSerializer);
+const deserializeFlowState = JsonSerializer.deserialize.bind(JsonSerializer);
 
 describe("validatePersistedState", () => {
   const definition: FlowDefinition<{ name: string }> = {
@@ -188,7 +189,7 @@ describe("deserializeFlowState", () => {
     const json =
       '{"stepId":"profile","context":{"name":"John"},"history":["welcome","profile"],"status":"active"}';
 
-    const state = deserializeFlowState<{ name: string }>(json);
+    const state = deserializeFlowState(json);
 
     expect(state).toEqual({
       stepId: "profile",
@@ -234,7 +235,7 @@ describe("deserializeFlowState", () => {
     const json =
       '{"stepId":"profile","context":{"name":"John"},"history":["welcome","profile"],"status":"active","__meta":{"version":"1.0"}}';
 
-    const state = deserializeFlowState<{ name: string }>(json);
+    const state = deserializeFlowState(json);
 
     expect(state?.__meta).toEqual({ version: "1.0" });
   });

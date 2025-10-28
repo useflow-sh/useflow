@@ -1,9 +1,6 @@
 import { Flow } from "@useflow/react";
 import { useState } from "react";
-import {
-  AnimatedFlowStep,
-  type Direction,
-} from "../../components/AnimatedFlowStep";
+import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { LoadingView } from "../../components/LoadingView";
 import { persister, storage } from "../../lib/storage";
@@ -18,17 +15,10 @@ import { branchingFlow } from "./flow";
 
 export function BranchingFlowDemo() {
   const [flowKey, setFlowKey] = useState(0);
-  const [direction, setDirection] = useState<Direction>("initial");
 
   const handleRestart = () => {
     persister.remove?.(branchingFlow.id);
     setFlowKey((k) => k + 1);
-  };
-
-  const handleComplete = () => alert("Onboarding completed! 🎉");
-
-  const handleTransition = ({ direction }: { direction: Direction }) => {
-    setDirection(direction);
   };
 
   return (
@@ -64,14 +54,12 @@ export function BranchingFlowDemo() {
         companyName: undefined,
         startedAt: undefined,
       }}
-      onComplete={handleComplete}
-      onTransition={handleTransition}
       persister={persister}
       saveDebounce={300}
       loadingComponent={<LoadingView />}
     >
       <FlowInspector flowId={branchingFlow.id} storage={storage} />
-      <AnimatedFlowStep direction={direction} />
+      <AnimatedFlowStep />
     </Flow>
   );
 }

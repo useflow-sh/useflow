@@ -1,9 +1,6 @@
 import { Flow } from "@useflow/react";
 import { useState } from "react";
-import {
-  AnimatedFlowStep,
-  type Direction,
-} from "../../components/AnimatedFlowStep";
+import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { LoadingView } from "../../components/LoadingView";
 import { persister, storage } from "../../lib/storage";
@@ -15,17 +12,10 @@ import { simpleFlow } from "./flow";
 
 export function SimpleFlowDemo() {
   const [flowKey, setFlowKey] = useState(0);
-  const [direction, setDirection] = useState<Direction>("initial");
 
   const handleRestart = () => {
     persister.remove?.(simpleFlow.id);
     setFlowKey((k) => k + 1);
-  };
-
-  const handleComplete = () => alert("Onboarding completed! 🎉");
-
-  const handleTransition = ({ direction }: { direction: Direction }) => {
-    setDirection(direction);
   };
 
   return (
@@ -52,14 +42,12 @@ export function SimpleFlowDemo() {
         theme: undefined,
         notifications: false,
       }}
-      onComplete={handleComplete}
-      onTransition={handleTransition}
       persister={persister}
       saveDebounce={300}
       loadingComponent={<LoadingView />}
     >
       <FlowInspector flowId={simpleFlow.id} storage={storage} />
-      <AnimatedFlowStep direction={direction} />
+      <AnimatedFlowStep />
     </Flow>
   );
 }

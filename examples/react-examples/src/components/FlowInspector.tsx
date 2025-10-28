@@ -52,19 +52,9 @@ export function FlowInspector({
   };
 
   return (
-    <Card className="fixed top-4 right-4 w-96 z-50 text-sm">
-      <CardHeader>
-        <button
-          onClick={() => setShowDebug(!showDebug)}
-          className="w-full flex justify-between items-center text-left p-0 bg-transparent border-none cursor-pointer"
-        >
-          <CardTitle className="text-base">Flow Inspector</CardTitle>
-          <span className="text-muted-foreground">{showDebug ? "▼" : "▶"}</span>
-        </button>
-      </CardHeader>
-
+    <Card className="fixed bottom-4 left-4 w-96 z-50 text-sm">
       {showDebug && (
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pb-2 p-6">
           {/* Current Flow State */}
           <div className="space-y-2">
             <CardDescription className="font-semibold text-xs uppercase tracking-wide">
@@ -133,6 +123,16 @@ export function FlowInspector({
           </div>
         </CardContent>
       )}
+
+      <CardHeader className="py-2">
+        <button
+          onClick={() => setShowDebug(!showDebug)}
+          className="w-full flex justify-between items-center text-left p-0 bg-transparent border-none cursor-pointer"
+        >
+          <CardTitle className="text-base">Flow Inspector</CardTitle>
+          <span className="text-muted-foreground">{showDebug ? "▲" : "▼"}</span>
+        </button>
+      </CardHeader>
     </Card>
   );
 }

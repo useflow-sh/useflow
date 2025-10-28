@@ -110,7 +110,7 @@ export function FlowInspector({
               )}
             </div>
             <div className="text-[0.65rem] text-muted-foreground">
-              Key: <code>{storage.getKey(flowId, instanceId)}</code>
+              Key: <code>{storage.formatKey(flowId, instanceId)}</code>
             </div>
           </div>
 

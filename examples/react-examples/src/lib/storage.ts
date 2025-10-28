@@ -3,7 +3,18 @@ import { createPersister, kvJsonStorageAdapter } from "@useflow/react";
 // Global storage adapter for the application
 export const storage = kvJsonStorageAdapter({
   store: localStorage,
-  prefix: "myapp",
+  formatKey: (flowId, instanceId) =>
+    instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+  listKeys: (flowId) => {
+    const allKeys = Object.keys(localStorage);
+    if (!flowId) return allKeys;
+
+    // Filter keys for this specific flow
+    const baseKey = `myapp:${flowId}`;
+    return allKeys.filter(
+      (key) => key === baseKey || key.startsWith(`${baseKey}:`),
+    );
+  },
 });
 
 // Global persister with 7-day TTL

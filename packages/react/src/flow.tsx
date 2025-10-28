@@ -167,7 +167,7 @@ type FlowProps<TConfig extends FlowConfig<any>> = {
  *   flow={myFlow}
  *   components={(flowState) => ({ ... })}
  *   initialContext={{ name: '' }}
- *   persister={createLocalStoragePersister({ prefix: 'myapp' })}
+ *   persister={persister}
  *   loadingComponent={<Spinner />}
  * />
  *

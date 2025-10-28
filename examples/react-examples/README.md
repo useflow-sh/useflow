@@ -297,21 +297,6 @@ All flows use `saveMode="always"` for instant localStorage persistence:
 - Progress survives page refreshes
 - Can be cleared via FlowInspector or home page button
 
-**Storage Setup:**
-
-```typescript
-// lib/storage.ts
-export const storage = kvJsonStorageAdapter({
-  store: localStorage,
-  prefix: "useflow-examples",
-});
-
-export const persister = createPersister({
-  storage,
-  ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
-});
-```
-
 ## Animations
 
 ### Step Transitions

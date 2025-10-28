@@ -274,8 +274,7 @@ Perfect for analytics, animations, and external state synchronization.
 Save and restore flow progress automatically with built-in persisters:
 
 ```tsx
-import { Flow, defineFlow } from "@useflow/react";
-import { createLocalStoragePersister } from "@useflow/core/web";
+import { Flow, defineFlow, createPersister, kvJsonStorageAdapter } from "@useflow/react";
 
 // Define your flow with an ID
 export const onboardingFlow = defineFlow({
@@ -284,17 +283,28 @@ export const onboardingFlow = defineFlow({
   steps: { /* ... */ },
 } as const);
 
-// Create a single persister for all flows
-// Each flow uses: `${prefix}:${flowId}` as the storage key
-const persister = createLocalStoragePersister({
-  prefix: "myapp", // Optional prefix, defaults to "useflow"
+// Create storage adapter and persister
+const storage = kvJsonStorageAdapter({
+  store: localStorage,
+  formatKey: (flowId, instanceId) =>
+    instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+  listKeys: (flowId) => {
+    const allKeys = Object.keys(localStorage);
+    if (!flowId) return allKeys.filter(k => k.startsWith('myapp:'));
+    const baseKey = `myapp:${flowId}`;
+    return allKeys.filter(k => k === baseKey || k.startsWith(`${baseKey}:`));
+  }
+});
+
+const persister = createPersister({
+  storage,
   ttl: 1000 * 60 * 60 * 24 * 7, // 7 days
 });
 
 function App() {
   return (
     <Flow
-      flow={onboardingFlow} // Automatically uses "myapp:user-onboarding"
+      flow={onboardingFlow}
       components={...}
       initialContext={{ name: "", email: "" }}
       persister={persister}
@@ -303,16 +313,15 @@ function App() {
 }
 ```
 
-**Built-in Persisters:**
+**Built-in Adapters:**
 
-- `createLocalStoragePersister()` - Saves to browser localStorage
-- `createSessionStoragePersister()` - Saves to sessionStorage (cleared on tab close)
-- `createMemoryPersister()` - In-memory storage for testing
+- `kvJsonStorageAdapter()` - Works with localStorage, sessionStorage, AsyncStorage, or any key-value store
+- `createMemoryStorage()` - In-memory storage for testing
 
 **Features:**
 
 - ✅ **Single persister for multiple flows** - One persister instance handles all your flows
-- ✅ **Automatic storage keys** - Uses flow ID to prevent conflicts: `prefix:flowId`
+- ✅ **Flexible key formats** - Full control over storage key generation
 - ✅ **Automatic save/restore** - Debounced saves, automatic restoration on mount
 - ✅ **TTL support** - Auto-expire old data
 - ✅ **Schema versioning** - For migrations
@@ -332,8 +341,19 @@ const checkoutFlow = defineFlow({
   /* ... */
 });
 
-// One persister for all flows
-const persister = createLocalStoragePersister({ prefix: "myapp" });
+// One storage adapter and persister for all flows
+const storage = kvJsonStorageAdapter({
+  store: localStorage,
+  formatKey: (flowId, instanceId) =>
+    instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+  listKeys: (flowId) => {
+    const allKeys = Object.keys(localStorage);
+    if (!flowId) return allKeys.filter(k => k.startsWith('myapp:'));
+    const baseKey = `myapp:${flowId}`;
+    return allKeys.filter(k => k === baseKey || k.startsWith(`${baseKey}:`));
+  }
+});
+const persister = createPersister({ storage });
 
 // Storage keys: "myapp:onboarding" and "myapp:checkout"
 <Flow flow={onboardingFlow} persister={persister} {...props} />
@@ -351,7 +371,18 @@ const feedbackFlow = defineFlow({
   /* ... */
 });
 
-const persister = createLocalStoragePersister({ prefix: "myapp" });
+const storage = kvJsonStorageAdapter({
+  store: localStorage,
+  formatKey: (flowId, instanceId) =>
+    instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+  listKeys: (flowId) => {
+    const allKeys = Object.keys(localStorage);
+    if (!flowId) return allKeys.filter(k => k.startsWith('myapp:'));
+    const baseKey = `myapp:${flowId}`;
+    return allKeys.filter(k => k === baseKey || k.startsWith(`${baseKey}:`));
+  }
+});
+const persister = createPersister({ storage });
 
 // Multiple instances with separate state
 // Storage keys: "myapp:feedback:task-123" and "myapp:feedback:task-456"
@@ -379,64 +410,92 @@ Perfect for:
 
 **React Native:**
 
-Use `createPersister` with AsyncStorage:
+Use `kvJsonStorageAdapter` with AsyncStorage:
 
 ```tsx
-import { createPersister } from "@useflow/react";
+import { createPersister, kvJsonStorageAdapter } from "@useflow/react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+const storage = kvJsonStorageAdapter({
+  store: AsyncStorage,
+  formatKey: (flowId, instanceId) =>
+    instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+  listKeys: async (flowId) => {
+    const allKeys = await AsyncStorage.getAllKeys();
+    if (!flowId) return allKeys.filter(k => k.startsWith('myapp:'));
+    const baseKey = `myapp:${flowId}`;
+    return allKeys.filter(k => k === baseKey || k.startsWith(`${baseKey}:`));
+  }
+});
+
 const persister = createPersister({
-  storage: AsyncStorage, // Implements Storage interface
-  prefix: "myapp",
+  storage,
   ttl: 7 * 24 * 60 * 60 * 1000,
 });
 ```
 
 **Custom Storage Backends:**
 
-Implement the `FlowPersister` interface for complete control:
+Implement the `FlowStorage` interface for complete control:
 
 ```tsx
-import type { FlowPersister } from "@useflow/react";
+import type { FlowStorage } from "@useflow/react";
+import { createPersister } from "@useflow/react";
 
-const apiPersister: FlowPersister<MyContext> = {
-  async save(flowId, state) {
-    await fetch(`/api/flows/${flowId}/save`, {
-      method: "POST",
+const apiStorage: FlowStorage = {
+  async get(flowId, instanceId) {
+    const id = instanceId ? `${flowId}:${instanceId}` : flowId;
+    const response = await fetch(`/api/flows/${id}`);
+    return response.ok ? response.json() : null;
+  },
+  async set(flowId, state, instanceId) {
+    const id = instanceId ? `${flowId}:${instanceId}` : flowId;
+    await fetch(`/api/flows/${id}`, {
+      method: "PUT",
       body: JSON.stringify(state),
     });
   },
-  async restore(flowId) {
-    const response = await fetch(`/api/flows/${flowId}`);
-    return response.ok ? response.json() : null;
-  },
-  async clear(flowId) {
-    await fetch(`/api/flows/${flowId}`, { method: "DELETE" });
+  async remove(flowId, instanceId) {
+    const id = instanceId ? `${flowId}:${instanceId}` : flowId;
+    await fetch(`/api/flows/${id}`, { method: "DELETE" });
   },
 };
+
+const persister = createPersister({ storage: apiStorage });
 ```
 
-Or use `createPersister` with a storage adapter:
+Or use `kvJsonStorageAdapter` with IndexedDB:
 
 ```tsx
-import { createPersister, type Storage } from "@useflow/react";
+import { createPersister, kvJsonStorageAdapter } from "@useflow/react";
 
-const indexedDBStorage: Storage = {
-  async getItem(key) {
-    // Your IndexedDB implementation
+// Wrap IndexedDB with Storage interface
+const indexedDBStore = {
+  async getItem(key: string) {
     return await db.get(key);
   },
-  async setItem(key, value) {
+  async setItem(key: string, value: string) {
     await db.put(key, value);
   },
-  async removeItem(key) {
+  async removeItem(key: string) {
     await db.delete(key);
   },
 };
 
+const storage = kvJsonStorageAdapter({
+  store: indexedDBStore,
+  formatKey: (flowId, instanceId) =>
+    instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+  listKeys: async (flowId) => {
+    const allKeys = await db.getAllKeys();
+    if (!flowId) return allKeys.filter(k => k.startsWith('myapp:'));
+    const baseKey = `myapp:${flowId}`;
+    return allKeys.filter(k => k === baseKey || k.startsWith(`${baseKey}:`));
+  }
+});
+
 const persister = createPersister({
-  storage: indexedDBStorage,
-  prefix: "myapp",
+  storage,
   ttl: 30 * 24 * 60 * 60 * 1000, // 30 days
 });
 ```
@@ -444,10 +503,21 @@ const persister = createPersister({
 **Advanced Options:**
 
 ```tsx
-const persister = createLocalStoragePersister({
-  prefix: "myapp", // Storage key prefix
+const storage = kvJsonStorageAdapter({
+  store: localStorage,
+  formatKey: (flowId, instanceId) =>
+    instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+  listKeys: (flowId) => {
+    const allKeys = Object.keys(localStorage);
+    if (!flowId) return allKeys.filter(k => k.startsWith('myapp:'));
+    const baseKey = `myapp:${flowId}`;
+    return allKeys.filter(k => k === baseKey || k.startsWith(`${baseKey}:`));
+  }
+});
+
+const persister = createPersister({
+  storage,
   ttl: 1000 * 60 * 60 * 24 * 7, // 7 days
-  version: "1.0", // Schema version
   validate: (state) => {
     // Custom validation
     return state.context.email?.includes("@");

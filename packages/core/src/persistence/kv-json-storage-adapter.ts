@@ -19,27 +19,37 @@
  * ```ts
  * import { kvJsonStorageAdapter, createPersister } from "@useflow/core";
  *
- * // Browser localStorage (uses default key: "useflow:${flowId}")
- * const storage = kvJsonStorageAdapter({ store: localStorage });
- *
- * // Custom prefix
+ * // Browser localStorage
  * const storage = kvJsonStorageAdapter({
  *   store: localStorage,
- *   getKey: (flowId) => `myapp:${flowId}`
+ *   formatKey: (flowId, instanceId) =>
+ *     instanceId ? `useflow:${flowId}:${instanceId}` : `useflow:${flowId}`,
+ *   listKeys: () => Object.keys(localStorage)
+ * });
+ *
+ * // Custom key format
+ * const storage = kvJsonStorageAdapter({
+ *   store: localStorage,
+ *   formatKey: (flowId, instanceId) =>
+ *     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+ *   listKeys: () => Object.keys(localStorage)
  * });
  *
  * // React Native AsyncStorage
  * import AsyncStorage from '@react-native-async-storage/async-storage';
  * const storage = kvJsonStorageAdapter({
  *   store: AsyncStorage,
- *   getKey: (flowId) => `myapp:${flowId}`
+ *   formatKey: (flowId, instanceId) =>
+ *     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+ *   listKeys: async () => await AsyncStorage.getAllKeys()
  * });
  *
  * const persister = createPersister({ storage });
  * ```
  */
 
-import { deserializeFlowState, type PersistedFlowState } from "./state";
+import type { PersistedFlowState } from "../types";
+import { deserializeFlowState, serializeFlowState } from "./state";
 import type { KVFlowStorage } from "./storage";
 
 /**
@@ -58,35 +68,62 @@ export type KVJSONStorageAdapterOptions = {
   store: Storage;
 
   /**
-   * Prefix for all keys created by this storage adapter.
-   * Used for bulk operations like removeAll().
-   *
-   * @default "useflow"
-   */
-  prefix?: string;
-
-  /**
-   * Custom key format function.
-   * The prefix will be automatically prepended to ensure bulk operations work correctly.
-   *
-   * @default (flowId, instanceId) => {
-   *   const base = flowId;
-   *   return instanceId ? `${base}:${instanceId}` : base;
-   * }
+   * Key formatting function (required).
+   * Constructs storage keys from flowId and optional instanceId.
+   * You have full control over the key format.
    *
    * @example
    * ```ts
+   * // Simple format
+   * formatKey: (flowId, instanceId) => {
+   *   return instanceId ? `useflow:${flowId}:${instanceId}` : `useflow:${flowId}`;
+   * }
+   *
    * // User-scoped keys
-   * getKey: (flowId, instanceId) => {
+   * formatKey: (flowId, instanceId) => {
    *   const userId = getCurrentUserId();
-   *   const base = `${userId}:${flowId}`;
+   *   const base = `myapp:${userId}:${flowId}`;
    *   return instanceId ? `${base}:${instanceId}` : base;
    * }
-   * // Results in: "useflow:alice:feedback:task-123"
-   * //             ^^^^^^^ prefix added automatically
+   * // Results in: "myapp:alice:feedback:task-123"
    * ```
    */
-  getKey?: (flowId: string, instanceId?: string) => string;
+  formatKey: (flowId: string, instanceId?: string) => string;
+
+  /**
+   * Optional function to enumerate storage keys.
+   * Required for removeAll() and list() to work.
+   *
+   * @param flowId - Optional flow ID to filter keys (for removeFlow and list operations)
+   * @returns Array of storage keys, or Promise<string[]>
+   *
+   * @example
+   * ```ts
+   * // Browser localStorage - enumerate all keys
+   * listKeys: () => Object.keys(localStorage)
+   *
+   * // With flow filtering
+   * listKeys: (flowId) => {
+   *   const allKeys = Object.keys(localStorage);
+   *   if (!flowId) return allKeys;
+   *
+   *   const baseKey = `useflow:${flowId}`;
+   *   return allKeys.filter(key =>
+   *     key === baseKey || key.startsWith(`${baseKey}:`)
+   *   );
+   * }
+   *
+   * // React Native AsyncStorage
+   * listKeys: async () => await AsyncStorage.getAllKeys()
+   *
+   * // Redis with pattern matching
+   * listKeys: async (flowId) => {
+   *   if (flowId) return await redis.keys(`useflow:${flowId}*`);
+   *   return await redis.keys('useflow:*');
+   * }
+   * ```
+   */
+  listKeys?: (flowId?: string) => string[] | Promise<string[]>;
 };
 
 /**
@@ -101,26 +138,39 @@ export type KVJSONStorageAdapterOptions = {
  *
  * @example
  * ```tsx
- * // Browser localStorage (default key: "useflow:${flowId}")
- * const storage = kvJsonStorageAdapter({ store: localStorage });
- *
- * // Custom prefix
+ * // Browser localStorage
  * const storage = kvJsonStorageAdapter({
  *   store: localStorage,
- *   getKey: (flowId) => `myapp:${flowId}`
+ *   formatKey: (flowId, instanceId) =>
+ *     instanceId ? `useflow:${flowId}:${instanceId}` : `useflow:${flowId}`,
+ *   listKeys: () => Object.keys(localStorage)
  * });
  *
  * // sessionStorage
- * const storage = kvJsonStorageAdapter({ store: sessionStorage });
+ * const storage = kvJsonStorageAdapter({
+ *   store: sessionStorage,
+ *   formatKey: (flowId, instanceId) =>
+ *     instanceId ? `useflow:${flowId}:${instanceId}` : `useflow:${flowId}`,
+ *   listKeys: () => Object.keys(sessionStorage)
+ * });
  *
  * // React Native AsyncStorage
  * import AsyncStorage from '@react-native-async-storage/async-storage';
- * const storage = kvJsonStorageAdapter({ store: AsyncStorage });
+ * const storage = kvJsonStorageAdapter({
+ *   store: AsyncStorage,
+ *   formatKey: (flowId, instanceId) =>
+ *     instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+ *   listKeys: async () => await AsyncStorage.getAllKeys()
+ * });
  *
  * // Custom key generation (e.g., user-specific)
  * const storage = kvJsonStorageAdapter({
  *   store: localStorage,
- *   getKey: (flowId) => `user:${currentUserId}:${flowId}`
+ *   formatKey: (flowId, instanceId) => {
+ *     const base = `user:${currentUserId}:${flowId}`;
+ *     return instanceId ? `${base}:${instanceId}` : base;
+ *   },
+ *   listKeys: () => Object.keys(localStorage)
  * });
  *
  * // Use with persister
@@ -128,17 +178,7 @@ export type KVJSONStorageAdapterOptions = {
  * ```
  */
 export function kvJsonStorageAdapter(options: KVJSONStorageAdapterOptions) {
-  const { store, prefix = "useflow" } = options;
-
-  // Build key function - ALWAYS adds prefix
-  const getKey = (flowId: string, instanceId?: string): string => {
-    if (options.getKey) {
-      const userKey = options.getKey(flowId, instanceId);
-      return `${prefix}:${userKey}`;
-    }
-    const base = flowId;
-    return instanceId ? `${prefix}:${base}:${instanceId}` : `${prefix}:${base}`;
-  };
+  const { store, listKeys, formatKey } = options;
 
   return {
     async get(
@@ -146,7 +186,7 @@ export function kvJsonStorageAdapter(options: KVJSONStorageAdapterOptions) {
       instanceId?: string,
     ): Promise<PersistedFlowState | null> {
       try {
-        const key = getKey(flowId, instanceId);
+        const key = formatKey(flowId, instanceId);
         const json = await store.getItem(key);
         return json ? deserializeFlowState(json) : null;
       } catch {
@@ -159,78 +199,67 @@ export function kvJsonStorageAdapter(options: KVJSONStorageAdapterOptions) {
       state: PersistedFlowState,
       instanceId?: string,
     ): Promise<void> {
-      const key = getKey(flowId, instanceId);
-      await store.setItem(key, JSON.stringify(state));
+      const key = formatKey(flowId, instanceId);
+      await store.setItem(key, serializeFlowState(state));
     },
 
     async remove(flowId: string, instanceId?: string): Promise<void> {
-      const key = getKey(flowId, instanceId);
+      const key = formatKey(flowId, instanceId);
       await store.removeItem(key);
     },
 
     async removeFlow(flowId: string): Promise<void> {
-      const baseKey = getKey(flowId);
-      const pattern = `${baseKey}:`;
+      if (!listKeys) return; // No-op if listKeys() not provided
 
-      Object.keys(store).forEach((key) => {
-        if (key === baseKey || key.startsWith(pattern)) {
-          store.removeItem(key);
-        }
-      });
+      // Get all keys for this flow
+      const keys = await listKeys(flowId);
+
+      for (const key of keys) {
+        await store.removeItem(key);
+      }
     },
 
     async removeAll(): Promise<void> {
-      const prefixPattern = `${prefix}:`;
+      if (!listKeys) return; // No-op if listKeys() not provided
 
-      Object.keys(store).forEach((key) => {
-        if (key.startsWith(prefixPattern)) {
-          store.removeItem(key);
-        }
-      });
+      const keys = await listKeys();
+
+      for (const key of keys) {
+        await store.removeItem(key);
+      }
     },
 
     async list(
       flowId: string,
     ): Promise<
-      Array<{ instanceId: string | undefined; state: PersistedFlowState }>
+      { instanceId: string | undefined; state: PersistedFlowState }[]
     > {
-      const baseKey = getKey(flowId);
-      const pattern = `${baseKey}:`;
-      const instances: Array<{
+      if (!listKeys) return []; // Return empty array if listKeys() not provided
+
+      const instances: {
         instanceId: string | undefined;
         state: PersistedFlowState;
-      }> = [];
+      }[] = [];
 
-      // Iterate through all keys in storage
-      for (let i = 0; i < store.length; i++) {
-        const key = store.key?.(i);
-        if (!key) continue;
+      // Get all keys for this flow (base + instances)
+      const keys = await listKeys(flowId);
 
-        // Check if this key is the base flow or an instance
-        if (key === baseKey || key.startsWith(pattern)) {
-          try {
-            const json = await store.getItem(key);
-            if (!json) continue;
+      // Load each key and get instanceId from the state itself
+      for (const key of keys) {
+        try {
+          const json = await store.getItem(key);
+          if (!json) continue;
 
-            const state = deserializeFlowState(json);
-            if (!state) continue;
+          const state = deserializeFlowState(json);
+          if (!state) continue;
 
-            // Extract instance ID from key (everything after the pattern)
-            // For base key, use undefined as instanceId
-            const instanceId =
-              key === baseKey ? undefined : key.substring(pattern.length);
-            instances.push({ instanceId, state });
-          } catch {
-            // Skip invalid entries
-            // biome-ignore lint/complexity/noUselessContinue: defensive programming in case more is added after this block
-            continue;
-          }
-        }
+          instances.push({ instanceId: state.__meta?.instanceId, state });
+        } catch {}
       }
 
       return instances;
     },
 
-    getKey,
+    formatKey,
   } satisfies KVFlowStorage;
 }

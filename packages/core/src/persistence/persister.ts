@@ -64,7 +64,6 @@ export interface FlowPersister {
   /**
    * Remove all flows managed by this persister
    * Optional - only available if storage adapter supports it
-   * Only removes flows with the configured prefix
    */
   removeAll?(): void | Promise<void>;
 }
@@ -122,20 +121,20 @@ export type PersisterOptions = {
  *
  * @example
  * ```ts
- * import { createPersister, kvJsonStorageAdapter } from '@useflow/core';
+ * import { createPersister } from '@useflow/core';
  *
- * // Web (localStorage)
+ * // With a storage adapter
  * const persister = createPersister({
- *   storage: kvJsonStorageAdapter({
- *     store: localStorage,
- *     getKey: (flowId) => `myapp:${flowId}`
- *   }),
- *   ttl: 7 * 24 * 60 * 60 * 1000,
+ *   storage: myStorageAdapter,
+ *   ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
  * });
  *
- * // Custom SQL storage
+ * // With validation and callbacks
  * const persister = createPersister({
- *   storage: createPostgresStorage(db),
+ *   storage: myStorageAdapter,
+ *   validate: (state) => state.stepId !== 'invalid',
+ *   onSave: (flowId, state) => console.log('Saved:', flowId),
+ *   onError: (error) => console.error('Error:', error),
  * });
  * ```
  */

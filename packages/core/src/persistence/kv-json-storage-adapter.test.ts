@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import type { PersistedFlowState } from "../types";
 import { kvJsonStorageAdapter } from "./kv-json-storage-adapter";
-import type { PersistedFlowState } from "./state";
 
 // Helper to create a minimal Storage mock
 function createStorageMock(overrides: Partial<Storage> = {}): Storage {
@@ -15,6 +15,22 @@ function createStorageMock(overrides: Partial<Storage> = {}): Storage {
   } as Storage;
 }
 
+// Default formatKey function for tests
+const defaultFormatKey = (flowId: string, instanceId?: string) =>
+  instanceId ? `useflow:${flowId}:${instanceId}` : `useflow:${flowId}`;
+
+// Default listKeys function for tests with mockData
+const createListKeys =
+  (mockData: Record<string, string>) => (flowId?: string) => {
+    const allKeys = Object.keys(mockData);
+    if (!flowId) return allKeys;
+
+    const baseKey = defaultFormatKey(flowId);
+    return allKeys.filter(
+      (key) => key === baseKey || key.startsWith(`${baseKey}:`),
+    );
+  };
+
 describe("kvJsonStorageAdapter", () => {
   it("should get state from storage", async () => {
     const state: PersistedFlowState = {
@@ -28,7 +44,10 @@ describe("kvJsonStorageAdapter", () => {
       getItem: vi.fn().mockResolvedValue(JSON.stringify(state)),
     });
 
-    const storage = kvJsonStorageAdapter({ store });
+    const storage = kvJsonStorageAdapter({
+      store,
+      formatKey: defaultFormatKey,
+    });
 
     const result = await storage.get("test-flow");
 
@@ -41,7 +60,10 @@ describe("kvJsonStorageAdapter", () => {
       getItem: vi.fn().mockResolvedValue(null),
     });
 
-    const storage = kvJsonStorageAdapter({ store });
+    const storage = kvJsonStorageAdapter({
+      store,
+      formatKey: defaultFormatKey,
+    });
 
     const result = await storage.get("test-flow");
 
@@ -53,7 +75,10 @@ describe("kvJsonStorageAdapter", () => {
       getItem: vi.fn().mockResolvedValue("invalid json"),
     });
 
-    const storage = kvJsonStorageAdapter({ store });
+    const storage = kvJsonStorageAdapter({
+      store,
+      formatKey: defaultFormatKey,
+    });
 
     const result = await storage.get("test-flow");
 
@@ -65,7 +90,10 @@ describe("kvJsonStorageAdapter", () => {
       getItem: vi.fn().mockRejectedValue(new Error("Storage error")),
     });
 
-    const storage = kvJsonStorageAdapter({ store });
+    const storage = kvJsonStorageAdapter({
+      store,
+      formatKey: defaultFormatKey,
+    });
 
     const result = await storage.get("test-flow");
 
@@ -83,7 +111,10 @@ describe("kvJsonStorageAdapter", () => {
     const setItem = vi.fn().mockResolvedValue(undefined);
     const store = createStorageMock({ setItem });
 
-    const storage = kvJsonStorageAdapter({ store });
+    const storage = kvJsonStorageAdapter({
+      store,
+      formatKey: defaultFormatKey,
+    });
 
     await storage.set("test-flow", state);
 
@@ -97,14 +128,17 @@ describe("kvJsonStorageAdapter", () => {
     const removeItem = vi.fn().mockResolvedValue(undefined);
     const store = createStorageMock({ removeItem });
 
-    const storage = kvJsonStorageAdapter({ store });
+    const storage = kvJsonStorageAdapter({
+      store,
+      formatKey: defaultFormatKey,
+    });
 
     await storage.remove("test-flow");
 
     expect(removeItem).toHaveBeenCalledWith("useflow:test-flow");
   });
 
-  it("should use custom getKey function with prefix", async () => {
+  it("should use custom formatKey function", async () => {
     const state: PersistedFlowState = {
       stepId: "step1",
       context: {},
@@ -117,18 +151,20 @@ describe("kvJsonStorageAdapter", () => {
     const removeItem = vi.fn().mockResolvedValue(undefined);
     const store = createStorageMock({ getItem, setItem, removeItem });
 
-    const getKey = vi.fn((flowId: string, instanceId?: string) =>
-      instanceId ? `user:${flowId}:${instanceId}` : `user:${flowId}`,
+    const formatKey = vi.fn((flowId: string, instanceId?: string) =>
+      instanceId
+        ? `myapp:user:${flowId}:${instanceId}`
+        : `myapp:user:${flowId}`,
     );
 
-    const storage = kvJsonStorageAdapter({ store, prefix: "myapp", getKey });
+    const storage = kvJsonStorageAdapter({ store, formatKey });
 
     await storage.get("test-flow");
     await storage.set("test-flow", state);
     await storage.remove("test-flow");
 
-    expect(getKey).toHaveBeenCalledTimes(3);
-    expect(getKey).toHaveBeenCalledWith("test-flow", undefined);
+    expect(formatKey).toHaveBeenCalledTimes(3);
+    expect(formatKey).toHaveBeenCalledWith("test-flow", undefined);
     expect(getItem).toHaveBeenCalledWith("myapp:user:test-flow");
     expect(setItem).toHaveBeenCalledWith(
       "myapp:user:test-flow",
@@ -149,7 +185,10 @@ describe("kvJsonStorageAdapter", () => {
       getItem: vi.fn().mockReturnValue(JSON.stringify(state)),
     });
 
-    const storage = kvJsonStorageAdapter({ store });
+    const storage = kvJsonStorageAdapter({
+      store,
+      formatKey: defaultFormatKey,
+    });
 
     const result = await storage.get("test-flow");
 
@@ -172,7 +211,10 @@ describe("kvJsonStorageAdapter", () => {
       getItem: vi.fn().mockResolvedValue(JSON.stringify(state)),
     });
 
-    const storage = kvJsonStorageAdapter({ store });
+    const storage = kvJsonStorageAdapter({
+      store,
+      formatKey: defaultFormatKey,
+    });
 
     const result = await storage.get("test-flow");
 
@@ -196,7 +238,10 @@ describe("kvJsonStorageAdapter", () => {
         getItem: vi.fn().mockResolvedValue(JSON.stringify(state)),
       });
 
-      const storage = kvJsonStorageAdapter({ store });
+      const storage = kvJsonStorageAdapter({
+        store,
+        formatKey: defaultFormatKey,
+      });
 
       const result = await storage.get("test-flow", "instance-123");
 
@@ -217,7 +262,10 @@ describe("kvJsonStorageAdapter", () => {
       const setItem = vi.fn().mockResolvedValue(undefined);
       const store = createStorageMock({ setItem });
 
-      const storage = kvJsonStorageAdapter({ store });
+      const storage = kvJsonStorageAdapter({
+        store,
+        formatKey: defaultFormatKey,
+      });
 
       await storage.set("test-flow", state, "instance-123");
 
@@ -231,7 +279,10 @@ describe("kvJsonStorageAdapter", () => {
       const removeItem = vi.fn().mockResolvedValue(undefined);
       const store = createStorageMock({ removeItem });
 
-      const storage = kvJsonStorageAdapter({ store });
+      const storage = kvJsonStorageAdapter({
+        store,
+        formatKey: defaultFormatKey,
+      });
 
       await storage.remove("test-flow", "instance-123");
 
@@ -249,16 +300,16 @@ describe("kvJsonStorageAdapter", () => {
       const getItem = vi.fn().mockResolvedValue(JSON.stringify(state));
       const store = createStorageMock({ getItem });
 
-      const getKey = vi.fn((flowId: string, instanceId?: string) =>
+      const formatKey = vi.fn((flowId: string, instanceId?: string) =>
         instanceId ? `custom:${flowId}:${instanceId}` : `custom:${flowId}`,
       );
 
-      const storage = kvJsonStorageAdapter({ store, getKey });
+      const storage = kvJsonStorageAdapter({ store, formatKey });
 
       await storage.get("test-flow", "task-456");
 
-      expect(getKey).toHaveBeenCalledWith("test-flow", "task-456");
-      expect(getItem).toHaveBeenCalledWith("useflow:custom:test-flow:task-456");
+      expect(formatKey).toHaveBeenCalledWith("test-flow", "task-456");
+      expect(getItem).toHaveBeenCalledWith("custom:test-flow:task-456");
     });
   });
 
@@ -274,7 +325,7 @@ describe("kvJsonStorageAdapter", () => {
         delete mockData[key];
       });
 
-      // Use mockData as the store, which Object.keys() can iterate
+      // Use mockData as the store, with listKeys to enumerate
       const storage = kvJsonStorageAdapter({
         store: Object.assign(mockData, {
           length: 0,
@@ -284,6 +335,8 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem,
         }) as Storage,
+        formatKey: defaultFormatKey,
+        listKeys: createListKeys(mockData),
       });
 
       await storage.removeFlow!("test-flow");
@@ -315,6 +368,8 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem,
         }) as Storage,
+        formatKey: defaultFormatKey,
+        listKeys: createListKeys(mockData),
       });
 
       await storage.removeFlow!("test-flow");
@@ -326,18 +381,18 @@ describe("kvJsonStorageAdapter", () => {
       expect(removeItem).toHaveBeenCalledTimes(3);
     });
 
-    it("should work with custom getKey in removeFlow", async () => {
+    it("should work with custom formatKey in removeFlow", async () => {
       const mockData: Record<string, string> = {
-        "useflow:user123:test-flow": "{}",
-        "useflow:user123:test-flow:instance-1": "{}",
-        "useflow:user456:test-flow": "{}",
+        "user123:test-flow": "{}",
+        "user123:test-flow:instance-1": "{}",
+        "user456:test-flow": "{}",
       };
 
       const removeItem = vi.fn((key: string) => {
         delete mockData[key];
       });
 
-      const getKey = vi.fn((flowId: string, instanceId?: string) =>
+      const formatKey = vi.fn((flowId: string, instanceId?: string) =>
         instanceId ? `user123:${flowId}:${instanceId}` : `user123:${flowId}`,
       );
 
@@ -350,16 +405,22 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem,
         }) as Storage,
-        getKey,
+        formatKey,
+        listKeys: (flowId) => {
+          const allKeys = Object.keys(mockData);
+          if (!flowId) return allKeys;
+          const baseKey = formatKey(flowId);
+          return allKeys.filter(
+            (key) => key === baseKey || key.startsWith(`${baseKey}:`),
+          );
+        },
       });
 
       await storage.removeFlow!("test-flow");
 
-      expect(removeItem).toHaveBeenCalledWith("useflow:user123:test-flow");
-      expect(removeItem).toHaveBeenCalledWith(
-        "useflow:user123:test-flow:instance-1",
-      );
-      expect(removeItem).not.toHaveBeenCalledWith("useflow:user456:test-flow");
+      expect(removeItem).toHaveBeenCalledWith("user123:test-flow");
+      expect(removeItem).toHaveBeenCalledWith("user123:test-flow:instance-1");
+      expect(removeItem).not.toHaveBeenCalledWith("user456:test-flow");
     });
   });
 
@@ -370,6 +431,7 @@ describe("kvJsonStorageAdapter", () => {
         context: { name: "Task 1" },
         history: ["step1"],
         status: "active",
+        __meta: { savedAt: Date.now(), instanceId: "instance-1" },
       };
 
       const state2: PersistedFlowState = {
@@ -377,12 +439,16 @@ describe("kvJsonStorageAdapter", () => {
         context: { name: "Task 2" },
         history: ["step1", "step2"],
         status: "active",
+        __meta: { savedAt: Date.now(), instanceId: "instance-2" },
       };
 
       const mockData: Record<string, string> = {
         "useflow:test-flow:instance-1": JSON.stringify(state1),
         "useflow:test-flow:instance-2": JSON.stringify(state2),
-        "useflow:other-flow:instance-1": JSON.stringify(state1),
+        "useflow:other-flow:instance-1": JSON.stringify({
+          ...state1,
+          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+        }),
       };
 
       const getItem = vi.fn((key: string) => mockData[key] || null);
@@ -399,6 +465,8 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem: vi.fn(),
         }) as Storage,
+        formatKey: defaultFormatKey,
+        listKeys: createListKeys(mockData),
       });
 
       const instances = await storage.list!("test-flow");
@@ -429,6 +497,8 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem: vi.fn(),
         }) as Storage,
+        formatKey: defaultFormatKey,
+        listKeys: createListKeys(mockData),
       });
 
       const instances = await storage.list!("test-flow");
@@ -445,9 +515,15 @@ describe("kvJsonStorageAdapter", () => {
       };
 
       const mockData: Record<string, string> = {
-        "useflow:test-flow:instance-1": JSON.stringify(state),
+        "useflow:test-flow:instance-1": JSON.stringify({
+          ...state,
+          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+        }),
         "useflow:test-flow:instance-2": "invalid json",
-        "useflow:test-flow:instance-3": JSON.stringify(state),
+        "useflow:test-flow:instance-3": JSON.stringify({
+          ...state,
+          __meta: { savedAt: Date.now(), instanceId: "instance-3" },
+        }),
       };
 
       const getItem = vi.fn((key: string) => mockData[key] || null);
@@ -464,14 +540,28 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem: vi.fn(),
         }) as Storage,
+        formatKey: defaultFormatKey,
+        listKeys: createListKeys(mockData),
       });
 
       const instances = await storage.list!("test-flow");
 
       expect(instances).toHaveLength(2);
       expect(instances).toEqual([
-        { instanceId: "instance-1", state },
-        { instanceId: "instance-3", state },
+        {
+          instanceId: "instance-1",
+          state: expect.objectContaining({
+            ...state,
+            __meta: expect.objectContaining({ instanceId: "instance-1" }),
+          }),
+        },
+        {
+          instanceId: "instance-3",
+          state: expect.objectContaining({
+            ...state,
+            __meta: expect.objectContaining({ instanceId: "instance-3" }),
+          }),
+        },
       ]);
     });
 
@@ -484,11 +574,17 @@ describe("kvJsonStorageAdapter", () => {
       };
 
       const mockData: Record<string, string> = {
-        "useflow:test-flow:instance-1": JSON.stringify(state),
+        "useflow:test-flow:instance-1": JSON.stringify({
+          ...state,
+          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+        }),
         "useflow:test-flow:instance-2": JSON.stringify({
           invalid: "structure",
         }), // Valid JSON but invalid state structure
-        "useflow:test-flow:instance-3": JSON.stringify(state),
+        "useflow:test-flow:instance-3": JSON.stringify({
+          ...state,
+          __meta: { savedAt: Date.now(), instanceId: "instance-3" },
+        }),
       };
 
       const getItem = vi.fn((key: string) => mockData[key] || null);
@@ -505,14 +601,28 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem: vi.fn(),
         }) as Storage,
+        formatKey: defaultFormatKey,
+        listKeys: createListKeys(mockData),
       });
 
       const instances = await storage.list!("test-flow");
 
       expect(instances).toHaveLength(2);
       expect(instances).toEqual([
-        { instanceId: "instance-1", state },
-        { instanceId: "instance-3", state },
+        {
+          instanceId: "instance-1",
+          state: expect.objectContaining({
+            ...state,
+            __meta: expect.objectContaining({ instanceId: "instance-1" }),
+          }),
+        },
+        {
+          instanceId: "instance-3",
+          state: expect.objectContaining({
+            ...state,
+            __meta: expect.objectContaining({ instanceId: "instance-3" }),
+          }),
+        },
       ]);
     });
 
@@ -525,9 +635,18 @@ describe("kvJsonStorageAdapter", () => {
       };
 
       const mockData: Record<string, string> = {
-        "useflow:test-flow:instance-1": JSON.stringify(state),
-        "useflow:test-flow:instance-2": JSON.stringify(state),
-        "useflow:test-flow:instance-3": JSON.stringify(state),
+        "useflow:test-flow:instance-1": JSON.stringify({
+          ...state,
+          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+        }),
+        "useflow:test-flow:instance-2": JSON.stringify({
+          ...state,
+          __meta: { savedAt: Date.now(), instanceId: "instance-2" },
+        }),
+        "useflow:test-flow:instance-3": JSON.stringify({
+          ...state,
+          __meta: { savedAt: Date.now(), instanceId: "instance-3" },
+        }),
       };
 
       const getItem = vi.fn((key: string) => {
@@ -551,6 +670,8 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem: vi.fn(),
         }) as Storage,
+        formatKey: defaultFormatKey,
+        listKeys: createListKeys(mockData),
       });
 
       const instances = await storage.list!("test-flow");
@@ -558,8 +679,20 @@ describe("kvJsonStorageAdapter", () => {
       // Should skip instance-2 due to error and return only instance-1 and instance-3
       expect(instances).toHaveLength(2);
       expect(instances).toEqual([
-        { instanceId: "instance-1", state },
-        { instanceId: "instance-3", state },
+        {
+          instanceId: "instance-1",
+          state: expect.objectContaining({
+            ...state,
+            __meta: expect.objectContaining({ instanceId: "instance-1" }),
+          }),
+        },
+        {
+          instanceId: "instance-3",
+          state: expect.objectContaining({
+            ...state,
+            __meta: expect.objectContaining({ instanceId: "instance-3" }),
+          }),
+        },
       ]);
     });
 
@@ -572,9 +705,18 @@ describe("kvJsonStorageAdapter", () => {
       };
 
       const mockData: Record<string, string> = {
-        "myapp:user123:test-flow:instance-1": JSON.stringify(state),
-        "myapp:user123:test-flow:instance-2": JSON.stringify(state),
-        "myapp:user456:test-flow:instance-1": JSON.stringify(state),
+        "myapp:user123:test-flow:instance-1": JSON.stringify({
+          ...state,
+          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+        }),
+        "myapp:user123:test-flow:instance-2": JSON.stringify({
+          ...state,
+          __meta: { savedAt: Date.now(), instanceId: "instance-2" },
+        }),
+        "myapp:user456:test-flow:instance-1": JSON.stringify({
+          ...state,
+          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+        }),
       };
 
       const getItem = vi.fn((key: string) => mockData[key] || null);
@@ -582,8 +724,10 @@ describe("kvJsonStorageAdapter", () => {
         (index: number) => Object.keys(mockData)[index] || null,
       );
 
-      const getKey = vi.fn((flowId: string, instanceId?: string) =>
-        instanceId ? `user123:${flowId}:${instanceId}` : `user123:${flowId}`,
+      const formatKey = vi.fn((flowId: string, instanceId?: string) =>
+        instanceId
+          ? `myapp:user123:${flowId}:${instanceId}`
+          : `myapp:user123:${flowId}`,
       );
 
       const storage = kvJsonStorageAdapter({
@@ -595,8 +739,15 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem: vi.fn(),
         }) as Storage,
-        prefix: "myapp",
-        getKey,
+        formatKey,
+        listKeys: (flowId) => {
+          const allKeys = Object.keys(mockData);
+          if (!flowId) return allKeys;
+          const baseKey = formatKey(flowId);
+          return allKeys.filter(
+            (key) => key === baseKey || key.startsWith(`${baseKey}:`),
+          );
+        },
       });
 
       const instances = await storage.list!("test-flow");
@@ -617,8 +768,14 @@ describe("kvJsonStorageAdapter", () => {
 
       const mockData: Record<string, string> = {
         "useflow:test-flow": JSON.stringify(state), // Base key - should be included
-        "useflow:test-flow:instance-1": JSON.stringify(state),
-        "useflow:test-flow:instance-2": JSON.stringify(state),
+        "useflow:test-flow:instance-1": JSON.stringify({
+          ...state,
+          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+        }),
+        "useflow:test-flow:instance-2": JSON.stringify({
+          ...state,
+          __meta: { savedAt: Date.now(), instanceId: "instance-2" },
+        }),
       };
 
       const getItem = vi.fn((key: string) => mockData[key] || null);
@@ -635,6 +792,8 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem: vi.fn(),
         }) as Storage,
+        formatKey: defaultFormatKey,
+        listKeys: createListKeys(mockData),
       });
 
       const instances = await storage.list!("test-flow");
@@ -642,14 +801,26 @@ describe("kvJsonStorageAdapter", () => {
       expect(instances).toHaveLength(3);
       expect(instances).toEqual([
         { instanceId: undefined, state }, // Base instance with undefined
-        { instanceId: "instance-1", state },
-        { instanceId: "instance-2", state },
+        {
+          instanceId: "instance-1",
+          state: expect.objectContaining({
+            ...state,
+            __meta: expect.objectContaining({ instanceId: "instance-1" }),
+          }),
+        },
+        {
+          instanceId: "instance-2",
+          state: expect.objectContaining({
+            ...state,
+            __meta: expect.objectContaining({ instanceId: "instance-2" }),
+          }),
+        },
       ]);
     });
   });
 
   describe("removeAll", () => {
-    it("should remove all flows with default prefix", async () => {
+    it("should remove all flows returned by listKeys", async () => {
       const mockData: Record<string, string> = {
         "useflow:flow1": "{}",
         "useflow:flow2": "{}",
@@ -670,6 +841,9 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem,
         }) as Storage,
+        formatKey: defaultFormatKey,
+        listKeys: () =>
+          Object.keys(mockData).filter((key) => key.startsWith("useflow:")),
       });
 
       await storage.removeAll!();
@@ -681,7 +855,7 @@ describe("kvJsonStorageAdapter", () => {
       expect(removeItem).toHaveBeenCalledTimes(3);
     });
 
-    it("should remove all flows with custom prefix", async () => {
+    it("should remove all flows with custom key format", async () => {
       const mockData: Record<string, string> = {
         "myapp:flow1": "{}",
         "myapp:flow2": "{}",
@@ -701,7 +875,10 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem,
         }) as Storage,
-        prefix: "myapp",
+        formatKey: (flowId, instanceId) =>
+          instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+        listKeys: () =>
+          Object.keys(mockData).filter((key) => key.startsWith("myapp:")),
       });
 
       await storage.removeAll!();
@@ -711,7 +888,7 @@ describe("kvJsonStorageAdapter", () => {
       expect(removeItem).not.toHaveBeenCalledWith("useflow:flow3");
     });
 
-    it("should only remove keys with exact prefix match", async () => {
+    it("should only remove keys returned by listKeys", async () => {
       const mockData: Record<string, string> = {
         "useflow:flow1": "{}",
         "useflow2:flow1": "{}",
@@ -731,6 +908,9 @@ describe("kvJsonStorageAdapter", () => {
           setItem: vi.fn(),
           removeItem,
         }) as Storage,
+        formatKey: defaultFormatKey,
+        listKeys: () =>
+          Object.keys(mockData).filter((key) => key.startsWith("useflow:")),
       });
 
       await storage.removeAll!();
@@ -739,6 +919,112 @@ describe("kvJsonStorageAdapter", () => {
       expect(removeItem).not.toHaveBeenCalledWith("useflow2:flow1");
       expect(removeItem).not.toHaveBeenCalledWith("myuseflow:flow1");
       expect(removeItem).toHaveBeenCalledTimes(1);
+    });
+
+    it("should be a no-op when listKeys is not provided", async () => {
+      const removeItem = vi.fn();
+
+      const storage = kvJsonStorageAdapter({
+        store: {
+          length: 0,
+          clear: vi.fn(),
+          key: vi.fn(() => null),
+          getItem: vi.fn(() => null),
+          setItem: vi.fn(),
+          removeItem,
+        } as Storage,
+        formatKey: defaultFormatKey,
+        // No listKeys provided
+      });
+
+      await storage.removeAll!();
+
+      expect(removeItem).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("removeFlow", () => {
+    it("should be a no-op when listKeys is not provided", async () => {
+      const removeItem = vi.fn();
+
+      const storage = kvJsonStorageAdapter({
+        store: {
+          length: 0,
+          clear: vi.fn(),
+          key: vi.fn(() => null),
+          getItem: vi.fn(() => null),
+          setItem: vi.fn(),
+          removeItem,
+        } as Storage,
+        formatKey: defaultFormatKey,
+        // No listKeys provided
+      });
+
+      await storage.removeFlow!("test-flow");
+
+      expect(removeItem).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("list with edge cases", () => {
+    it("should return empty array when listKeys is not provided", async () => {
+      const storage = kvJsonStorageAdapter({
+        store: {
+          length: 0,
+          clear: vi.fn(),
+          key: vi.fn(() => null),
+          getItem: vi.fn(() => null),
+          setItem: vi.fn(),
+          removeItem: vi.fn(),
+        } as Storage,
+        formatKey: defaultFormatKey,
+        // No listKeys provided
+      });
+
+      const instances = await storage.list!("test-flow");
+
+      expect(instances).toEqual([]);
+    });
+
+    it("should skip entries where getItem returns null", async () => {
+      const state: PersistedFlowState = {
+        stepId: "step1",
+        context: {},
+        history: ["step1"],
+        status: "active",
+        __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+      };
+
+      const mockData: Record<string, string> = {
+        "useflow:test-flow:instance-1": JSON.stringify(state),
+        "useflow:test-flow:instance-2": "", // Will result in getItem returning null
+      };
+
+      const getItem = vi.fn((key: string) => {
+        // Return null for instance-2
+        if (key === "useflow:test-flow:instance-2") {
+          return null;
+        }
+        return mockData[key] || null;
+      });
+
+      const storage = kvJsonStorageAdapter({
+        store: {
+          length: 0,
+          clear: vi.fn(),
+          key: vi.fn(() => null),
+          getItem,
+          setItem: vi.fn(),
+          removeItem: vi.fn(),
+        } as Storage,
+        formatKey: defaultFormatKey,
+        listKeys: () => Object.keys(mockData),
+      });
+
+      const instances = await storage.list!("test-flow");
+
+      expect(instances).toHaveLength(1);
+      expect(instances[0]?.instanceId).toBe("instance-1");
     });
   });
 });

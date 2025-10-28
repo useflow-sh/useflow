@@ -11,8 +11,8 @@
  * ```
  */
 
-import type { PersistedFlowState } from "../types";
-import type { FlowStore } from "./store";
+import type { PersistedFlowState } from "../../types";
+import type { FlowStore } from "../store";
 
 /**
  * Creates a FlowStore using in-memory Map

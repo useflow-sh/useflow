@@ -48,9 +48,9 @@
  * ```
  */
 
-import type { PersistedFlowState } from "../types";
-import type { Serializer } from "./serializer";
-import type { KVFlowStore } from "./store";
+import type { PersistedFlowState } from "../../types";
+import type { Serializer } from "../serializer";
+import type { KVFlowStore } from "../store";
 
 /**
  * Generic key-value storage interface

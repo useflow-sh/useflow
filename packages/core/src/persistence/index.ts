@@ -10,20 +10,21 @@
  * - Serializers
  */
 
-// Store adapters and implementations
-export type { KVStorageAdapterOptions, KVStore } from "./kv-storage-adapter";
-export { kvStorageAdapter } from "./kv-storage-adapter";
-export { createMemoryStore } from "./memory";
 // Persister
 export type { FlowPersister, PersisterOptions } from "./persister";
 export { createPersister } from "./persister";
 // Serializers
 export type { Serializer, StringSerializer } from "./serializer";
 export { JsonSerializer } from "./serializer";
-
 // State utilities
 export type { ValidationResult } from "./state";
 export { validatePersistedState } from "./state";
-
 // Store
 export type { FlowStore, KVFlowStore } from "./store";
+// Store adapters and implementations
+export type {
+  KVStorageAdapterOptions,
+  KVStore,
+} from "./stores/kv-storage-adapter";
+export { kvStorageAdapter } from "./stores/kv-storage-adapter";
+export { createMemoryStore } from "./stores/memory";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PersistedFlowState } from "../types";
+import type { PersistedFlowState } from "../../types";
 import { createMemoryStore } from "./memory";
 
 describe("createMemoryStore", () => {

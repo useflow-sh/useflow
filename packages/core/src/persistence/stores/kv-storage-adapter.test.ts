@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import type { PersistedFlowState } from "../types";
+import type { PersistedFlowState } from "../../types";
+import { JsonSerializer } from "../serializer";
 import { kvStorageAdapter } from "./kv-storage-adapter";
-import { JsonSerializer } from "./serializer";
 
 // Helper to create a minimal Storage mock
 function createStorageMock(overrides: Partial<Storage> = {}): Storage {

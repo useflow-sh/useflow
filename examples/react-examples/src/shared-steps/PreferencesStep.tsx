@@ -1,4 +1,15 @@
 import { useFlow } from "@useflow/react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 export function PreferencesStep() {
   const { context, next, back, setContext } = useFlow<{
@@ -9,51 +20,53 @@ export function PreferencesStep() {
   const canProceed = context.theme !== undefined;
 
   return (
-    <div className="container">
-      <h1>Customize Your Experience</h1>
-      <p>Choose your preferences to personalize the app.</p>
-
-      <div className="form-group">
-        <label htmlFor="theme">Theme</label>
-        <div className="theme-options">
-          <button
-            type="button"
-            className={`theme-button ${context.theme === "light" ? "selected" : ""}`}
-            onClick={() => setContext({ theme: "light" })}
-          >
-            Light
-          </button>
-          <button
-            type="button"
-            className={`theme-button ${context.theme === "dark" ? "selected" : ""}`}
-            onClick={() => setContext({ theme: "dark" })}
-          >
-            Dark
-          </button>
+    <Card className="w-full max-w-2xl border-0">
+      <CardHeader>
+        <CardTitle>Customize Your Experience</CardTitle>
+        <CardDescription>
+          Choose your preferences to personalize the app.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-3">
+          <Label>Theme</Label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={context.theme === "light" ? "default" : "outline"}
+              onClick={() => setContext({ theme: "light" })}
+            >
+              Light
+            </Button>
+            <Button
+              type="button"
+              variant={context.theme === "dark" ? "default" : "outline"}
+              onClick={() => setContext({ theme: "dark" })}
+            >
+              Dark
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <div className="form-group">
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
+        <div className="flex items-center justify-between">
+          <Label htmlFor="notifications">Enable notifications</Label>
+          <Switch
+            id="notifications"
             checked={context.notifications}
-            onChange={() =>
-              setContext({ notifications: !context.notifications })
+            onCheckedChange={(checked) =>
+              setContext({ notifications: checked })
             }
           />
-          <span>Enable notifications</span>
-        </label>
-      </div>
-
-      <div className="button-group">
-        <button type="button" className="secondary" onClick={() => back()}>
+        </div>
+      </CardContent>
+      <CardFooter className="gap-2">
+        <Button variant="outline" onClick={() => back()}>
           Back
-        </button>
-        <button type="button" onClick={() => next()} disabled={!canProceed}>
+        </Button>
+        <Button onClick={() => next()} disabled={!canProceed}>
           Finish
-        </button>
-      </div>
-    </div>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

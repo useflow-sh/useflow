@@ -1,0 +1,24 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "plan": {
+      "permission": {
+        "bash": {
+          "cat *": "allow",
+          "grep *": "allow",
+          "ls *": "allow",
+          "find *": "allow",
+          "rg *": "allow",
+          "*": "ask"
+        }
+      }
+    }
+  },
+  "mcp": {
+    "shadcn": {
+      "type": "local",
+      "enabled": true,
+      "command": ["npx", "shadcn@latest", "mcp"]
+    }
+  }
+}

@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 interface Option<T extends string = string> {
   value: T;
   title: string;
@@ -16,40 +18,22 @@ export function OptionSelector<T extends string>({
   onSelect,
 }: OptionSelectorProps<T>) {
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: "1rem",
-        flexDirection: "column",
-        marginTop: "1rem",
-      }}
-    >
+    <div className="flex flex-col gap-3">
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
-          className={selectedValue === option.value ? "selected" : ""}
           onClick={() => onSelect(option.value)}
-          style={{
-            padding: "1.5rem",
-            border:
-              selectedValue === option.value
-                ? "2px solid #646cff"
-                : "1px solid #ccc",
-            borderRadius: "8px",
-            background:
-              selectedValue === option.value
-                ? "rgba(100, 108, 255, 0.1)"
-                : "transparent",
-            color: "inherit",
-            cursor: "pointer",
-            textAlign: "left",
-          }}
+          className={cn(
+            "p-4 text-left rounded-lg border-2 transition-all",
+            "hover:border-primary/50 hover:bg-accent/50",
+            selectedValue === option.value
+              ? "border-primary bg-primary/10"
+              : "border-border bg-card",
+          )}
         >
-          <strong>{option.title}</strong>
-          <div
-            style={{ fontSize: "0.9rem", marginTop: "0.5rem", opacity: 0.8 }}
-          >
+          <div className="font-semibold text-base">{option.title}</div>
+          <div className="text-sm text-muted-foreground mt-1">
             {option.description}
           </div>
         </button>

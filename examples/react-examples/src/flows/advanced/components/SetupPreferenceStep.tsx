@@ -1,4 +1,13 @@
-import { OptionSelector } from "../../../components/OptionSelector";
+import { OptionSelector } from "@/components/OptionSelector";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { advancedFlow } from "../flow";
 
 const setupOptions = [
@@ -15,7 +24,6 @@ const setupOptions = [
 ] as const;
 
 export function SetupPreferenceStep() {
-  // Use the hook for automatic type inference!
   const { context, next, back, setContext } = advancedFlow.useFlow({
     step: "setupPreference",
   });
@@ -30,30 +38,30 @@ export function SetupPreferenceStep() {
   };
 
   return (
-    <div className="container">
-      <h1>How would you like to proceed?</h1>
-      <p>Choose your setup path.</p>
-
-      <div className="form-group">
+    <Card className="w-full max-w-2xl border-0">
+      <CardHeader>
+        <CardTitle>How would you like to proceed?</CardTitle>
+        <CardDescription>Choose your setup path.</CardDescription>
+      </CardHeader>
+      <CardContent>
         <OptionSelector
           options={setupOptions}
           selectedValue={context.setupPreference}
           onSelect={(value) => setContext({ setupPreference: value })}
         />
-      </div>
-
-      <div className="button-group">
-        <button type="button" className="secondary" onClick={() => back()}>
+      </CardContent>
+      <CardFooter className="flex gap-2">
+        <Button variant="outline" onClick={() => back()} className="flex-1">
           Back
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           onClick={handleContinue}
           disabled={!context.setupPreference}
+          className="flex-1"
         >
           Continue
-        </button>
-      </div>
-    </div>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

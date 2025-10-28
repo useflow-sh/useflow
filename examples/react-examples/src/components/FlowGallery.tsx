@@ -1,4 +1,14 @@
+import { ArrowRight, CheckCircle2, GitBranch, Layers } from "lucide-react";
 import { Link } from "react-router";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 interface FlowCard {
   id: string;
@@ -7,6 +17,7 @@ interface FlowCard {
   path: string;
   complexity: "Simple" | "Advanced";
   features: string[];
+  icon: React.ReactNode;
 }
 
 const flows: FlowCard[] = [
@@ -22,6 +33,7 @@ const flows: FlowCard[] = [
       "State persistence",
       "Smooth animations",
     ],
+    icon: <Layers className="h-6 w-6" />,
   },
   {
     id: "advanced",
@@ -35,213 +47,82 @@ const flows: FlowCard[] = [
       "Component-driven navigation",
       "Business vs personal paths",
     ],
+    icon: <GitBranch className="h-6 w-6" />,
   },
 ];
 
 export function FlowGallery() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        padding: "3rem 1.5rem",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <div style={{ maxWidth: "1200px", margin: "0 auto", width: "100%" }}>
-        <header style={{ textAlign: "center", marginBottom: "2.5rem" }}>
-          <h1
-            style={{
-              fontSize: "2.5rem",
-              fontWeight: "bold",
-              color: "white",
-              marginBottom: "0.75rem",
-              margin: 0,
-            }}
-          >
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50">
+      <div className="container mx-auto px-4 py-12 md:py-16">
+        <header className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
             useFlow Examples
           </h1>
-          <p
-            style={{
-              fontSize: "1.1rem",
-              color: "rgba(255, 255, 255, 0.9)",
-              maxWidth: "600px",
-              margin: "0.75rem auto 0",
-            }}
-          >
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
             Explore different flow patterns and implementations
           </p>
         </header>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
-            gap: "1.5rem",
-            marginBottom: "3rem",
-          }}
-        >
+        <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-12">
           {flows.map((flow) => (
-            <Link
-              key={flow.id}
-              to={flow.path}
-              style={{
-                textDecoration: "none",
-                color: "inherit",
-              }}
-            >
-              {/** biome-ignore lint/a11y/noStaticElementInteractions: ignore */}
-              <div
-                style={{
-                  background: "white",
-                  borderRadius: "12px",
-                  padding: "1.5rem",
-                  boxShadow: "0 10px 30px rgba(0, 0, 0, 0.2)",
-                  transition: "transform 0.2s, box-shadow 0.2s",
-                  cursor: "pointer",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-4px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 15px 40px rgba(0, 0, 0, 0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow =
-                    "0 10px 30px rgba(0, 0, 0, 0.2)";
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "start",
-                    marginBottom: "0.75rem",
-                  }}
-                >
-                  <h2
-                    style={{
-                      fontSize: "1.5rem",
-                      fontWeight: "bold",
-                      color: "#1a202c",
-                      margin: 0,
-                    }}
-                  >
-                    {flow.title}
-                  </h2>
-                  <span
-                    style={{
-                      background:
-                        flow.complexity === "Simple" ? "#48bb78" : "#ed8936",
-                      color: "white",
-                      padding: "0.25rem 0.75rem",
-                      borderRadius: "9999px",
-                      fontSize: "0.75rem",
-                      fontWeight: "600",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {flow.complexity}
-                  </span>
-                </div>
-
-                <p
-                  style={{
-                    color: "#4a5568",
-                    marginBottom: "1rem",
-                    fontSize: "0.9rem",
-                    lineHeight: "1.5",
-                    margin: "0 0 1rem 0",
-                  }}
-                >
-                  {flow.description}
-                </p>
-
-                <div>
-                  <h3
-                    style={{
-                      fontSize: "0.95rem",
-                      fontWeight: "600",
-                      color: "#2d3748",
-                      margin: "0 0 0.5rem 0",
-                      textAlign: "left",
-                    }}
-                  >
-                    Features
-                  </h3>
-                  <ul
-                    style={{
-                      listStyle: "none",
-                      padding: 0,
-                      margin: 0,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "0.4rem",
-                    }}
-                  >
-                    {flow.features.map((feature, index) => (
-                      <li
-                        key={index}
-                        style={{
-                          fontSize: "0.85rem",
-                          color: "#718096",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                        }}
-                      >
-                        <span style={{ color: "#667eea" }}>✓</span>
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "1rem",
-                    paddingTop: "1rem",
-                    borderTop: "1px solid #e2e8f0",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <span
-                    style={{
-                      color: "#667eea",
-                      fontWeight: "600",
-                      fontSize: "0.9rem",
-                    }}
-                  >
+            <Link key={flow.id} to={flow.path} className="block group">
+              <Card className="h-full transition-all duration-200 hover:shadow-xl hover:-translate-y-1">
+                <CardHeader>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                      {flow.icon}
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        flow.complexity === "Simple"
+                          ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                          : "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                      }`}
+                    >
+                      {flow.complexity}
+                    </span>
+                  </div>
+                  <CardTitle className="text-2xl">{flow.title}</CardTitle>
+                  <CardDescription className="text-base">
+                    {flow.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-foreground/80">
+                      Features
+                    </h4>
+                    <ul className="space-y-2">
+                      {flow.features.map((feature, index) => (
+                        <li
+                          key={index}
+                          className="flex items-start gap-2 text-sm text-muted-foreground"
+                        >
+                          <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button className="w-full group-hover:bg-primary/90">
                     View Demo
-                  </span>
-                  <span style={{ color: "#667eea", fontSize: "1.1rem" }}>
-                    →
-                  </span>
-                </div>
-              </div>
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </CardFooter>
+              </Card>
             </Link>
           ))}
         </div>
 
-        <footer
-          style={{
-            textAlign: "center",
-            marginTop: "auto",
-            paddingTop: "2rem",
-            color: "rgba(255, 255, 255, 0.8)",
-            fontSize: "0.85rem",
-          }}
-        >
-          <p style={{ margin: 0 }}>
+        <footer className="text-center text-muted-foreground text-sm">
+          <p>
             Built with{" "}
             <a
               href="https://github.com/yourusername/useflow"
-              style={{ color: "white", textDecoration: "underline" }}
+              className="underline hover:text-foreground transition-colors"
             >
               @useflow/react
             </a>

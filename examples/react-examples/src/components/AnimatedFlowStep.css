@@ -18,6 +18,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 2rem 1rem;
   animation-duration: 0.9s;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   animation-fill-mode: both;

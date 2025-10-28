@@ -2,7 +2,6 @@ import { Route, Routes } from "react-router";
 import { FlowGallery } from "./components/FlowGallery";
 import { AdvancedFlowDemo } from "./flows/advanced/FlowDemo";
 import { SimpleFlowDemo } from "./flows/simple/FlowDemo";
-import "./App.css";
 
 function App() {
   return (

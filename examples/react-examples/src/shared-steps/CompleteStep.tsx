@@ -1,28 +1,21 @@
-/**
- * CompleteStep - Pure Presentational Component
- *
- * This component demonstrates the "dumb component" pattern:
- * - Accepts all data as props (no hooks)
- * - Fully type-safe
- * - Easily testable in isolation
- * - Can be reused across different flows
- *
- * The flow definitions show how to connect this to flow state inline.
- */
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 type CompleteStepProps = {
-  // Required fields (common to all flows)
   name: string;
   notifications: boolean;
-
-  // Optional fields (may vary by flow)
   theme?: "light" | "dark";
   userType?: "business" | "personal";
   businessIndustry?: string;
   companyName?: string;
   startedAt?: number;
-
-  // Actions
   onRestart?: () => void;
 };
 
@@ -37,52 +30,70 @@ export function CompleteStep({
   onRestart,
 }: CompleteStepProps) {
   return (
-    <div className="container">
-      <h1>🎉 Welcome, {name}!</h1>
-      <p>Your onboarding is complete.</p>
-
-      <div className="summary">
-        <h3>Your Profile:</h3>
-        <ul>
-          {userType && (
-            <li>
-              Account Type:{" "}
-              <strong>
-                {userType === "business" ? "Business" : "Personal"}
-              </strong>
-            </li>
-          )}
-          {businessIndustry && (
-            <li>
-              Industry: <strong>{businessIndustry}</strong>
-            </li>
-          )}
-          {companyName && (
-            <li>
-              Company: <strong>{companyName}</strong>
-            </li>
-          )}
-          {theme && (
-            <li>
-              Theme: <strong>{theme}</strong>
-            </li>
-          )}
-          <li>
-            Notifications:{" "}
-            <strong>{notifications ? "Enabled" : "Disabled"}</strong>
-          </li>
-          {startedAt && (
-            <li>
-              Started:{" "}
-              <strong>{new Date(startedAt).toLocaleTimeString()}</strong>
-            </li>
-          )}
-        </ul>
-      </div>
-
-      <p>You're ready to start using the app!</p>
-
-      {onRestart && <button onClick={onRestart}>Restart Onboarding</button>}
-    </div>
+    <Card className="w-full max-w-2xl border-0">
+      <CardHeader className="text-center">
+        <CardTitle className="text-3xl">Welcome, {name}!</CardTitle>
+        <CardDescription className="text-base">
+          Your onboarding is complete.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <h3 className="font-semibold mb-2">Your Profile:</h3>
+          <dl className="space-y-1 text-sm">
+            {userType && (
+              <div>
+                <dt className="inline text-muted-foreground">Account Type: </dt>
+                <dd className="inline font-medium">
+                  {userType === "business" ? "Business" : "Personal"}
+                </dd>
+              </div>
+            )}
+            {businessIndustry && (
+              <div>
+                <dt className="inline text-muted-foreground">Industry: </dt>
+                <dd className="inline font-medium">{businessIndustry}</dd>
+              </div>
+            )}
+            {companyName && (
+              <div>
+                <dt className="inline text-muted-foreground">Company: </dt>
+                <dd className="inline font-medium">{companyName}</dd>
+              </div>
+            )}
+            {theme && (
+              <div>
+                <dt className="inline text-muted-foreground">Theme: </dt>
+                <dd className="inline font-medium capitalize">{theme}</dd>
+              </div>
+            )}
+            <div>
+              <dt className="inline text-muted-foreground">Notifications: </dt>
+              <dd className="inline font-medium">
+                {notifications ? "Enabled" : "Disabled"}
+              </dd>
+            </div>
+            {startedAt && (
+              <div>
+                <dt className="inline text-muted-foreground">Started: </dt>
+                <dd className="inline font-medium">
+                  {new Date(startedAt).toLocaleTimeString()}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          You're ready to start using the app!
+        </p>
+      </CardContent>
+      {onRestart && (
+        <CardFooter className="justify-center">
+          <Button variant="outline" onClick={onRestart}>
+            Restart Onboarding
+          </Button>
+        </CardFooter>
+      )}
+    </Card>
   );
 }

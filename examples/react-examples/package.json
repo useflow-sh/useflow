@@ -11,17 +11,26 @@
     "clean": "rm -rf node_modules dist .turbo"
   },
   "dependencies": {
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-switch": "^1.2.6",
     "@useflow/react": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.548.0",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "react-router": "^7.9.4"
+    "react-router": "^7.9.4",
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
-    "@types/node": "catalog:",
+    "@tailwindcss/vite": "^4.1.16",
+    "@types/node": "^24.9.1",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "^5.0.4",
     "globals": "^16.4.0",
+    "tailwindcss": "^4.1.16",
     "typescript": "catalog:",
     "vite": "^7.1.7"
   }

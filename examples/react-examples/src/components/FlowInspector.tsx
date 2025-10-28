@@ -1,6 +1,14 @@
 import type { FlowStorage, PersistedFlowState } from "@useflow/react";
 import { useFlow } from "@useflow/react";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export function FlowInspector({
   flowId,
@@ -42,163 +50,87 @@ export function FlowInspector({
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: "1rem",
-        right: "1rem",
-        background: "rgba(0, 0, 0, 0.8)",
-        color: "white",
-        borderRadius: "8px",
-        fontSize: "0.875rem",
-        width: "400px",
-        zIndex: 1000,
-        textAlign: "left",
-      }}
-    >
-      <button
-        onClick={() => setShowDebug(!showDebug)}
-        style={{
-          width: "100%",
-          background: "transparent",
-          border: "none",
-          color: "white",
-          padding: "1rem",
-          cursor: "pointer",
-          fontWeight: "bold",
-          textAlign: "left",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          fontSize: "0.875rem",
-        }}
-      >
-        <span>🔍 Flow Inspector</span>
-        <span>{showDebug ? "▼" : "▶"}</span>
-      </button>
+    <Card className="fixed top-4 right-4 w-96 z-50 text-sm">
+      <CardHeader>
+        <button
+          onClick={() => setShowDebug(!showDebug)}
+          className="w-full flex justify-between items-center text-left p-0 bg-transparent border-none cursor-pointer"
+        >
+          <CardTitle className="text-base">Flow Inspector</CardTitle>
+          <span className="text-muted-foreground">{showDebug ? "▼" : "▶"}</span>
+        </button>
+      </CardHeader>
 
       {showDebug && (
-        <div style={{ padding: "0 1rem 1rem 1rem" }}>
+        <CardContent className="space-y-4">
           {/* Current Flow State */}
-          <div style={{ marginBottom: "1rem" }}>
-            <div
-              style={{
-                fontSize: "1.25rem",
-                marginBottom: "0.5rem",
-                fontWeight: "bold",
-                opacity: 0.7,
-              }}
-            >
+          <div className="space-y-2">
+            <CardDescription className="font-semibold text-xs uppercase tracking-wide">
               Current Flow State
-            </div>
-            <div style={{ marginBottom: "0.25rem" }}>
-              <strong>Status:</strong> {status}
-            </div>
-            <div style={{ marginBottom: "0.25rem" }}>
-              <strong>Restoring:</strong> {isRestoring ? "Yes" : "No"}
-            </div>
-            <div style={{ marginBottom: "0.25rem" }}>
-              <strong>Step:</strong> {stepId}
-            </div>
-            <div style={{ marginBottom: "0.5rem" }}>
-              <strong>History:</strong> {history.join(" → ")}
-            </div>
-            <div>
-              <strong>Context:</strong>
-              <pre
-                style={{
-                  margin: "0.25rem 0 0 0",
-                  fontSize: "0.75rem",
-                  overflow: "auto",
-                  background: "rgba(255, 255, 255, 0.05)",
-                  padding: "0.5rem",
-                  borderRadius: "4px",
-                  maxHeight: "150px",
-                }}
-              >
-                {JSON.stringify(context, null, 2)}
-              </pre>
+            </CardDescription>
+            <div className="space-y-1 text-xs">
+              <div>
+                <strong>Status:</strong> {status}
+              </div>
+              <div>
+                <strong>Restoring:</strong> {isRestoring ? "Yes" : "No"}
+              </div>
+              <div>
+                <strong>Step:</strong> {stepId}
+              </div>
+              <div>
+                <strong>History:</strong> {history.join(" → ")}
+              </div>
+              <div>
+                <strong>Context:</strong>
+                <pre className="mt-1 text-[0.7rem] overflow-auto bg-muted p-2 rounded max-h-36">
+                  {JSON.stringify(context, null, 2)}
+                </pre>
+              </div>
             </div>
           </div>
 
           {/* Persisted State */}
-          <div style={{ marginBottom: "1rem" }}>
-            <div
-              style={{
-                fontWeight: "bold",
-                marginBottom: "0.5rem",
-                opacity: 0.7,
-              }}
-            >
-              Persisted State:
-            </div>
-            <div
-              style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                padding: "0.5rem",
-                borderRadius: "4px",
-                fontSize: "0.75rem",
-                fontFamily: "monospace",
-                maxHeight: "150px",
-                overflow: "auto",
-              }}
-            >
+          <div className="space-y-2">
+            <CardDescription className="font-semibold text-xs uppercase tracking-wide">
+              Persisted State
+            </CardDescription>
+            <div className="bg-muted p-2 rounded text-[0.7rem] font-mono max-h-36 overflow-auto">
               {persistedState ? (
-                <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                <pre className="m-0 whitespace-pre-wrap">
                   {JSON.stringify(persistedState, null, 2)}
                 </pre>
               ) : (
-                <span style={{ opacity: 0.6 }}>No saved state</span>
+                <span className="text-muted-foreground">No saved state</span>
               )}
             </div>
-            <div
-              style={{
-                marginTop: "0.25rem",
-                fontSize: "0.7rem",
-                opacity: 0.5,
-              }}
-            >
+            <div className="text-[0.65rem] text-muted-foreground">
               Key: <code>myapp:{flowId}</code>
             </div>
           </div>
 
           {/* Clear Buttons */}
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
-          >
-            <button
+          <div className="flex flex-col gap-2">
+            <Button
               onClick={handleClearCurrentFlow}
               disabled={!persistedState}
-              style={{
-                background: persistedState ? "#ff6b6b" : "#444",
-                border: "none",
-                color: "white",
-                padding: "0.5rem 1rem",
-                borderRadius: "4px",
-                cursor: persistedState ? "pointer" : "not-allowed",
-                opacity: persistedState ? 1 : 0.5,
-                fontSize: "0.875rem",
-              }}
+              variant="destructive"
+              size="sm"
+              className="w-full"
             >
-              🗑️ Clear Current Flow
-            </button>
-            <button
+              Clear Current Flow
+            </Button>
+            <Button
               onClick={handleClearAllFlows}
-              style={{
-                background: "#ff6b6b",
-                border: "none",
-                color: "white",
-                padding: "0.5rem 1rem",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "0.875rem",
-              }}
+              variant="destructive"
+              size="sm"
+              className="w-full"
             >
-              🗑️ Clear All Flows
-            </button>
+              Clear All Flows
+            </Button>
           </div>
-        </div>
+        </CardContent>
       )}
-    </div>
+    </Card>
   );
 }

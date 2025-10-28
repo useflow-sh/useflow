@@ -14,15 +14,20 @@ export function FlowInspector({
   const [persistedState, setPersistedState] =
     useState<PersistedFlowState | null>(null);
 
-  // Update persisted state display when context or stepId changes
+  // Poll storage for updates to persisted state
   useEffect(() => {
     const updatePersistedState = async () => {
-      // Get raw data directly from storage
       const state = await storage.get(flowId);
       setPersistedState(state || null);
     };
+
+    // Initial load
     updatePersistedState();
-  }, [context, stepId, flowId, storage]);
+
+    // Poll every 500ms to show real-time updates
+    const interval = setInterval(updatePersistedState, 500);
+    return () => clearInterval(interval);
+  }, [flowId, storage]);
 
   const handleClearCurrentFlow = async () => {
     await storage.remove(flowId);

@@ -127,9 +127,7 @@ export type KVJSONStorageAdapterOptions = {
  * const persister = createPersister({ storage, ttl: 7 * 24 * 60 * 60 * 1000 });
  * ```
  */
-export function kvJsonStorageAdapter(
-  options: KVJSONStorageAdapterOptions,
-): KVFlowStorage {
+export function kvJsonStorageAdapter(options: KVJSONStorageAdapterOptions) {
   const { store, prefix = "useflow" } = options;
 
   // Build key function - ALWAYS adds prefix
@@ -191,6 +189,48 @@ export function kvJsonStorageAdapter(
       });
     },
 
+    async list(
+      flowId: string,
+    ): Promise<
+      Array<{ instanceId: string | undefined; state: PersistedFlowState }>
+    > {
+      const baseKey = getKey(flowId);
+      const pattern = `${baseKey}:`;
+      const instances: Array<{
+        instanceId: string | undefined;
+        state: PersistedFlowState;
+      }> = [];
+
+      // Iterate through all keys in storage
+      for (let i = 0; i < store.length; i++) {
+        const key = store.key?.(i);
+        if (!key) continue;
+
+        // Check if this key is the base flow or an instance
+        if (key === baseKey || key.startsWith(pattern)) {
+          try {
+            const json = await store.getItem(key);
+            if (!json) continue;
+
+            const state = deserializeFlowState(json);
+            if (!state) continue;
+
+            // Extract instance ID from key (everything after the pattern)
+            // For base key, use undefined as instanceId
+            const instanceId =
+              key === baseKey ? undefined : key.substring(pattern.length);
+            instances.push({ instanceId, state });
+          } catch {
+            // Skip invalid entries
+            // biome-ignore lint/complexity/noUselessContinue: defensive programming in case more is added after this block
+            continue;
+          }
+        }
+      }
+
+      return instances;
+    },
+
     getKey,
-  };
+  } satisfies KVFlowStorage;
 }

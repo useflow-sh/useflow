@@ -363,6 +363,291 @@ describe("kvJsonStorageAdapter", () => {
     });
   });
 
+  describe("list", () => {
+    it("should list all instances of a flow", async () => {
+      const state1: PersistedFlowState = {
+        stepId: "step1",
+        context: { name: "Task 1" },
+        history: ["step1"],
+        status: "active",
+      };
+
+      const state2: PersistedFlowState = {
+        stepId: "step2",
+        context: { name: "Task 2" },
+        history: ["step1", "step2"],
+        status: "active",
+      };
+
+      const mockData: Record<string, string> = {
+        "useflow:test-flow:instance-1": JSON.stringify(state1),
+        "useflow:test-flow:instance-2": JSON.stringify(state2),
+        "useflow:other-flow:instance-1": JSON.stringify(state1),
+      };
+
+      const getItem = vi.fn((key: string) => mockData[key] || null);
+      const key = vi.fn(
+        (index: number) => Object.keys(mockData)[index] || null,
+      );
+
+      const storage = kvJsonStorageAdapter({
+        store: Object.assign(mockData, {
+          length: Object.keys(mockData).length,
+          clear: vi.fn(),
+          key,
+          getItem,
+          setItem: vi.fn(),
+          removeItem: vi.fn(),
+        }) as Storage,
+      });
+
+      const instances = await storage.list!("test-flow");
+
+      expect(instances).toHaveLength(2);
+      expect(instances).toEqual([
+        { instanceId: "instance-1", state: state1 },
+        { instanceId: "instance-2", state: state2 },
+      ]);
+    });
+
+    it("should return empty array when no instances exist", async () => {
+      const mockData: Record<string, string> = {
+        "useflow:other-flow:instance-1": "{}",
+      };
+
+      const getItem = vi.fn((key: string) => mockData[key] || null);
+      const key = vi.fn(
+        (index: number) => Object.keys(mockData)[index] || null,
+      );
+
+      const storage = kvJsonStorageAdapter({
+        store: Object.assign(mockData, {
+          length: Object.keys(mockData).length,
+          clear: vi.fn(),
+          key,
+          getItem,
+          setItem: vi.fn(),
+          removeItem: vi.fn(),
+        }) as Storage,
+      });
+
+      const instances = await storage.list!("test-flow");
+
+      expect(instances).toEqual([]);
+    });
+
+    it("should skip invalid entries", async () => {
+      const state: PersistedFlowState = {
+        stepId: "step1",
+        context: {},
+        history: ["step1"],
+        status: "active",
+      };
+
+      const mockData: Record<string, string> = {
+        "useflow:test-flow:instance-1": JSON.stringify(state),
+        "useflow:test-flow:instance-2": "invalid json",
+        "useflow:test-flow:instance-3": JSON.stringify(state),
+      };
+
+      const getItem = vi.fn((key: string) => mockData[key] || null);
+      const key = vi.fn(
+        (index: number) => Object.keys(mockData)[index] || null,
+      );
+
+      const storage = kvJsonStorageAdapter({
+        store: Object.assign(mockData, {
+          length: Object.keys(mockData).length,
+          clear: vi.fn(),
+          key,
+          getItem,
+          setItem: vi.fn(),
+          removeItem: vi.fn(),
+        }) as Storage,
+      });
+
+      const instances = await storage.list!("test-flow");
+
+      expect(instances).toHaveLength(2);
+      expect(instances).toEqual([
+        { instanceId: "instance-1", state },
+        { instanceId: "instance-3", state },
+      ]);
+    });
+
+    it("should skip entries that fail deserialization", async () => {
+      const state: PersistedFlowState = {
+        stepId: "step1",
+        context: {},
+        history: ["step1"],
+        status: "active",
+      };
+
+      const mockData: Record<string, string> = {
+        "useflow:test-flow:instance-1": JSON.stringify(state),
+        "useflow:test-flow:instance-2": JSON.stringify({
+          invalid: "structure",
+        }), // Valid JSON but invalid state structure
+        "useflow:test-flow:instance-3": JSON.stringify(state),
+      };
+
+      const getItem = vi.fn((key: string) => mockData[key] || null);
+      const key = vi.fn(
+        (index: number) => Object.keys(mockData)[index] || null,
+      );
+
+      const storage = kvJsonStorageAdapter({
+        store: Object.assign(mockData, {
+          length: Object.keys(mockData).length,
+          clear: vi.fn(),
+          key,
+          getItem,
+          setItem: vi.fn(),
+          removeItem: vi.fn(),
+        }) as Storage,
+      });
+
+      const instances = await storage.list!("test-flow");
+
+      expect(instances).toHaveLength(2);
+      expect(instances).toEqual([
+        { instanceId: "instance-1", state },
+        { instanceId: "instance-3", state },
+      ]);
+    });
+
+    it("should skip entries when getItem throws an error", async () => {
+      const state: PersistedFlowState = {
+        stepId: "step1",
+        context: {},
+        history: ["step1"],
+        status: "active",
+      };
+
+      const mockData: Record<string, string> = {
+        "useflow:test-flow:instance-1": JSON.stringify(state),
+        "useflow:test-flow:instance-2": JSON.stringify(state),
+        "useflow:test-flow:instance-3": JSON.stringify(state),
+      };
+
+      const getItem = vi.fn((key: string) => {
+        // Throw error for instance-2 to trigger the catch block
+        if (key === "useflow:test-flow:instance-2") {
+          throw new Error("Storage read error");
+        }
+        return mockData[key] || null;
+      });
+
+      const key = vi.fn(
+        (index: number) => Object.keys(mockData)[index] || null,
+      );
+
+      const storage = kvJsonStorageAdapter({
+        store: Object.assign(mockData, {
+          length: Object.keys(mockData).length,
+          clear: vi.fn(),
+          key,
+          getItem,
+          setItem: vi.fn(),
+          removeItem: vi.fn(),
+        }) as Storage,
+      });
+
+      const instances = await storage.list!("test-flow");
+
+      // Should skip instance-2 due to error and return only instance-1 and instance-3
+      expect(instances).toHaveLength(2);
+      expect(instances).toEqual([
+        { instanceId: "instance-1", state },
+        { instanceId: "instance-3", state },
+      ]);
+    });
+
+    it("should work with custom getKey function", async () => {
+      const state: PersistedFlowState = {
+        stepId: "step1",
+        context: {},
+        history: ["step1"],
+        status: "active",
+      };
+
+      const mockData: Record<string, string> = {
+        "myapp:user123:test-flow:instance-1": JSON.stringify(state),
+        "myapp:user123:test-flow:instance-2": JSON.stringify(state),
+        "myapp:user456:test-flow:instance-1": JSON.stringify(state),
+      };
+
+      const getItem = vi.fn((key: string) => mockData[key] || null);
+      const key = vi.fn(
+        (index: number) => Object.keys(mockData)[index] || null,
+      );
+
+      const getKey = vi.fn((flowId: string, instanceId?: string) =>
+        instanceId ? `user123:${flowId}:${instanceId}` : `user123:${flowId}`,
+      );
+
+      const storage = kvJsonStorageAdapter({
+        store: Object.assign(mockData, {
+          length: Object.keys(mockData).length,
+          clear: vi.fn(),
+          key,
+          getItem,
+          setItem: vi.fn(),
+          removeItem: vi.fn(),
+        }) as Storage,
+        prefix: "myapp",
+        getKey,
+      });
+
+      const instances = await storage.list!("test-flow");
+
+      expect(instances).toHaveLength(2);
+      expect(
+        instances.every((i) => i.instanceId?.startsWith("instance-")),
+      ).toBe(true);
+    });
+
+    it("should include base flow key with undefined instanceId", async () => {
+      const state: PersistedFlowState = {
+        stepId: "step1",
+        context: {},
+        history: ["step1"],
+        status: "active",
+      };
+
+      const mockData: Record<string, string> = {
+        "useflow:test-flow": JSON.stringify(state), // Base key - should be included
+        "useflow:test-flow:instance-1": JSON.stringify(state),
+        "useflow:test-flow:instance-2": JSON.stringify(state),
+      };
+
+      const getItem = vi.fn((key: string) => mockData[key] || null);
+      const key = vi.fn(
+        (index: number) => Object.keys(mockData)[index] || null,
+      );
+
+      const storage = kvJsonStorageAdapter({
+        store: Object.assign(mockData, {
+          length: Object.keys(mockData).length,
+          clear: vi.fn(),
+          key,
+          getItem,
+          setItem: vi.fn(),
+          removeItem: vi.fn(),
+        }) as Storage,
+      });
+
+      const instances = await storage.list!("test-flow");
+
+      expect(instances).toHaveLength(3);
+      expect(instances).toEqual([
+        { instanceId: undefined, state }, // Base instance with undefined
+        { instanceId: "instance-1", state },
+        { instanceId: "instance-2", state },
+      ]);
+    });
+  });
+
   describe("removeAll", () => {
     it("should remove all flows with default prefix", async () => {
       const mockData: Record<string, string> = {

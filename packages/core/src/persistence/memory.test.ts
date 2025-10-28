@@ -287,4 +287,121 @@ describe("createMemoryStorage", () => {
       expect(storage.get("flow2", "instance-1")).toBeNull();
     });
   });
+
+  describe("list", () => {
+    it("should list all instances of a flow", () => {
+      const storage = createMemoryStorage();
+
+      const state1: PersistedFlowState = {
+        stepId: "step1",
+        context: { name: "Task 1" },
+        history: ["step1"],
+        status: "active",
+      };
+
+      const state2: PersistedFlowState = {
+        stepId: "step2",
+        context: { name: "Task 2" },
+        history: ["step1", "step2"],
+        status: "active",
+      };
+
+      storage.set("test-flow", state1, "instance-1");
+      storage.set("test-flow", state2, "instance-2");
+      storage.set("other-flow", state1, "instance-1");
+
+      const instances = storage.list!("test-flow");
+
+      expect(instances).toHaveLength(2);
+      expect(instances).toEqual([
+        { instanceId: "instance-1", state: state1 },
+        { instanceId: "instance-2", state: state2 },
+      ]);
+    });
+
+    it("should return empty array when no instances exist", () => {
+      const storage = createMemoryStorage();
+
+      const state: PersistedFlowState = {
+        stepId: "step1",
+        context: {},
+        history: ["step1"],
+        status: "active",
+      };
+
+      storage.set("other-flow", state, "instance-1");
+
+      const instances = storage.list!("test-flow");
+
+      expect(instances).toEqual([]);
+    });
+
+    it("should include base flow key with undefined instanceId", () => {
+      const storage = createMemoryStorage();
+
+      const baseState: PersistedFlowState = {
+        stepId: "step1",
+        context: { type: "base" },
+        history: ["step1"],
+        status: "active",
+      };
+
+      const instance1State: PersistedFlowState = {
+        stepId: "step2",
+        context: { type: "instance1" },
+        history: ["step1", "step2"],
+        status: "active",
+      };
+
+      const instance2State: PersistedFlowState = {
+        stepId: "step3",
+        context: { type: "instance2" },
+        history: ["step1", "step2", "step3"],
+        status: "active",
+      };
+
+      storage.set("test-flow", baseState); // Base flow without instanceId
+      storage.set("test-flow", instance1State, "instance-1");
+      storage.set("test-flow", instance2State, "instance-2");
+
+      const instances = storage.list!("test-flow");
+
+      expect(instances).toHaveLength(3);
+      expect(instances).toEqual(
+        expect.arrayContaining([
+          { instanceId: undefined, state: baseState }, // Base instance with undefined
+          { instanceId: "instance-1", state: instance1State },
+          { instanceId: "instance-2", state: instance2State },
+        ]),
+      );
+    });
+
+    it("should only list instances for the specified flow", () => {
+      const storage = createMemoryStorage();
+
+      const state: PersistedFlowState = {
+        stepId: "step1",
+        context: {},
+        history: ["step1"],
+        status: "active",
+      };
+
+      storage.set("flow1", state);
+      storage.set("flow1", state, "instance-1");
+      storage.set("flow2", state);
+      storage.set("flow2", state, "instance-1");
+
+      const instances = storage.list!("flow1") as Array<{
+        instanceId: string | undefined;
+        state: PersistedFlowState;
+      }>;
+
+      expect(instances).toHaveLength(2);
+      const hasCorrectIds = instances.every(
+        (i) =>
+          i.instanceId === undefined || i.instanceId.startsWith("instance-"),
+      );
+      expect(hasCorrectIds).toBe(true);
+    });
+  });
 });

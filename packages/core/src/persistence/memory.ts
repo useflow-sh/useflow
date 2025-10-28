@@ -62,5 +62,29 @@ export function createMemoryStorage(): FlowStorage {
     removeAll(): void {
       store.clear();
     },
+
+    list(
+      flowId: string,
+    ): Array<{ instanceId: string | undefined; state: PersistedFlowState }> {
+      const baseKey = flowId;
+      const pattern = `${baseKey}:`;
+      const instances: Array<{
+        instanceId: string | undefined;
+        state: PersistedFlowState;
+      }> = [];
+
+      Array.from(store.entries()).forEach(([key, state]) => {
+        // Check if this key is the base flow or an instance
+        if (key === baseKey || key.startsWith(pattern)) {
+          // Extract instance ID from key (everything after the pattern)
+          // For base key, use undefined as instanceId
+          const instanceId =
+            key === baseKey ? undefined : key.substring(pattern.length);
+          instances.push({ instanceId, state });
+        }
+      });
+
+      return instances;
+    },
   };
 }

@@ -54,6 +54,29 @@ export interface FlowStorage {
    * Remove all flows managed by this storage adapter
    */
   removeAll?(): Promise<void> | void;
+
+  /**
+   * List all instances of a flow
+   * @param flowId - Flow identifier
+   * @returns Array of instance IDs and their states
+   *
+   * @example
+   * ```ts
+   * const instances = await storage.list("task-flow");
+   * // [
+   * //   { instanceId: undefined, state: {...} },  // Base flow without instanceId
+   * //   { instanceId: "task-123", state: {...} },
+   * //   { instanceId: "task-456", state: {...} }
+   * // ]
+   * ```
+   */
+  list?(
+    flowId: string,
+  ):
+    | Promise<
+        Array<{ instanceId: string | undefined; state: PersistedFlowState }>
+      >
+    | Array<{ instanceId: string | undefined; state: PersistedFlowState }>;
 }
 
 /**

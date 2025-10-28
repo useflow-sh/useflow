@@ -1,11 +1,12 @@
-import { createPersister, Flow, kvJsonStorageAdapter } from "@useflow/react";
-import { useMemo, useState } from "react";
+import { Flow } from "@useflow/react";
+import { useState } from "react";
 import {
   AnimatedFlowStep,
   type Direction,
 } from "../../components/AnimatedFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { LoadingView } from "../../components/LoadingView";
+import { persister, storage } from "../../lib/storage";
 import { CompleteStep } from "../../shared-steps/CompleteStep";
 import { PreferencesStep } from "../../shared-steps/PreferencesStep";
 import { ProfileStep } from "../../shared-steps/ProfileStep";
@@ -15,22 +16,6 @@ import { simpleFlow } from "./flow";
 export function SimpleFlowDemo() {
   const [flowKey, setFlowKey] = useState(0);
   const [direction, setDirection] = useState<Direction>("initial");
-
-  const storage = useMemo(
-    () =>
-      kvJsonStorageAdapter({
-        store: localStorage,
-        prefix: "myapp",
-      }),
-    [],
-  );
-  // Create a persister for this flow
-  const persister = useMemo(() => {
-    return createPersister({
-      storage,
-      ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-  }, [storage]);
 
   const handleRestart = () => {
     persister.remove?.(simpleFlow.id);

@@ -1,11 +1,4 @@
-import {
-  BarChart3,
-  GitBranch,
-  Home,
-  Layers,
-  ListTodo,
-  Menu,
-} from "lucide-react";
+import { Menu } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -16,48 +9,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-const navItems = [
-  {
-    id: "home",
-    label: "Home",
-    path: "/",
-    icon: <Home className="h-5 w-5" />,
-    description: "Flow gallery",
-  },
-  {
-    id: "simple",
-    label: "Simple Flow",
-    path: "/simple",
-    icon: <Layers className="h-5 w-5" />,
-    description: "Linear progression",
-  },
-  {
-    id: "branching",
-    label: "Branching Flow",
-    path: "/branching",
-    icon: <GitBranch className="h-5 w-5" />,
-    description: "Conditional navigation",
-  },
-  {
-    id: "task",
-    label: "Task Flow",
-    path: "/task",
-    icon: <ListTodo className="h-5 w-5" />,
-    description: "Multiple instances",
-  },
-  {
-    id: "survey",
-    label: "Survey Flow",
-    path: "/survey",
-    icon: <BarChart3 className="h-5 w-5" />,
-    description: "Event hooks demo",
-  },
-];
+import { getNavItems } from "@/config/pages";
 
 export function SideNav() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const navItems = getNavItems();
 
   return (
     <>
@@ -95,6 +52,8 @@ export function SideNav() {
           <CardContent className="space-y-2">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
+              const IconComponent = item.icon;
+
               return (
                 <Link
                   key={item.id}
@@ -110,7 +69,7 @@ export function SideNav() {
                     }`}
                   >
                     <div className="flex items-center gap-3 w-full">
-                      {item.icon}
+                      <IconComponent className="h-5 w-5" />
                       <div className="flex-1 text-left">
                         <div className="font-medium text-sm">{item.label}</div>
                         <div className="text-xs text-muted-foreground">

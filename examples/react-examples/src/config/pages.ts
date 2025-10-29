@@ -5,12 +5,14 @@ import {
   Layers,
   ListTodo,
   Settings,
+  Workflow,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
 // Import all page components
 import { FlowGallery } from "../components/FlowGallery";
 import { BranchingFlowDemo } from "../flows/branching/FlowDemo";
+import { DynamicFlowDemo } from "../flows/dynamic/FlowDemo";
 import { FlowModificationDemo } from "../flows/flow-modification-demo/FlowModificationDemo";
 import { SimpleFlowDemo } from "../flows/simple/FlowDemo";
 import { SurveyFlowDemo } from "../flows/survey/FlowDemo";
@@ -134,6 +136,26 @@ export const pages: PageConfig[] = [
       "Event-driven UI updates",
     ],
     complexityLabel: "Intermediate",
+  },
+  {
+    id: "dynamic",
+    label: "Dynamic Flows",
+    path: "/dynamic",
+    icon: Workflow,
+    description: "Switch flow definitions",
+    component: DynamicFlowDemo,
+    category: "examples",
+    isGalleryItem: true,
+    galleryTitle: "Dynamic Flows",
+    galleryDescription:
+      "Same components, different flows - demonstrate flow switching based on conditions",
+    features: [
+      "Reusable components across flows",
+      "Runtime flow switching (A/B testing)",
+      "Generic useFlow() hook",
+      "Express vs Standard flow paths",
+    ],
+    complexityLabel: "Advanced",
   },
 ];
 

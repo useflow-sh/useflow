@@ -1,22 +1,7 @@
-import { JsonSerializer } from "@useflow/core";
-import { createPersister, kvStorageAdapter } from "@useflow/react";
+import { createLocalStorageStore, createPersister } from "@useflow/react";
 
-export const store = kvStorageAdapter({
-  storage: localStorage,
-  serializer: JsonSerializer,
-  formatKey: (flowId, instanceId) =>
-    instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
-  listKeys: (flowId) => {
-    const allKeys = Object.keys(localStorage);
-    if (!flowId) return allKeys;
-
-    // Filter keys for this specific flow
-    const baseKey = `myapp:${flowId}`;
-    return allKeys.filter(
-      (key) => key === baseKey || key.startsWith(`${baseKey}:`),
-    );
-  },
-});
+// Simplified store creation - handles key formatting and enumeration automatically
+export const store = createLocalStorageStore(localStorage, { prefix: "myapp" });
 
 export const persister = createPersister({
   store,

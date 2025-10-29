@@ -1,5 +1,7 @@
 // Persistence module
 export type {
+  AsyncStorageOptions,
+  BrowserStorageOptions,
   FlowPersister,
   FlowStore,
   KVFlowStore,
@@ -11,8 +13,11 @@ export type {
   ValidationResult,
 } from "./persistence";
 export {
+  createAsyncStorageStore,
+  createLocalStorageStore,
   createMemoryStore,
   createPersister,
+  createSessionStorageStore,
   JsonSerializer,
   kvStorageAdapter,
   validatePersistedState,

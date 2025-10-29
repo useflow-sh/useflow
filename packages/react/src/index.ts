@@ -1,6 +1,8 @@
 // Re-export core types and utilities
 // Re-export persister types and factory from core (framework-agnostic)
 export type {
+  AsyncStorageOptions,
+  BrowserStorageOptions,
   FlowPersister,
   FlowStore,
   KVFlowStore,
@@ -13,8 +15,11 @@ export type {
   ValidationResult,
 } from "@useflow/core";
 export {
+  createAsyncStorageStore,
+  createLocalStorageStore,
   createMemoryStore,
   createPersister,
+  createSessionStorageStore,
   JsonSerializer,
   kvStorageAdapter,
   validatePersistedState,

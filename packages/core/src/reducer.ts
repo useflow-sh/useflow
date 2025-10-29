@@ -208,6 +208,12 @@ export function flowReducer<TContext extends FlowContext>(
       return action.state;
     }
 
+    case "RESET": {
+      // Reset to initial state - use the definition's start step
+      // and the provided initial context
+      return createInitialState(definition, action.initialContext);
+    }
+
     default: {
       // Warn about unknown action types (should never happen with TypeScript)
       console.warn(

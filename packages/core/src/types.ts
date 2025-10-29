@@ -163,4 +163,5 @@ export type FlowAction<TContext extends FlowContext = FlowContext> =
   | { type: "NEXT"; target?: string; update?: ContextUpdate<TContext> }
   | { type: "BACK" }
   | { type: "SET_CONTEXT"; update: ContextUpdate<TContext> }
-  | { type: "RESTORE"; state: FlowState<TContext> };
+  | { type: "RESTORE"; state: FlowState<TContext> }
+  | { type: "RESET"; initialContext: TContext };

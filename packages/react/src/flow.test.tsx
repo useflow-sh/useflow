@@ -2739,4 +2739,356 @@ describe("FlowStep", () => {
       });
     });
   });
+
+  describe("reset", () => {
+    it("should reset flow to initial state", () => {
+      const flow = defineFlow({
+        id: "test-reset",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: { next: "third" },
+          third: {},
+        },
+      } as const satisfies FlowConfig<{ count: number }>);
+
+      function TestComponent() {
+        const { stepId, context, next, setContext, reset } = useFlow();
+        return (
+          <div>
+            <div data-testid="stepId">{stepId}</div>
+            <div data-testid="count">{context.count}</div>
+            <button onClick={() => next()}>Next</button>
+            <button onClick={() => setContext({ count: context.count + 1 })}>
+              Increment
+            </button>
+            <button onClick={() => reset()}>Reset</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: () => <div>First</div>,
+            second: () => <div>Second</div>,
+            third: () => <div>Third</div>,
+          })}
+          initialContext={{ count: 0 }}
+        >
+          <TestComponent />
+        </Flow>,
+      );
+
+      // Initial state
+      expect(screen.getByTestId("stepId")).toHaveTextContent("first");
+      expect(screen.getByTestId("count")).toHaveTextContent("0");
+
+      // Navigate and modify context
+      fireEvent.click(screen.getByText("Increment"));
+      expect(screen.getByTestId("count")).toHaveTextContent("1");
+
+      fireEvent.click(screen.getByText("Next"));
+      expect(screen.getByTestId("stepId")).toHaveTextContent("second");
+
+      fireEvent.click(screen.getByText("Increment"));
+      expect(screen.getByTestId("count")).toHaveTextContent("2");
+
+      // Reset should go back to initial state
+      fireEvent.click(screen.getByText("Reset"));
+
+      expect(screen.getByTestId("stepId")).toHaveTextContent("first");
+      expect(screen.getByTestId("count")).toHaveTextContent("0");
+    });
+
+    it("should clear persisted state on reset", async () => {
+      const persister = {
+        save: vi.fn(async () => ({
+          stepId: "test",
+          context: {},
+          history: [],
+          status: "active" as const,
+        })),
+        restore: vi.fn(async () => null),
+        remove: vi.fn(async () => {}),
+      };
+
+      const flow = defineFlow({
+        id: "test-reset-persist",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      } as const satisfies FlowConfig<{ value: number }>);
+
+      function TestComponent() {
+        const { stepId, next, reset } = useFlow();
+        return (
+          <div>
+            <div data-testid="stepId">{stepId}</div>
+            <button onClick={() => next()}>Next</button>
+            <button onClick={() => reset()}>Reset</button>
+          </div>
+        );
+      }
+
+      function FirstStep() {
+        return <div>First</div>;
+      }
+
+      function SecondStep() {
+        return <div>Second</div>;
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={{
+            first: FirstStep,
+            second: SecondStep,
+          }}
+          initialContext={{ value: 0 }}
+          persister={persister}
+          saveDebounce={0}
+        >
+          <FlowStep />
+          <TestComponent />
+        </Flow>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("First")).toBeInTheDocument();
+      });
+
+      // Navigate to trigger save
+      fireEvent.click(screen.getByText("Next"));
+
+      // Wait for save to be called
+      await vi.waitFor(() => {
+        expect(persister.save).toHaveBeenCalled();
+      });
+
+      // Reset should call persister.remove
+      fireEvent.click(screen.getByText("Reset"));
+
+      await waitFor(() => {
+        expect(persister.remove).toHaveBeenCalledWith(
+          "test-reset-persist",
+          undefined,
+        );
+        expect(screen.getByTestId("stepId")).toHaveTextContent("first");
+      });
+    });
+
+    it("should clear persisted state with instanceId on reset", async () => {
+      const persister = {
+        save: vi.fn(async () => ({
+          stepId: "test",
+          context: {},
+          history: [],
+          status: "active" as const,
+        })),
+        restore: vi.fn(async () => null),
+        remove: vi.fn(async () => {}),
+      };
+
+      const flow = defineFlow({
+        id: "test-reset-instance",
+        start: "step1",
+        steps: {
+          step1: { next: "step2" },
+          step2: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      function TestComponent() {
+        const { reset } = useFlow();
+        return <button onClick={() => reset()}>Reset</button>;
+      }
+
+      function Step1() {
+        return <div>Step 1</div>;
+      }
+
+      function Step2() {
+        return <div>Step 2</div>;
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={{
+            step1: Step1,
+            step2: Step2,
+          }}
+          initialContext={{}}
+          instanceId="instance-123"
+          persister={persister}
+        >
+          <FlowStep />
+          <TestComponent />
+        </Flow>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Step 1")).toBeInTheDocument();
+      });
+
+      // Reset should call persister.remove with instanceId
+      fireEvent.click(screen.getByText("Reset"));
+
+      await waitFor(() => {
+        expect(persister.remove).toHaveBeenCalledWith(
+          "test-reset-instance",
+          "instance-123",
+        );
+      });
+    });
+
+    it("should handle persistence errors on reset", async () => {
+      const onPersistenceError = vi.fn();
+      const persister = {
+        save: vi.fn(async () => ({
+          stepId: "test",
+          context: {},
+          history: [],
+          status: "active" as const,
+        })),
+        restore: vi.fn(async () => null),
+        remove: vi.fn(async () => {
+          throw new Error("Failed to remove");
+        }),
+      };
+
+      const flow = defineFlow({
+        id: "test-reset-error",
+        start: "first",
+        steps: {
+          first: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      function TestComponent() {
+        const { reset } = useFlow();
+        return <button onClick={() => reset()}>Reset</button>;
+      }
+
+      function FirstStep() {
+        return <div>First</div>;
+      }
+
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      render(
+        <Flow
+          flow={flow}
+          components={{
+            first: FirstStep,
+          }}
+          initialContext={{}}
+          persister={persister}
+          onPersistenceError={onPersistenceError}
+        >
+          <FlowStep />
+          <TestComponent />
+        </Flow>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("First")).toBeInTheDocument();
+      });
+
+      // Reset should handle error gracefully
+      fireEvent.click(screen.getByText("Reset"));
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith(
+          "[Flow] Failed to remove persisted state on reset:",
+          expect.any(Error),
+        );
+        expect(onPersistenceError).toHaveBeenCalledWith(expect.any(Error));
+      });
+
+      consoleError.mockRestore();
+    });
+
+    it("should reset from completed state", () => {
+      const flow = defineFlow({
+        id: "test-reset-complete",
+        start: "first",
+        steps: {
+          first: { next: "last" },
+          last: {},
+        },
+      } as const satisfies FlowConfig<{ value: string }>);
+
+      function TestComponent() {
+        const { stepId, status, next, reset } = useFlow();
+        return (
+          <div>
+            <div data-testid="stepId">{stepId}</div>
+            <div data-testid="status">{status}</div>
+            <button onClick={() => next()}>Next</button>
+            <button onClick={() => reset()}>Reset</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            first: () => <div>First</div>,
+            last: () => <div>Last</div>,
+          })}
+          initialContext={{ value: "start" }}
+        >
+          <TestComponent />
+        </Flow>,
+      );
+
+      // Navigate to completed state
+      fireEvent.click(screen.getByText("Next"));
+      expect(screen.getByTestId("stepId")).toHaveTextContent("last");
+      expect(screen.getByTestId("status")).toHaveTextContent("complete");
+
+      // Reset from completed state
+      fireEvent.click(screen.getByText("Reset"));
+      expect(screen.getByTestId("stepId")).toHaveTextContent("first");
+      expect(screen.getByTestId("status")).toHaveTextContent("active");
+    });
+
+    it("should expose reset in components function", () => {
+      const flow = defineFlow({
+        id: "test-reset-components-fn",
+        start: "step1",
+        steps: {
+          step1: {},
+        },
+      } as const satisfies FlowConfig<object>);
+
+      const componentsFunction = vi.fn(() => ({
+        step1: () => <div>Step 1</div>,
+      }));
+
+      render(
+        <Flow
+          flow={flow}
+          components={componentsFunction}
+          initialContext={{}}
+        />,
+      );
+
+      // Verify reset is passed to components function
+      expect(componentsFunction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reset: expect.any(Function),
+        }),
+      );
+    });
+  });
 });

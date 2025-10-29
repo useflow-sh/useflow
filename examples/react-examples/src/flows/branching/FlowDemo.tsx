@@ -1,5 +1,4 @@
 import { Flow } from "@useflow/react";
-import { useState } from "react";
 import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { FlowVisualizer } from "../../components/FlowVisualizer";
@@ -15,18 +14,10 @@ import { UserTypeStep } from "./components/UserTypeStep";
 import { branchingFlow } from "./flow";
 
 export function BranchingFlowDemo() {
-  const [flowKey, setFlowKey] = useState(0);
-
-  const handleRestart = () => {
-    persister.remove?.(branchingFlow.id);
-    setFlowKey((k) => k + 1);
-  };
-
   return (
     <Flow
-      key={flowKey}
       flow={branchingFlow}
-      components={({ context }) => ({
+      components={({ context, reset }) => ({
         welcome: WelcomeStep,
         profile: ProfileStep,
         userType: UserTypeStep,
@@ -42,7 +33,7 @@ export function BranchingFlowDemo() {
             businessIndustry={context.businessIndustry}
             companyName={context.companyName}
             startedAt={context.startedAt}
-            onRestart={handleRestart}
+            onRestart={() => reset()}
           />
         ),
       })}

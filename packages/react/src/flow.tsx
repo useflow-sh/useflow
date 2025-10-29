@@ -68,6 +68,7 @@ type ComponentsFunction<TConfig extends FlowConfig<any>> = (flowState: {
   next: UseFlowReducerReturn<ExtractContext<TConfig>>["next"];
   back: () => void;
   setContext: (update: ContextUpdate<ExtractContext<TConfig>>) => void;
+  reset: () => void;
   isRestoring: boolean;
   // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
 }) => Record<StepNames<TConfig>, ComponentType<any>>;
@@ -231,7 +232,13 @@ export function Flow<TConfig extends FlowConfig<any>>({
   const previousStateRef = useRef(flowState);
 
   // Track what type of action caused the state change
-  type LastActionType = "NEXT" | "BACK" | "SET_CONTEXT" | "RESTORE" | null;
+  type LastActionType =
+    | "NEXT"
+    | "BACK"
+    | "SET_CONTEXT"
+    | "RESTORE"
+    | "RESET"
+    | null;
   const lastActionRef = useRef<LastActionType>(null);
 
   // Wrap next/back/setContext to track action type
@@ -262,6 +269,23 @@ export function Flow<TConfig extends FlowConfig<any>>({
     },
     [flowState.setContext],
   );
+
+  const wrappedReset = useCallback(async () => {
+    lastActionRef.current = "RESET";
+    // Clear persisted state if persister is available
+    if (persister) {
+      try {
+        await persister.remove?.(flow.id, instanceId);
+      } catch (error) {
+        console.error(
+          "[Flow] Failed to remove persisted state on reset:",
+          error,
+        );
+        onPersistenceError?.(error as Error);
+      }
+    }
+    flowState.reset();
+  }, [flowState.reset, persister, flow.id, instanceId, onPersistenceError]);
 
   // Handle callbacks when state changes
   useEffect(() => {
@@ -391,6 +415,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
             next: wrappedNext,
             back: wrappedBack,
             setContext: wrappedSetContext,
+            reset: wrappedReset,
             isRestoring,
           })
         : components,
@@ -403,6 +428,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
       wrappedNext,
       wrappedBack,
       wrappedSetContext,
+      wrappedReset,
       isRestoring,
     ],
   );
@@ -430,6 +456,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
       next: wrappedNext,
       back: wrappedBack,
       setContext: wrappedSetContext,
+      reset: wrappedReset,
       save,
       __flow: flowDefinition,
       component: flowDefinition.steps[flowState.stepId]?.component,
@@ -440,6 +467,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
       wrappedNext,
       wrappedBack,
       wrappedSetContext,
+      wrappedReset,
       save,
       flowDefinition,
       isRestoring,

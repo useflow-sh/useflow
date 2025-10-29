@@ -239,4 +239,170 @@ describe("useFlowReducer", () => {
       expect(result.current.history).toEqual(["first", "second"]);
     });
   });
+
+  describe("reset", () => {
+    it("should reset to initial state", () => {
+      const definition: FlowDefinition<{ count: number; name: string }> = {
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: { next: "third" },
+          third: {},
+        },
+      };
+
+      const { result } = renderHook(() =>
+        useFlowReducer(definition, { count: 0, name: "initial" }),
+      );
+
+      // Navigate and modify context
+      act(() => {
+        result.current.next({ count: 5, name: "modified" });
+      });
+      expect(result.current.stepId).toBe("second");
+      expect(result.current.context).toEqual({ count: 5, name: "modified" });
+
+      act(() => {
+        result.current.next();
+      });
+      expect(result.current.stepId).toBe("third");
+
+      // Reset
+      act(() => {
+        result.current.reset();
+      });
+
+      expect(result.current.stepId).toBe("first");
+      expect(result.current.context).toEqual({ count: 0, name: "initial" });
+      expect(result.current.history).toEqual(["first"]);
+      expect(result.current.status).toBe("active");
+    });
+
+    it("should reset from completed state", () => {
+      const definition: FlowDefinition<{ value: string }> = {
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "last" },
+          last: {}, // Terminal step
+        },
+      };
+
+      const { result } = renderHook(() =>
+        useFlowReducer(definition, { value: "start" }),
+      );
+
+      // Complete the flow
+      act(() => {
+        result.current.next({ value: "end" });
+      });
+      expect(result.current.stepId).toBe("last");
+      expect(result.current.status).toBe("complete");
+
+      // Reset
+      act(() => {
+        result.current.reset();
+      });
+
+      expect(result.current.stepId).toBe("first");
+      expect(result.current.status).toBe("active");
+      expect(result.current.context.value).toBe("start");
+    });
+
+    it("should use original initialContext, not re-render updates", () => {
+      const definition: FlowDefinition<{ counter: number }> = {
+        id: "test",
+        start: "step1",
+        steps: {
+          step1: { next: "step2" },
+          step2: {},
+        },
+      };
+
+      const { result, rerender } = renderHook(
+        ({ initialContext }) => useFlowReducer(definition, initialContext),
+        {
+          initialProps: { initialContext: { counter: 0 } },
+        },
+      );
+
+      // Navigate and modify
+      act(() => {
+        result.current.next({ counter: 10 });
+      });
+      expect(result.current.context.counter).toBe(10);
+
+      // Re-render with different initialContext (new object reference)
+      rerender({ initialContext: { counter: 999 } });
+
+      // Reset should still use original initialContext (0), not new one (999)
+      act(() => {
+        result.current.reset();
+      });
+
+      expect(result.current.context.counter).toBe(0);
+      expect(result.current.stepId).toBe("step1");
+    });
+
+    it("should allow navigation after reset", () => {
+      const definition: FlowDefinition<{ step: number }> = {
+        id: "test",
+        start: "a",
+        steps: {
+          a: { next: "b" },
+          b: { next: "c" },
+          c: {},
+        },
+      };
+
+      const { result } = renderHook(() =>
+        useFlowReducer(definition, { step: 0 }),
+      );
+
+      // Navigate through flow
+      act(() => {
+        result.current.next();
+        result.current.next();
+      });
+      expect(result.current.stepId).toBe("c");
+
+      // Reset
+      act(() => {
+        result.current.reset();
+      });
+      expect(result.current.stepId).toBe("a");
+
+      // Should be able to navigate again
+      act(() => {
+        result.current.next({ step: 1 });
+      });
+      expect(result.current.stepId).toBe("b");
+      expect(result.current.context.step).toBe(1);
+      expect(result.current.history).toEqual(["a", "b"]);
+    });
+
+    it("should have stable reset callback", () => {
+      const definition: FlowDefinition<{ value: number }> = {
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      };
+
+      const { result, rerender } = renderHook(() =>
+        useFlowReducer(definition, { value: 0 }),
+      );
+
+      const firstReset = result.current.reset;
+
+      // Re-render
+      rerender();
+
+      // Reset callback should be stable
+      expect(result.current.reset).toBe(firstReset);
+    });
+  });
 });

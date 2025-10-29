@@ -7,7 +7,7 @@ import {
   type FlowState,
   flowReducer,
 } from "@useflow/core";
-import { useCallback, useReducer } from "react";
+import { useCallback, useReducer, useRef } from "react";
 
 /**
  * Return type for useFlowReducer hook
@@ -31,6 +31,7 @@ export type UseFlowReducerReturn<
   back: () => void;
   setContext: (update: ContextUpdate<TContext>) => void;
   restore: (state: FlowState<TContext>) => void;
+  reset: () => void;
 };
 
 /**
@@ -49,6 +50,9 @@ export function useFlowReducer<TContext extends FlowContext>(
   initialContext: TContext,
   initialState?: FlowState<TContext>,
 ): UseFlowReducerReturn<TContext> {
+  // Store initial context in a ref so it's stable across re-renders
+  const initialContextRef = useRef(initialContext);
+
   const [state, dispatch] = useReducer(
     (state: FlowState<TContext>, action: FlowAction<TContext>) =>
       flowReducer(state, action, definition),
@@ -82,6 +86,10 @@ export function useFlowReducer<TContext extends FlowContext>(
     dispatch({ type: "RESTORE", state: restoredState });
   }, []);
 
+  const reset = useCallback(() => {
+    dispatch({ type: "RESET", initialContext: initialContextRef.current });
+  }, []);
+
   const currentStep = definition.steps[state.stepId];
 
   return {
@@ -94,5 +102,6 @@ export function useFlowReducer<TContext extends FlowContext>(
     back,
     setContext,
     restore,
+    reset,
   };
 }

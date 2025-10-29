@@ -842,3 +842,151 @@ describe("validateFlowDefinition", () => {
     expect(() => validateFlowDefinition(flow)).toThrow("another-missing");
   });
 });
+
+describe("RESET action", () => {
+  it("should reset flow to initial state", () => {
+    type TestContext = { count: number; name: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: { next: "third" },
+        third: {},
+      },
+    };
+
+    const initialContext: TestContext = { count: 0, name: "initial" };
+    let state = createInitialState(definition, initialContext);
+
+    // Navigate forward and modify context
+    state = flowReducer(
+      state,
+      { type: "NEXT", update: { count: 1, name: "updated" } },
+      definition,
+    );
+    expect(state.stepId).toBe("second");
+    expect(state.context).toEqual({ count: 1, name: "updated" });
+    expect(state.history).toEqual(["first", "second"]);
+
+    state = flowReducer(state, { type: "NEXT" }, definition);
+    expect(state.stepId).toBe("third");
+    expect(state.history).toEqual(["first", "second", "third"]);
+
+    // Reset should go back to initial state
+    state = flowReducer(state, { type: "RESET", initialContext }, definition);
+
+    expect(state.stepId).toBe("first");
+    expect(state.context).toEqual({ count: 0, name: "initial" });
+    expect(state.history).toEqual(["first"]);
+    expect(state.status).toBe("active");
+  });
+
+  it("should reset from completed state", () => {
+    type TestContext = { value: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "last" },
+        last: {}, // Terminal step
+      },
+    };
+
+    const initialContext: TestContext = { value: "start" };
+    let state = createInitialState(definition, initialContext);
+
+    // Complete the flow
+    state = flowReducer(
+      state,
+      { type: "NEXT", update: { value: "modified" } },
+      definition,
+    );
+    expect(state.stepId).toBe("last");
+    expect(state.status).toBe("complete");
+    expect(state.context.value).toBe("modified");
+
+    // Reset from completed state
+    state = flowReducer(state, { type: "RESET", initialContext }, definition);
+
+    expect(state.stepId).toBe("first");
+    expect(state.status).toBe("active");
+    expect(state.context.value).toBe("start");
+    expect(state.history).toEqual(["first"]);
+  });
+
+  it("should reset context to provided initial context, not current context", () => {
+    type TestContext = { counter: number };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "step1",
+      steps: {
+        step1: { next: "step2" },
+        step2: {},
+      },
+    };
+
+    const initialContext: TestContext = { counter: 0 };
+    let state = createInitialState(definition, initialContext);
+
+    // Modify context multiple times
+    state = flowReducer(
+      state,
+      { type: "SET_CONTEXT", update: { counter: 10 } },
+      definition,
+    );
+    state = flowReducer(state, { type: "NEXT" }, definition);
+    state = flowReducer(
+      state,
+      { type: "SET_CONTEXT", update: { counter: 20 } },
+      definition,
+    );
+
+    expect(state.context.counter).toBe(20);
+
+    // Reset should use initial context (0), not current context (20)
+    state = flowReducer(state, { type: "RESET", initialContext }, definition);
+
+    expect(state.context.counter).toBe(0);
+    expect(state.stepId).toBe("step1");
+  });
+
+  it("should allow navigation after reset", () => {
+    type TestContext = { step: number };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "a",
+      steps: {
+        a: { next: "b" },
+        b: { next: "c" },
+        c: {},
+      },
+    };
+
+    const initialContext: TestContext = { step: 0 };
+    let state = createInitialState(definition, initialContext);
+
+    // Navigate through flow
+    state = flowReducer(state, { type: "NEXT" }, definition);
+    state = flowReducer(state, { type: "NEXT" }, definition);
+    expect(state.stepId).toBe("c");
+
+    // Reset
+    state = flowReducer(state, { type: "RESET", initialContext }, definition);
+    expect(state.stepId).toBe("a");
+
+    // Should be able to navigate again
+    state = flowReducer(
+      state,
+      { type: "NEXT", update: { step: 1 } },
+      definition,
+    );
+    expect(state.stepId).toBe("b");
+    expect(state.context.step).toBe(1);
+    expect(state.history).toEqual(["a", "b"]);
+  });
+});

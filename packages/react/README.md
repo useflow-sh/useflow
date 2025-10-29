@@ -58,12 +58,15 @@ function App() {
   return (
     <Flow
       flow={onboardingFlow}
-      components={(flowState) => ({
+      components={{
         welcome: WelcomeStep,
         profile: ProfileStep,
         preferences: PreferencesStep,
-        complete: () => <CompleteStep name={flowState.context.name} />,
-      })}
+        complete: () => {
+          const { context } = useFlow();
+          return <CompleteStep name={context.name} />;
+        },
+      }}
       initialContext={{
         name: "",
         email: "",
@@ -155,7 +158,7 @@ Main component that runs your flow.
 ```tsx
 type FlowProps<TConfig> = {
   flow: FlowDefinition<TConfig>; // From defineFlow()
-  components: (flowState) => Record<StepNames, ComponentType>;
+  components: Record<StepNames, ComponentType>;
   initialContext: ExtractContext<TConfig>;
   instanceId?: string; // Optional unique identifier for reusable flows
   onComplete?: () => void;
@@ -198,11 +201,14 @@ type FlowProps<TConfig> = {
 ```tsx
 <Flow
   flow={myFlow}
-  components={(flowState) => ({
+  components={{
     welcome: WelcomeStep,
     profile: ProfileStep,
-    complete: () => <CompleteStep {...flowState.context} />,
-  })}
+    complete: () => {
+      const { context } = useFlow();
+      return <CompleteStep name={context.name} />;
+    },
+  }}
   initialContext={{ name: "" }}
   onComplete={() => console.log("Done!")}
 />
@@ -450,26 +456,30 @@ function FormStep() {
 
 ### Dynamic Components
 
-Pass flow state to components for dynamic rendering:
+Use `useFlow()` in inline components for dynamic rendering:
 
 ```tsx
 <Flow
   flow={myFlow}
-  components={(flowState) => ({
+  components={{
     welcome: WelcomeStep,
     profile: ProfileStep,
-    // Pass context to component
-    complete: () => (
-      <CompleteStep
-        name={flowState.context.name}
-        theme={flowState.context.theme}
-      />
-    ),
+    // Pass context to component using useFlow()
+    complete: () => {
+      const { context } = useFlow();
+      return (
+        <CompleteStep
+          name={context.name}
+          theme={context.theme}
+        />
+      );
+    },
     // Conditional component selection
-    dashboard: flowState.context.isPremium
-      ? PremiumDashboard
-      : FreeDashboard,
-  })}
+    dashboard: () => {
+      const { context } = useFlow();
+      return context.isPremium ? <PremiumDashboard /> : <FreeDashboard />;
+    },
+  }}
   initialContext={...}
 />
 ```
@@ -1496,11 +1506,11 @@ test("ProfileStep collects user input", () => {
   render(
     <Flow
       flow={myFlow}
-      components={() => ({
+      components={{
         welcome: WelcomeStep,
         profile: ProfileStep,
         complete: CompleteStep,
-      })}
+      }}
       initialContext={{ name: "" }}
     />
   );

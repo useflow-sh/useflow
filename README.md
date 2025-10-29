@@ -74,12 +74,15 @@ function App() {
   return (
     <Flow
       flow={onboardingFlow}
-      components={(flowState) => ({
+      components={{
         welcome: WelcomeStep,
         profile: ProfileStep,
         preferences: PreferencesStep,
-        complete: () => <CompleteStep name={flowState.context.name} />,
-      })}
+        complete: () => {
+          const { context } = useFlow();
+          return <CompleteStep name={context.name} />;
+        },
+      }}
       initialContext={{
         name: "",
         email: "",

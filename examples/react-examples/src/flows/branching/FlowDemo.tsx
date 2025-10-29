@@ -1,4 +1,4 @@
-import { Flow } from "@useflow/react";
+import { Flow, useFlow } from "@useflow/react";
 import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { FlowVisualizer } from "../../components/FlowVisualizer";
@@ -17,26 +17,29 @@ export function BranchingFlowDemo() {
   return (
     <Flow
       flow={branchingFlow}
-      components={({ context, reset }) => ({
+      components={{
         welcome: WelcomeStep,
         profile: ProfileStep,
         userType: UserTypeStep,
         businessDetails: BusinessDetailsStep,
         setupPreference: SetupPreferenceStep,
         preferences: PreferencesStep,
-        complete: () => (
-          <CompleteStep
-            name={context.name}
-            theme={context.theme}
-            notifications={context.notifications}
-            userType={context.userType || undefined}
-            businessIndustry={context.businessIndustry}
-            companyName={context.companyName}
-            startedAt={context.startedAt}
-            onRestart={() => reset()}
-          />
-        ),
-      })}
+        complete: () => {
+          const { context, reset } = useFlow();
+          return (
+            <CompleteStep
+              name={context.name}
+              theme={context.theme}
+              notifications={context.notifications}
+              userType={context.userType || undefined}
+              businessIndustry={context.businessIndustry}
+              companyName={context.companyName}
+              startedAt={context.startedAt}
+              onRestart={reset}
+            />
+          );
+        },
+      }}
       initialContext={{
         name: "",
         userType: undefined,

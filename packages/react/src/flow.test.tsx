@@ -32,10 +32,10 @@ describe("Flow", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           idle: () => <div>Idle</div>,
           active: () => <div>Active</div>,
-        })}
+        }}
         initialContext={{ count: 0 }}
       >
         <TestComponent />
@@ -72,10 +72,10 @@ describe("Flow", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           first: () => <div>First</div>,
           second: () => <div>Second</div>,
-        })}
+        }}
         initialContext={{}}
       >
         <TestComponent />
@@ -115,10 +115,10 @@ describe("Flow", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           first: () => <div>First</div>,
           second: () => <div>Second</div>,
-        })}
+        }}
         initialContext={{}}
       >
         <TestComponent />
@@ -156,9 +156,9 @@ describe("Flow", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           profile: () => <div>Profile</div>,
-        })}
+        }}
         initialContext={{ name: "" }}
       >
         <TestComponent />
@@ -196,10 +196,10 @@ describe("Flow", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           active: () => <div>Active</div>,
           complete: () => <div>Complete</div>,
-        })}
+        }}
         initialContext={{}}
         onComplete={onComplete}
       >
@@ -251,10 +251,10 @@ describe("Flow", () => {
           <div data-testid="count">{count}</div>
           <Flow
             flow={flow}
-            components={() => ({
+            components={{
               active: () => <div>Active</div>,
               complete: () => <div>Complete</div>,
-            })}
+            }}
             initialContext={{}}
             onComplete={handleComplete}
           >
@@ -308,11 +308,11 @@ describe("Flow", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           profile: () => <div>Profile</div>,
           business: () => <div>Business</div>,
           personal: () => <div>Personal</div>,
-        })}
+        }}
         initialContext={{ isBusiness: false }}
       >
         <TestComponent />
@@ -321,56 +321,6 @@ describe("Flow", () => {
 
     fireEvent.click(screen.getByText("Next"));
     expect(screen.getByTestId("stepId")).toHaveTextContent("personal");
-  });
-
-  it("should render components from components function", () => {
-    const flow = defineFlow({
-      id: "test",
-      start: "test",
-      steps: {
-        test: {},
-      },
-    } as const satisfies FlowConfig<object>);
-
-    render(
-      <Flow
-        flow={flow}
-        components={() => ({
-          test: () => <div data-testid="test-step">Test Step</div>,
-        })}
-        initialContext={{}}
-      />,
-    );
-
-    expect(screen.getByTestId("test-step")).toBeInTheDocument();
-  });
-
-  it("should pass flowState to components function", () => {
-    const flow = defineFlow({
-      id: "test",
-      start: "test",
-      steps: {
-        test: {},
-      },
-    } as const satisfies FlowConfig<{ name: string }>);
-
-    render(
-      <Flow
-        flow={flow}
-        components={(flowState) => ({
-          test: () => (
-            <div>
-              <div data-testid="name">{flowState.context.name}</div>
-              <div data-testid="step">{flowState.stepId}</div>
-            </div>
-          ),
-        })}
-        initialContext={{ name: "Alice" }}
-      />,
-    );
-
-    expect(screen.getByTestId("name")).toHaveTextContent("Alice");
-    expect(screen.getByTestId("step")).toHaveTextContent("test");
   });
 
   it("should render components from components dictionary", () => {
@@ -444,11 +394,11 @@ describe("useFlow", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           first: TestComponent,
           second: () => <div data-testid="second-step">Second</div>,
           third: () => <div data-testid="third-step">Third</div>,
-        })}
+        }}
         initialContext={{ value: "test" }}
       />,
     );
@@ -489,10 +439,10 @@ describe("Edge cases", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           first: () => <div>First</div>,
           second: () => <div>Second</div>,
-        })}
+        }}
         initialContext={{}}
       >
         <TestComponent />
@@ -549,10 +499,10 @@ describe("Edge cases", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           first: () => <div>First</div>,
           second: () => <div>Second</div>,
-        })}
+        }}
         initialContext={{ count: 0 }}
       >
         <TestComponent />
@@ -614,9 +564,9 @@ describe("Edge cases", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           test: () => <div>Test</div>,
-        })}
+        }}
         initialContext={{ user: { profile: { name: "Alice", age: 25 } } }}
       >
         <TestComponent />
@@ -646,9 +596,9 @@ describe("FlowStep", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           test: () => <div data-testid="test-step">Test Step Content</div>,
-        })}
+        }}
         initialContext={{}}
       >
         <div data-testid="wrapper">
@@ -676,9 +626,9 @@ describe("FlowStep", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           test: () => <div data-testid="auto-step">Auto Rendered</div>,
-        })}
+        }}
         initialContext={{}}
       />,
     );
@@ -712,10 +662,10 @@ describe("FlowStep", () => {
     render(
       <Flow
         flow={flow}
-        components={() => ({
+        components={{
           first: () => <div data-testid="first-step">First</div>,
           second: () => <div data-testid="second-step">Second</div>,
-        })}
+        }}
         initialContext={{}}
       >
         <TestApp />
@@ -747,10 +697,10 @@ describe("FlowStep", () => {
     render(
       <Flow
         flow={flow}
-        // @ts-expect-error - Testing missing component
-        components={() => ({
-          test: undefined,
-        })}
+        components={{
+          // @ts-expect-error - Testing missing component
+          test1: () => <div>Test</div>,
+        }}
         initialContext={{}}
       >
         <div data-testid="wrapper">
@@ -789,10 +739,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: TestComponent,
             second: () => <div>Second</div>,
-          })}
+          }}
           initialContext={{}}
           onNext={onNext}
         />,
@@ -835,10 +785,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: TestComponent,
             second: TestComponent,
-          })}
+          }}
           initialContext={{}}
           onBack={onBack}
         />,
@@ -883,9 +833,9 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             form: TestComponent,
-          })}
+          }}
           initialContext={{ name: "" }}
           onContextUpdate={onContextUpdate}
         />,
@@ -926,11 +876,11 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             menu: TestComponent,
             option1: () => <div>Option 1</div>,
             option2: () => <div>Option 2</div>,
-          })}
+          }}
           initialContext={{ choice: "" }}
           onNext={onNext}
           onContextUpdate={onContextUpdate}
@@ -978,10 +928,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: TestComponent,
             second: TestComponent,
-          })}
+          }}
           initialContext={{}}
         />,
       );
@@ -1016,10 +966,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: TestComponent,
             second: TestComponent,
-          })}
+          }}
           initialContext={{}}
           onNext={onNext}
         />,
@@ -1058,10 +1008,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: TestComponent,
             second: TestComponent,
-          })}
+          }}
           initialContext={{ count: 0 }}
           onTransition={onTransition}
         />,
@@ -1105,10 +1055,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: TestComponent,
             second: TestComponent,
-          })}
+          }}
           initialContext={{}}
           onTransition={onTransition}
         />,
@@ -1157,10 +1107,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: TestComponent,
             second: () => <div>Second</div>,
-          })}
+          }}
           initialContext={{ name: "" }}
           onTransition={onTransition}
         />,
@@ -1199,10 +1149,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: TestComponent,
             second: () => <div>Second</div>,
-          })}
+          }}
           initialContext={{}}
           onNext={onNext}
           onTransition={onTransition}
@@ -1255,10 +1205,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: TestComponent,
             second: TestComponent,
-          })}
+          }}
           initialContext={{}}
           onBack={onBack}
           onTransition={onTransition}
@@ -1317,10 +1267,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: FirstComponent,
             second: SecondComponent,
-          })}
+          }}
           initialContext={{}}
         >
           <TestComponent />
@@ -1360,10 +1310,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: FirstComponent,
             second: SecondComponent,
-          })}
+          }}
           initialContext={{}}
         >
           <TestComponent />
@@ -1407,9 +1357,9 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             test: TestStep,
-          })}
+          }}
           initialContext={{}}
         >
           <CustomRenderer />
@@ -1449,10 +1399,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: FirstComponent,
             second: SecondComponent,
-          })}
+          }}
           initialContext={{}}
         >
           <TestComponent />
@@ -1505,10 +1455,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: FirstComponent,
             second: SecondComponent,
-          })}
+          }}
           initialContext={{}}
         >
           <NavigationControls />
@@ -1554,11 +1504,11 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
             step2: () => <div>Step 2</div>,
             step3: () => <div>Step 3</div>,
-          })}
+          }}
           initialContext={{ name: "" }}
           persister={persister}
         />,
@@ -1604,11 +1554,11 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
             step2: () => <div>Step 2</div>,
             step3: () => <div>Step 3</div>,
-          })}
+          }}
           initialContext={{ name: "" }}
           persister={persister}
           onRestore={onRestore}
@@ -1658,10 +1608,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
             step2: () => <div>Step 2</div>,
-          })}
+          }}
           initialContext={{ count: 0 }}
           persister={persister}
           onSave={onSave}
@@ -1705,9 +1655,9 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
-          })}
+          }}
           initialContext={{}}
           persister={persister}
           loadingComponent={<div>Loading...</div>}
@@ -1745,10 +1695,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
             step2: () => <div>Step 2</div>,
-          })}
+          }}
           initialContext={{}}
           persister={persister}
           onPersistenceError={onPersistenceError}
@@ -1785,9 +1735,9 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
-          })}
+          }}
           initialContext={{}}
           persister={persister}
           onPersistenceError={onPersistenceError}
@@ -1818,9 +1768,9 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
-          })}
+          }}
           initialContext={{}}
           persister={persister}
           onRestore={onRestore}
@@ -1855,9 +1805,9 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
-          })}
+          }}
           initialContext={{}}
           persister={persister}
         />,
@@ -1902,10 +1852,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
             step2: () => <div>Step 2</div>,
-          })}
+          }}
           initialContext={{}}
           persister={persister}
           onPersistenceError={onPersistenceError}
@@ -1955,10 +1905,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
             step2: () => <div>Step 2</div>,
-          })}
+          }}
           initialContext={{}}
           persister={persister}
           saveDebounce={0}
@@ -2016,11 +1966,11 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
             step2: () => <div>Step 2</div>,
             step3: () => <div>Step 3</div>,
-          })}
+          }}
           initialContext={{}}
           persister={persister}
           saveDebounce={100}
@@ -2095,10 +2045,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
             step2: () => <div>Step 2</div>,
-          })}
+          }}
           initialContext={{}}
           persister={persister}
           saveMode="manual"
@@ -2150,10 +2100,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
             step2: () => <div>Step 2</div>,
-          })}
+          }}
           initialContext={{}}
           persister={persister}
           saveMode="manual"
@@ -2223,9 +2173,9 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
-          })}
+          }}
           initialContext={{}}
           persister={persister}
           saveMode="manual"
@@ -2268,9 +2218,9 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
-          })}
+          }}
           initialContext={{}}
           // No persister configured
         >
@@ -2318,9 +2268,9 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
-          })}
+          }}
           initialContext={{}}
           persister={persister}
           saveMode="manual"
@@ -2376,10 +2326,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
             step2: () => <div>Step 2</div>,
-          })}
+          }}
           initialContext={{ count: 0 }}
           persister={persister}
           saveMode="always"
@@ -2442,10 +2392,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             step1: () => <div>Step 1</div>,
             step2: () => <div>Step 2</div>,
-          })}
+          }}
           initialContext={{ count: 0 }}
           persister={persister}
           // No saveMode prop - should default to "navigation"
@@ -2505,10 +2455,10 @@ describe("FlowStep", () => {
         render(
           <Flow
             flow={flow}
-            components={() => ({
+            components={{
               step1: () => <div>Step 1</div>,
               step2: () => <div>Step 2</div>,
-            })}
+            }}
             initialContext={{}}
             instanceId="task-123"
             persister={persister}
@@ -2563,11 +2513,11 @@ describe("FlowStep", () => {
         render(
           <Flow
             flow={flow}
-            components={() => ({
+            components={{
               step1: () => <div>Step 1</div>,
               step2: () => <div>Step 2</div>,
               step3: () => <div>Step 3</div>,
-            })}
+            }}
             initialContext={{ name: "" }}
             instanceId="task-456"
             persister={persister}
@@ -2622,10 +2572,10 @@ describe("FlowStep", () => {
           <>
             <Flow
               flow={flow}
-              components={() => ({
+              components={{
                 step1: () => <div>Instance 1 - Step 1</div>,
                 step2: () => <div>Instance 1 - Step 2</div>,
-              })}
+              }}
               initialContext={{}}
               instanceId="instance-1"
               persister={persister1}
@@ -2635,10 +2585,10 @@ describe("FlowStep", () => {
             </Flow>
             <Flow
               flow={flow}
-              components={() => ({
+              components={{
                 step1: () => <div>Instance 2 - Step 1</div>,
                 step2: () => <div>Instance 2 - Step 2</div>,
-              })}
+              }}
               initialContext={{}}
               instanceId="instance-2"
               persister={persister2}
@@ -2706,10 +2656,10 @@ describe("FlowStep", () => {
         render(
           <Flow
             flow={flow}
-            components={() => ({
+            components={{
               step1: () => <div>Step 1</div>,
               step2: () => <div>Step 2</div>,
-            })}
+            }}
             initialContext={{}}
             instanceId="task-789"
             persister={persister}
@@ -2771,11 +2721,11 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: () => <div>First</div>,
             second: () => <div>Second</div>,
             third: () => <div>Third</div>,
-          })}
+          }}
           initialContext={{ count: 0 }}
         >
           <TestComponent />
@@ -3042,10 +2992,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             first: () => <div>First</div>,
             last: () => <div>Last</div>,
-          })}
+          }}
           initialContext={{ value: "start" }}
         >
           <TestComponent />
@@ -3061,35 +3011,6 @@ describe("FlowStep", () => {
       fireEvent.click(screen.getByText("Reset"));
       expect(screen.getByTestId("stepId")).toHaveTextContent("first");
       expect(screen.getByTestId("status")).toHaveTextContent("active");
-    });
-
-    it("should expose reset in components function", () => {
-      const flow = defineFlow({
-        id: "test-reset-components-fn",
-        start: "step1",
-        steps: {
-          step1: {},
-        },
-      } as const satisfies FlowConfig<object>);
-
-      const componentsFunction = vi.fn(() => ({
-        step1: () => <div>Step 1</div>,
-      }));
-
-      render(
-        <Flow
-          flow={flow}
-          components={componentsFunction}
-          initialContext={{}}
-        />,
-      );
-
-      // Verify reset is passed to components function
-      expect(componentsFunction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          reset: expect.any(Function),
-        }),
-      );
     });
   });
 
@@ -3114,12 +3035,12 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             stepA: TestComponent,
             stepB: () => <div>B</div>,
             stepC: () => <div>C</div>,
             stepD: () => <div>D</div>,
-          })}
+          }}
           initialContext={{ value: "" }}
         />,
       );
@@ -3152,10 +3073,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             stepA: TestComponent,
             stepB: () => <div>B</div>,
-          })}
+          }}
           initialContext={{ value: "" }}
         />,
       );
@@ -3185,11 +3106,11 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             stepA: TestComponent,
             stepB: () => <div>B</div>,
             stepC: () => <div>C</div>,
-          })}
+          }}
           initialContext={{ value: "" }}
         />,
       );
@@ -3227,10 +3148,10 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             stepA: TestComponent,
             stepB: TestComponent,
-          })}
+          }}
           initialContext={{ value: "" }}
         />,
       );
@@ -3279,12 +3200,12 @@ describe("FlowStep", () => {
       render(
         <Flow
           flow={flow}
-          components={() => ({
+          components={{
             stepA: TestComponent,
             stepB: TestComponent,
             stepC: TestComponent,
             stepD: TestComponent,
-          })}
+          }}
           initialContext={{ value: "" }}
         />,
       );

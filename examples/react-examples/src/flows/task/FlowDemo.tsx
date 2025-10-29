@@ -1,4 +1,4 @@
-import { Flow } from "@useflow/react";
+import { Flow, useFlow } from "@useflow/react";
 import { ArrowLeft, ChevronDown, ListTodo, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -354,22 +354,25 @@ export function TaskFlowDemo() {
       key={activeTaskId}
       flow={taskFlow}
       instanceId={activeTaskId}
-      components={({ context }) => ({
+      components={{
         taskType: TaskTypeStep,
         details: DetailsStep,
         assign: AssignStep,
         review: ReviewStep,
-        complete: () => (
-          <TaskCompleteStep
-            title={context.title}
-            taskType={context.taskType}
-            onCreateAnother={() =>
-              handleCreateAnother(context as TaskFlowContext)
-            }
-            onViewAll={() => handleViewAll(context as TaskFlowContext)}
-          />
-        ),
-      })}
+        complete: () => {
+          const { context } = useFlow();
+          return (
+            <TaskCompleteStep
+              title={context.title}
+              taskType={context.taskType}
+              onCreateAnother={() =>
+                handleCreateAnother(context as TaskFlowContext)
+              }
+              onViewAll={() => handleViewAll(context as TaskFlowContext)}
+            />
+          );
+        },
+      }}
       initialContext={{
         title: "",
         description: "",

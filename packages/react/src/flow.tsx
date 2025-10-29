@@ -19,7 +19,7 @@ import {
 import type { FlowDefinition } from "./define-flow";
 import type { ExtractContext, FlowConfig, StepNames } from "./type-helpers";
 import type { UseFlowReturn } from "./types";
-import { type UseFlowReducerReturn, useFlowReducer } from "./use-flow-reducer";
+import { useFlowReducer } from "./use-flow-reducer";
 
 // biome-ignore lint/suspicious/noExplicitAny: React Context requires concrete type at creation, type safety enforced at usage via generics
 const ReactFlowContext = createContext<UseFlowReturn<any> | null>(null);
@@ -60,33 +60,11 @@ export function useFlow<TContext extends FlowContext = FlowContext>(_options?: {
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-type ComponentsFunction<TConfig extends FlowConfig<any>> = (flowState: {
-  context: ExtractContext<TConfig>;
-  stepId: StepNames<TConfig>;
-  status: "active" | "complete";
-  history: readonly string[];
-  steps: Record<StepNames<TConfig>, { next?: string | readonly string[] }>;
-  nextSteps: readonly string[] | undefined;
-  next: UseFlowReducerReturn<ExtractContext<TConfig>>["next"];
-  back: () => void;
-  setContext: (update: ContextUpdate<ExtractContext<TConfig>>) => void;
-  reset: () => void;
-  save: () => Promise<void>;
-  isRestoring: boolean;
-  // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
-}) => Record<StepNames<TConfig>, ComponentType<any>>;
-
-// biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
-type ComponentsDict<TConfig extends FlowConfig<any>> = Record<
+type ComponentsProp<TConfig extends FlowConfig<any>> = Record<
   StepNames<TConfig>,
   // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
   ComponentType<any>
 >;
-
-// biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-type ComponentsProp<TConfig extends FlowConfig<any>> =
-  | ComponentsDict<TConfig>
-  | ComponentsFunction<TConfig>;
 
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
 type FlowProps<TConfig extends FlowConfig<any>> = {
@@ -157,10 +135,13 @@ type LastActionType =
  * // Auto-render (default) - step renders automatically
  * <Flow
  *   flow={myFlow}
- *   components={(flowState) => ({
+ *   components={{
  *     welcome: WelcomeStep,
- *     complete: () => <CompleteStep {...flowState.context} />
- *   })}
+ *     complete: () => {
+ *       const { context } = useFlow();
+ *       return <CompleteStep name={context.name} />;
+ *     },
+ *   }}
  *   initialContext={{ name: '' }}
  * />
  *
@@ -168,7 +149,10 @@ type LastActionType =
  * <Flow
  *   flow={feedbackFlow}
  *   instanceId={task.id}
- *   components={(flowState) => ({ ... })}
+ *   components={{
+ *     welcome: WelcomeStep,
+ *     feedback: FeedbackStep,
+ *   }}
  *   initialContext={{ taskName: task.name }}
  *   persister={persister}
  * />
@@ -176,7 +160,10 @@ type LastActionType =
  * // With persistence and loading state
  * <Flow
  *   flow={myFlow}
- *   components={(flowState) => ({ ... })}
+ *   components={{
+ *     welcome: WelcomeStep,
+ *     profile: ProfileStep,
+ *   }}
  *   initialContext={{ name: '' }}
  *   persister={persister}
  *   loadingComponent={<Spinner />}
@@ -185,10 +172,13 @@ type LastActionType =
  * // Custom layout - use FlowStep for control
  * <Flow
  *   flow={myFlow}
- *   components={(flowState) => ({
+ *   components={{
  *     welcome: WelcomeStep,
- *     complete: () => <CompleteStep {...flowState.context} />
- *   })}
+ *     complete: () => {
+ *       const { context } = useFlow();
+ *       return <CompleteStep name={context.name} />;
+ *     },
+ *   }}
  *   initialContext={{ name: '' }}
  * >
  *   <Header />
@@ -491,42 +481,6 @@ export function Flow<TConfig extends FlowConfig<any>>({
     save();
   }, [saveMode, saveDebounce, save]);
 
-  // Resolve components - either use directly if dict, or call function if it's a function
-  const resolvedComponents = useMemo(
-    () =>
-      typeof components === "function"
-        ? components({
-            stepId: flowState.stepId as StepNames<TConfig>,
-            context: flowState.context,
-            history: flowState.history,
-            status: flowState.status,
-            next,
-            back,
-            setContext,
-            save,
-            reset,
-            isRestoring,
-            steps,
-            nextSteps,
-          })
-        : components,
-    [
-      components,
-      flowState.context,
-      flowState.stepId,
-      flowState.history,
-      flowState.status,
-      steps,
-      nextSteps,
-      next,
-      back,
-      setContext,
-      reset,
-      save,
-      isRestoring,
-    ],
-  );
-
   // Show loading component while restoring to prevent flash of wrong content
   if (isRestoring) {
     return <>{loadingComponent ?? null}</>;
@@ -549,7 +503,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
         reset,
         save,
         // Additional properties
-        component: resolvedComponents[flowState.stepId as StepNames<TConfig>],
+        component: components[flowState.stepId as StepNames<TConfig>],
         isRestoring,
         steps,
         nextSteps,

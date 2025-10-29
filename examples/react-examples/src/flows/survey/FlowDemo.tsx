@@ -1,4 +1,4 @@
-import { Flow } from "@useflow/react";
+import { Flow, useFlow } from "@useflow/react";
 import { BarChart3 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -211,7 +211,7 @@ export function SurveyFlowDemo() {
       key={surveyKey}
       flow={surveyFlow}
       instanceId="survey-instance"
-      components={(flowState) => ({
+      components={{
         intro: IntroStep,
         question1: () => (
           <QuestionStep
@@ -249,18 +249,21 @@ export function SurveyFlowDemo() {
             contextKey="q4_support"
           />
         ),
-        results: () => (
-          <ResultsStep
-            satisfaction={flowState.context.q1_satisfaction}
-            recommend={flowState.context.q2_recommend}
-            features={flowState.context.q3_features}
-            support={flowState.context.q4_support}
-            startedAt={flowState.context.startedAt}
-            completedAt={lastContext?.completedAt}
-            onRestart={handleRestart}
-          />
-        ),
-      })}
+        results: () => {
+          const { context } = useFlow();
+          return (
+            <ResultsStep
+              satisfaction={context.q1_satisfaction}
+              recommend={context.q2_recommend}
+              features={context.q3_features}
+              support={context.q4_support}
+              startedAt={context.startedAt}
+              completedAt={lastContext?.completedAt}
+              onRestart={handleRestart}
+            />
+          );
+        },
+      }}
       initialContext={{}}
       onNext={handleNext}
       onBack={handleBack}

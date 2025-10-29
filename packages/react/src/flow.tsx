@@ -18,7 +18,7 @@ import {
 } from "react";
 import type { FlowDefinition } from "./define-flow";
 import type { ExtractContext, FlowConfig, StepNames } from "./type-helpers";
-import type { RuntimeFlowDefinition, UseFlowReturn } from "./types";
+import type { UseFlowReturn } from "./types";
 import { type UseFlowReducerReturn, useFlowReducer } from "./use-flow-reducer";
 
 // biome-ignore lint/suspicious/noExplicitAny: React Context requires concrete type at creation, type safety enforced at usage via generics
@@ -458,23 +458,6 @@ export function Flow<TConfig extends FlowConfig<any>>({
     ],
   );
 
-  // Build RuntimeFlowDefinition with resolved components
-  const flowDefinition = useMemo(
-    () => ({
-      start: config.start,
-      steps: Object.fromEntries(
-        Object.entries(config.steps).map(([stepId, stepDef]) => [
-          stepId,
-          {
-            ...stepDef,
-            component: resolvedComponents[stepId as StepNames<TConfig>],
-          },
-        ]),
-      ),
-    }),
-    [config, resolvedComponents],
-  ) as RuntimeFlowDefinition<ExtractContext<TConfig>>;
-
   const flowValue = useMemo(
     () => ({
       ...flowState,
@@ -483,8 +466,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
       setContext: wrappedSetContext,
       reset: wrappedReset,
       save,
-      __flow: flowDefinition,
-      component: flowDefinition.steps[flowState.stepId]?.component,
+      component: resolvedComponents[flowState.stepId as StepNames<TConfig>],
       isRestoring,
       steps,
       nextSteps,
@@ -496,7 +478,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
       wrappedSetContext,
       wrappedReset,
       save,
-      flowDefinition,
+      resolvedComponents,
       isRestoring,
       steps,
       nextSteps,

@@ -3,30 +3,6 @@ import type { ComponentType } from "react";
 import type { UseFlowReducerReturn } from "./use-flow-reducer";
 
 /**
- * Step definition after components are attached via Flow component
- *
- * This is the internal representation after the flow is configured with components.
- *
- * @internal
- */
-type RuntimeStepDefinition<TContext extends FlowContext = FlowContext> = {
-  next?: string | readonly string[];
-  resolve?: (context: TContext) => string | undefined;
-  // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
-  component: ComponentType<any>;
-};
-
-/**
- * Runtime flow definition with components attached
- * @internal
- */
-export type RuntimeFlowDefinition<TContext extends FlowContext = FlowContext> =
-  {
-    start: string;
-    steps: Record<string, RuntimeStepDefinition<TContext>>;
-  };
-
-/**
  * Stripped-down step info exposed to components
  * Only contains navigation metadata, no component references
  */
@@ -46,8 +22,6 @@ export type UseFlowReturn<
   TValidNextSteps extends string = string,
   TStepNames extends string = string,
 > = UseFlowReducerReturn<TContext, TValidNextSteps> & {
-  /** @internal Runtime flow definition with components */
-  __flow: RuntimeFlowDefinition<TContext>;
   // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
   component: ComponentType<any> | undefined;
   isRestoring: boolean;

@@ -71,6 +71,7 @@ type ComponentsFunction<TConfig extends FlowConfig<any>> = (flowState: {
   back: () => void;
   setContext: (update: ContextUpdate<ExtractContext<TConfig>>) => void;
   reset: () => void;
+  save: () => Promise<void>;
   isRestoring: boolean;
   // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
 }) => Record<StepNames<TConfig>, ComponentType<any>>;
@@ -127,6 +128,13 @@ type FlowProps<TConfig extends FlowConfig<any>> = {
   children?: ReactNode;
 };
 
+type LastActionType =
+  | "NEXT"
+  | "BACK"
+  | "SET_CONTEXT"
+  | "RESTORE"
+  | "RESET"
+  | null;
 /**
  * Flow - main component for running a flow
  *
@@ -230,21 +238,33 @@ export function Flow<TConfig extends FlowConfig<any>>({
     initialContext,
   );
 
+  // Extract all steps (stripped down to only next property)
+  const steps = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(config.steps).map(([id, step]) => [
+        id,
+        { next: step.next },
+      ]),
+    );
+  }, [config.steps]);
+
+  // Extract possible next steps from current step
+  const nextSteps = useMemo(() => {
+    const currentStep = config.steps[flowState.stepId];
+    if (!currentStep?.next) return undefined;
+    return typeof currentStep.next === "string"
+      ? [currentStep.next]
+      : currentStep.next;
+  }, [config.steps, flowState.stepId]);
+
   // Track previous state for callbacks
   const previousStateRef = useRef(flowState);
 
   // Track what type of action caused the state change
-  type LastActionType =
-    | "NEXT"
-    | "BACK"
-    | "SET_CONTEXT"
-    | "RESTORE"
-    | "RESET"
-    | null;
   const lastActionRef = useRef<LastActionType>(null);
 
   // Wrap next/back/setContext to track action type
-  const wrappedNext = useCallback(
+  const next = useCallback(
     (
       targetOrUpdate?: string | ContextUpdate<ExtractContext<TConfig>>,
       update?: ContextUpdate<ExtractContext<TConfig>>,
@@ -259,12 +279,12 @@ export function Flow<TConfig extends FlowConfig<any>>({
     [flowState],
   );
 
-  const wrappedBack = useCallback(() => {
+  const back = useCallback(() => {
     lastActionRef.current = "BACK";
     flowState.back();
   }, [flowState.back]);
 
-  const wrappedSetContext = useCallback(
+  const setContext = useCallback(
     (update: ContextUpdate<ExtractContext<TConfig>>) => {
       lastActionRef.current = "SET_CONTEXT";
       flowState.setContext(update);
@@ -272,7 +292,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
     [flowState.setContext],
   );
 
-  const wrappedReset = useCallback(async () => {
+  const reset = useCallback(async () => {
     lastActionRef.current = "RESET";
     // Clear persisted state if persister is available
     if (persister) {
@@ -288,6 +308,47 @@ export function Flow<TConfig extends FlowConfig<any>>({
     }
     flowState.reset();
   }, [flowState.reset, persister, flow.id, instanceId, onPersistenceError]);
+
+  const save = useCallback(async () => {
+    if (!persister) return;
+    try {
+      const version =
+        "version" in config
+          ? (config as { version?: string }).version
+          : undefined;
+
+      // Extract only the persistable state (no methods)
+      const stateToSave = {
+        stepId: flowState.stepId,
+        context: flowState.context,
+        history: flowState.history,
+        status: flowState.status,
+      };
+
+      const persistedState = await persister.save(flow.id, stateToSave, {
+        version,
+        instanceId,
+      });
+
+      if (persistedState) {
+        onSave?.(persistedState as PersistedFlowState<ExtractContext<TConfig>>);
+      }
+    } catch (error) {
+      console.error("[Flow] Failed to save state:", error);
+      onPersistenceError?.(error as Error);
+    }
+  }, [
+    flow.id,
+    flowState.stepId,
+    flowState.context,
+    flowState.history,
+    flowState.status,
+    config,
+    instanceId,
+    persister,
+    onSave,
+    onPersistenceError,
+  ]);
 
   // Handle callbacks when state changes
   useEffect(() => {
@@ -344,146 +405,6 @@ export function Flow<TConfig extends FlowConfig<any>>({
 
     previousStateRef.current = flowState;
   }, [flowState, onNext, onBack, onTransition, onContextUpdate, onComplete]);
-
-  const save = useCallback(async () => {
-    if (!persister) return;
-    try {
-      const version =
-        "version" in config
-          ? (config as { version?: string }).version
-          : undefined;
-
-      // Extract only the persistable state (no methods)
-      const stateToSave = {
-        stepId: flowState.stepId,
-        context: flowState.context,
-        history: flowState.history,
-        status: flowState.status,
-      };
-
-      const persistedState = await persister.save(flow.id, stateToSave, {
-        version,
-        instanceId,
-      });
-
-      if (persistedState) {
-        onSave?.(persistedState as PersistedFlowState<ExtractContext<TConfig>>);
-      }
-    } catch (error) {
-      console.error("[Flow] Failed to save state:", error);
-      onPersistenceError?.(error as Error);
-    }
-  }, [
-    flow.id,
-    flowState.stepId,
-    flowState.context,
-    flowState.history,
-    flowState.status,
-    config,
-    instanceId,
-    persister,
-    onSave,
-    onPersistenceError,
-  ]);
-
-  // Handle persistence
-  useEffect(() => {
-    // Check if we should save based on saveMode
-    if (saveMode === "manual") return;
-
-    const action = lastActionRef.current;
-    if (saveMode === "navigation" && action !== "NEXT" && action !== "BACK")
-      return;
-
-    if (saveDebounce && saveDebounce > 0) {
-      const timer = setTimeout(() => {
-        save();
-      }, saveDebounce);
-      return () => clearTimeout(timer);
-    }
-
-    save();
-  }, [saveMode, saveDebounce, save]);
-
-  // Extract all steps (stripped down to only next property)
-  const steps = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(config.steps).map(([id, step]) => [
-        id,
-        { next: step.next },
-      ]),
-    );
-  }, [config.steps]);
-
-  // Extract possible next steps from current step
-  const nextSteps = useMemo(() => {
-    const currentStep = config.steps[flowState.stepId];
-    if (!currentStep?.next) return undefined;
-    return typeof currentStep.next === "string"
-      ? [currentStep.next]
-      : currentStep.next;
-  }, [config.steps, flowState.stepId]);
-
-  // Resolve components - either use directly if dict, or call function if it's a function
-  const resolvedComponents = useMemo(
-    () =>
-      typeof components === "function"
-        ? components({
-            context: flowState.context,
-            stepId: flowState.stepId as StepNames<TConfig>,
-            status: flowState.status,
-            history: flowState.history,
-            steps,
-            nextSteps,
-            next: wrappedNext,
-            back: wrappedBack,
-            setContext: wrappedSetContext,
-            reset: wrappedReset,
-            isRestoring,
-          })
-        : components,
-    [
-      components,
-      flowState.context,
-      flowState.stepId,
-      flowState.status,
-      flowState.history,
-      steps,
-      nextSteps,
-      wrappedNext,
-      wrappedBack,
-      wrappedSetContext,
-      wrappedReset,
-      isRestoring,
-    ],
-  );
-
-  const flowValue = useMemo(
-    () => ({
-      ...flowState,
-      next: wrappedNext,
-      back: wrappedBack,
-      setContext: wrappedSetContext,
-      reset: wrappedReset,
-      save,
-      component: resolvedComponents[flowState.stepId as StepNames<TConfig>],
-      isRestoring,
-      steps,
-      nextSteps,
-    }),
-    [
-      flowState,
-      wrappedNext,
-      wrappedBack,
-      wrappedSetContext,
-      wrappedReset,
-      save,
-      resolvedComponents,
-      isRestoring,
-      steps,
-      nextSteps,
-    ],
-  );
 
   // Handle async restoration from persister after mount
   useEffect(() => {
@@ -551,13 +472,89 @@ export function Flow<TConfig extends FlowConfig<any>>({
     flowDefinitionWithoutComponents,
   ]);
 
+  // Handle persistence
+  useEffect(() => {
+    // Check if we should save based on saveMode
+    if (saveMode === "manual") return;
+
+    const action = lastActionRef.current;
+    if (saveMode === "navigation" && action !== "NEXT" && action !== "BACK")
+      return;
+
+    if (saveDebounce && saveDebounce > 0) {
+      const timer = setTimeout(() => {
+        save();
+      }, saveDebounce);
+      return () => clearTimeout(timer);
+    }
+
+    save();
+  }, [saveMode, saveDebounce, save]);
+
+  // Resolve components - either use directly if dict, or call function if it's a function
+  const resolvedComponents = useMemo(
+    () =>
+      typeof components === "function"
+        ? components({
+            stepId: flowState.stepId as StepNames<TConfig>,
+            context: flowState.context,
+            history: flowState.history,
+            status: flowState.status,
+            next,
+            back,
+            setContext,
+            save,
+            reset,
+            isRestoring,
+            steps,
+            nextSteps,
+          })
+        : components,
+    [
+      components,
+      flowState.context,
+      flowState.stepId,
+      flowState.history,
+      flowState.status,
+      steps,
+      nextSteps,
+      next,
+      back,
+      setContext,
+      reset,
+      save,
+      isRestoring,
+    ],
+  );
+
   // Show loading component while restoring to prevent flash of wrong content
   if (isRestoring) {
     return <>{loadingComponent ?? null}</>;
   }
 
   return (
-    <ReactFlowContext.Provider value={flowValue}>
+    <ReactFlowContext.Provider
+      value={{
+        // From flowState
+        stepId: flowState.stepId,
+        step: flowState.step,
+        context: flowState.context,
+        history: flowState.history,
+        status: flowState.status,
+        restore: flowState.restore,
+        // Methods (stable via useCallback)
+        next,
+        back,
+        setContext,
+        reset,
+        save,
+        // Additional properties
+        component: resolvedComponents[flowState.stepId as StepNames<TConfig>],
+        isRestoring,
+        steps,
+        nextSteps,
+      }}
+    >
       {children ?? <FlowStep />}
     </ReactFlowContext.Provider>
   );

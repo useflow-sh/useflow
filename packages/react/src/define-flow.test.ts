@@ -56,14 +56,17 @@ describe("defineFlow validation", () => {
     ).not.toThrow();
   });
 
-  it("should not validate function returns at definition time", () => {
-    // Functions can't be validated statically, only at runtime
+  it("should not validate resolve returns at definition time", () => {
+    // resolve functions can't be validated statically, only at runtime
     expect(() =>
       defineFlow({
         id: "test",
         start: "first",
         steps: {
-          first: { next: () => "missing" }, // Can't validate this
+          first: {
+            next: ["second"],
+            resolve: () => "missing", // Can't validate this at definition time
+          },
           second: {},
         },
       } as const satisfies FlowConfig<object>),

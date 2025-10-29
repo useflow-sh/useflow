@@ -133,7 +133,7 @@ export function flowReducer<TContext extends FlowContext>(
 
       let nextStepId: string | undefined;
 
-      // If target is specified, use it
+      // If target is explicitly specified, use it
       if (action.target) {
         // Validate target is in the allowed next destinations
         if (typeof step.next === "string") {
@@ -142,34 +142,48 @@ export function flowReducer<TContext extends FlowContext>(
           nextStepId = step.next.includes(action.target)
             ? action.target
             : undefined;
-        } else if (typeof step.next === "function") {
-          // For functions, target must match the function result
-          const functionResult = step.next(updatedContext);
-          nextStepId =
-            functionResult === action.target ? action.target : undefined;
         }
 
         // Validation: target not in allowed destinations
         if (nextStepId === undefined) {
+          const allowed =
+            typeof step.next === "string" ? step.next : step.next.join(", ");
           console.warn(
-            `Invalid target "${action.target}" from step "${updatedState.stepId}". ` +
-              `Allowed: ${typeof step.next === "string" ? step.next : Array.isArray(step.next) ? step.next.join(", ") : "dynamic"}`,
+            `Invalid target "${action.target}" from step "${updatedState.stepId}". Allowed: ${allowed}`,
           );
           return updatedState;
         }
       } else {
-        // No target specified - use default behavior
+        // No target specified - determine next step automatically
         if (typeof step.next === "string") {
+          // String: simple static navigation
           nextStepId = step.next;
         } else if (Array.isArray(step.next)) {
-          // Default to first item in array
-          nextStepId = step.next[0];
-        } else if (typeof step.next === "function") {
-          nextStepId = step.next(updatedContext);
+          // Array: check for resolve function
+          if (step.resolve) {
+            // Context-driven: use resolve to determine next step
+            const resolved = step.resolve(updatedContext);
+
+            // Validate resolved value is in next array
+            if (resolved && !step.next.includes(resolved)) {
+              throw new Error(
+                `resolve() returned "${resolved}" which is not in next array: [${step.next.join(", ")}] ` +
+                  `for step "${updatedState.stepId}"`,
+              );
+            }
+
+            nextStepId = resolved;
+          } else {
+            // Component-driven but no explicit target - ERROR
+            throw new Error(
+              `Step "${updatedState.stepId}" has multiple next steps [${step.next.join(", ")}] but no resolve function. ` +
+                `Component must call next() with explicit target: ${step.next.map((s) => `next('${s}')`).join(" or ")}`,
+            );
+          }
         }
       }
 
-      // Guard returned undefined = stay on current step
+      // Guard: undefined means stay on current step
       if (nextStepId === undefined) {
         return updatedState;
       }

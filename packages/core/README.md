@@ -71,16 +71,17 @@ type StepDefinition<TContext> = {
 };
 ```
 
-#### `StepTransition<TContext>`
+#### `StepTransition`
 
 How to navigate from this step:
 
 ```typescript
-type StepTransition<TContext> =
-  | string                                     // Single static destination
-  | string[]                                   // Multiple options (component chooses)
-  | ((context: TContext) => string | undefined); // Dynamic based on context
+type StepTransition =
+  | string           // Single static destination
+  | string[];        // Multiple options (component-driven or context-driven)
 ```
+
+For context-driven branching with arrays, use the `resolve` property on `StepDefinition`.
 
 #### `FlowState<TContext>`
 
@@ -159,6 +160,41 @@ const state = createInitialState(definition, { name: "", age: 0 });
 // Returns: { stepId: "welcome", context: { name: "", age: 0 }, history: ["welcome"], status: "active" }
 ```
 
+#### `step(config)`
+
+**Type-safe helper** for creating steps with resolve functions. Provides compile-time type checking to ensure resolve only returns values from the next array:
+
+```typescript
+import { step } from "@useflow/core";
+
+// ✅ Type-safe - TypeScript will catch errors
+const userTypeStep = step({
+  next: ["businessDetails", "personalDetails"],
+  resolve: (ctx: Context) => ctx.accountType === "business" ? "businessDetails" : "personalDetails"
+});
+
+// ❌ Type error - "invalidStep" is not in next array
+const badStep = step({
+  next: ["businessDetails", "personalDetails"],
+  resolve: (ctx: Context) => "invalidStep"  // TypeScript error!
+});
+
+// Use in flow definition
+const flow = {
+  id: "my-flow",
+  start: "userType",
+  steps: {
+    userType: step({
+      next: ["businessDetails", "personalDetails"],
+      resolve: (ctx) => ctx.accountType === "business" ? "businessDetails" : "personalDetails"
+    }),
+    businessDetails: { next: "complete" },
+    personalDetails: { next: "complete" },
+    complete: {},
+  },
+};
+```
+
 ## Examples
 
 ### Linear Flow
@@ -176,9 +212,9 @@ const flow: FlowDefinition<Context> = {
 };
 ```
 
-### Conditional Branching (Context-Driven)
+### Context-Driven Branching
 
-Dynamic routing based on context:
+Dynamic routing based on context using the `resolve` property:
 
 ```typescript
 type Context = {
@@ -186,14 +222,17 @@ type Context = {
   name: string;
 };
 
+import { step } from "@useflow/core";
+
 const flow: FlowDefinition<Context> = {
+  id: "account-flow",
   start: "userType",
   steps: {
-    userType: {
-      // Flow decides next step based on context
-      next: (ctx) => 
-        ctx.accountType === "business" ? "businessDetails" : "personalDetails",
-    },
+    // ✨ Type-safe with step() helper
+    userType: step({
+      next: ["businessDetails", "personalDetails"],
+      resolve: (ctx) => ctx.accountType === "business" ? "businessDetails" : "personalDetails"
+    }),
     businessDetails: { next: "complete" },
     personalDetails: { next: "complete" },
     complete: {},
@@ -253,20 +292,22 @@ state = flowReducer(
 
 ### Guard Conditions
 
-Prevent navigation until conditions are met:
+Prevent navigation until conditions are met using `resolve`:
 
 ```typescript
 const flow: FlowDefinition<Context> = {
+  id: "form-flow",
   start: "form",
   steps: {
     form: {
-      next: (ctx) => ctx.isValid ? "complete" : undefined,
+      next: ["complete"],
+      resolve: (ctx) => ctx.isValid ? "complete" : undefined,
     },
     complete: {},
   },
 };
 
-// When next returns undefined, stays on current step
+// When resolve returns undefined, stays on current step
 state = flowReducer(state, { type: "NEXT" }, flow);
 // If isValid is false, stepId remains "form"
 ```
@@ -285,11 +326,13 @@ type MyContext = {
 };
 
 const flow: FlowDefinition<MyContext> = {
+  id: "age-check-flow",
   start: "welcome",
   steps: {
     welcome: {
       // TypeScript knows ctx has name, age, preferences
-      next: (ctx) => (ctx.age >= 18 ? "adult" : "minor"),
+      next: ["adult", "minor"],
+      resolve: (ctx) => (ctx.age >= 18 ? "adult" : "minor"),
     },
     adult: { next: "complete" },
     minor: { next: "complete" },

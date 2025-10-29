@@ -22,6 +22,7 @@ export {
   createSessionStorageStore,
   JsonSerializer,
   kvStorageAdapter,
+  step,
   validatePersistedState,
 } from "@useflow/core";
 

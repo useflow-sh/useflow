@@ -156,26 +156,6 @@ export function DynamicFlowDemo() {
     notifications: true,
   };
 
-  // Flow visualizer steps based on selected flow
-  const visualizerSteps: Record<
-    string,
-    { label: string; next?: string | string[] }
-  > = useExpressFlow
-    ? {
-        welcome: { label: "Welcome", next: "account" },
-        account: { label: "Account", next: "profile" },
-        profile: { label: "Profile", next: "complete" },
-        complete: { label: "Complete" },
-      }
-    : {
-        welcome: { label: "Welcome", next: "account" },
-        account: { label: "Account", next: "verification" },
-        verification: { label: "Verification", next: "profile" },
-        profile: { label: "Profile", next: "preferences" },
-        preferences: { label: "Preferences", next: "complete" },
-        complete: { label: "Complete" },
-      };
-
   return (
     <Flow
       key={selectedFlow.id}
@@ -210,7 +190,7 @@ export function DynamicFlowDemo() {
 
       {/* Flow Visualizer - Fixed on bottom left */}
       <div className="hidden xl:block fixed left-4 bottom-4 w-80">
-        <FlowVisualizer steps={visualizerSteps} />
+        <FlowVisualizer />
       </div>
 
       <FlowInspector flowId={selectedFlow.id} store={store} position="right" />

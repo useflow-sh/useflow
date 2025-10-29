@@ -40,14 +40,7 @@ export function SimpleFlowDemo() {
     >
       {/* Flow Visualizer - Fixed on bottom left */}
       <div className="hidden xl:block fixed left-4 bottom-4 w-80">
-        <FlowVisualizer
-          steps={{
-            welcome: { label: "Welcome", next: "profile" },
-            profile: { label: "Profile", next: "preferences" },
-            preferences: { label: "Preferences", next: "complete" },
-            complete: { label: "Complete" },
-          }}
-        />
+        <FlowVisualizer />
       </div>
 
       <FlowInspector flowId={simpleFlow.id} store={store} position="right" />

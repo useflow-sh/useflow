@@ -12,23 +12,28 @@ import {
 type FlowNode = {
   id: string;
   label: string;
-  next?: string | string[];
+  next?: string | readonly string[];
   isActive: boolean;
   isCompleted: boolean;
   isVisited: boolean;
 };
 
-export function FlowVisualizer({
-  steps,
-}: {
-  steps: Record<string, { label: string; next?: string | string[] }>;
-}) {
-  const { stepId, history, status } = useFlow();
+/**
+ * FlowVisualizer - Visual flow structure diagram
+ *
+ * Automatically reads flow structure from useFlow().steps metadata
+ * No need to manually pass in step configurations!
+ */
+export function FlowVisualizer() {
+  const { stepId, history, status, steps } = useFlow();
 
   const nodes = useMemo((): FlowNode[] => {
     return Object.entries(steps).map(([id, config]) => ({
       id,
-      label: config.label,
+      label: id
+        .split(/(?=[A-Z])/) // Split on capital letters (camelCase)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" "), // Convert to "Title Case"
       next: config.next,
       isActive: stepId === id,
       isCompleted: status === "complete" && history.includes(id),
@@ -109,16 +114,18 @@ export function FlowVisualizer({
                               : "h-0"
                           }`}
                         />
-                        <div className="flex items-center gap-1 text-[0.65rem] text-muted-foreground py-0.5">
-                          <span className="font-semibold">Branches to:</span>
-                          <span className="text-primary">
+                        <div className="space-y-0.5 text-[0.65rem] py-0.5">
+                          <div className="font-semibold text-muted-foreground">
+                            Branches to:
+                          </div>
+                          <div className="text-primary">
                             {nextNodes
                               .map((id) => {
                                 const nextNode = nodes.find((n) => n.id === id);
                                 return nextNode?.label || id;
                               })
                               .join(", ")}
-                          </span>
+                          </div>
                         </div>
                       </div>
                     ) : (

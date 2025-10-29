@@ -151,7 +151,7 @@ describe("flowReducer", () => {
     expect(state.context).toEqual({ name: "Bob" });
   });
 
-  it("should support conditional next with function", () => {
+  it("should support context-driven branching with resolve", () => {
     type TestContext = { isBusiness: boolean };
 
     const definition: FlowDefinition<TestContext> = {
@@ -159,7 +159,8 @@ describe("flowReducer", () => {
       start: "profile",
       steps: {
         profile: {
-          next: (ctx) => (ctx.isBusiness ? "business" : "personal"),
+          next: ["business", "personal"],
+          resolve: (ctx) => (ctx.isBusiness ? "business" : "personal"),
         },
         business: {},
         personal: {},
@@ -202,7 +203,7 @@ describe("flowReducer", () => {
     expect(state.status).toBe("complete");
   });
 
-  it("should stay on current step if guard returns undefined", () => {
+  it("should stay on current step if resolve returns undefined", () => {
     type TestContext = { isValid: boolean };
 
     const definition: FlowDefinition<TestContext> = {
@@ -210,7 +211,8 @@ describe("flowReducer", () => {
       start: "form",
       steps: {
         form: {
-          next: (ctx) => (ctx.isValid ? "complete" : undefined),
+          next: ["complete"],
+          resolve: (ctx) => (ctx.isValid ? "complete" : undefined),
         },
         complete: {},
       },
@@ -300,7 +302,7 @@ describe("flowReducer", () => {
     expect(state.context.timestamp).toBeGreaterThan(0);
   });
 
-  it("should support updater function with conditional navigation", () => {
+  it("should support updater function with context-driven navigation", () => {
     type TestContext = { score: number };
 
     const definition: FlowDefinition<TestContext> = {
@@ -308,7 +310,8 @@ describe("flowReducer", () => {
       start: "game",
       steps: {
         game: {
-          next: (ctx) => (ctx.score >= 100 ? "win" : "lose"),
+          next: ["win", "lose"],
+          resolve: (ctx) => (ctx.score >= 100 ? "win" : "lose"),
         },
         win: {},
         lose: {},
@@ -396,7 +399,7 @@ describe("flowReducer", () => {
     expect(newState.stepId).toBe("optionB");
   });
 
-  it("should default to first item in array when no target specified", () => {
+  it("should throw when array next has no resolve and no explicit target", () => {
     const flow: FlowDefinition<FlowContext> = {
       id: "test",
       start: "choice",
@@ -411,11 +414,15 @@ describe("flowReducer", () => {
 
     const state = createInitialState(flow, {});
 
-    // Navigate without target - should use first in array
+    // Navigate without target or resolve - should throw
     const action: FlowAction<FlowContext> = { type: "NEXT" };
 
-    const newState = flowReducer(state, action, flow);
-    expect(newState.stepId).toBe("optionA");
+    expect(() => flowReducer(state, action, flow)).toThrow(
+      'Step "choice" has multiple next steps',
+    );
+    expect(() => flowReducer(state, action, flow)).toThrow(
+      "but no resolve function",
+    );
   });
 
   it("should warn and stay on step when target is not in array", () => {
@@ -513,7 +520,7 @@ describe("flowReducer", () => {
     expect(state.history).toEqual(["start", "pathA", "end2"]);
   });
 
-  it("should combine context-based and array-based navigation", () => {
+  it("should combine context-driven and component-driven navigation", () => {
     type TestContext = {
       userType?: "business" | "personal";
       setupChoice?: string;
@@ -524,15 +531,16 @@ describe("flowReducer", () => {
       start: "userType",
       steps: {
         userType: {
-          // Context-based branching
-          next: (ctx) =>
+          // Context-driven branching
+          next: ["businessSetup", "setup"],
+          resolve: (ctx) =>
             ctx.userType === "business" ? "businessSetup" : "setup",
         },
         businessSetup: {
           next: "setup",
         },
         setup: {
-          // Array-based navigation
+          // Component-driven navigation
           next: ["advanced", "quick"],
         },
         advanced: {},
@@ -542,7 +550,7 @@ describe("flowReducer", () => {
 
     let state = createInitialState<TestContext>(flow, {});
 
-    // Context-based: navigate as business
+    // Context-driven: navigate as business
     state = flowReducer(
       state,
       { type: "NEXT", update: (ctx) => ({ ...ctx, userType: "business" }) },
@@ -645,7 +653,7 @@ describe("flowReducer", () => {
     expect(state.stepId).toBe("menu");
   });
 
-  it("should validate target against function-based next", () => {
+  it("should validate target against next array", () => {
     type TestContext = { userType: "business" | "personal" };
 
     const flow: FlowDefinition<TestContext> = {
@@ -653,8 +661,7 @@ describe("flowReducer", () => {
       start: "profile",
       steps: {
         profile: {
-          next: (ctx) =>
-            ctx.userType === "business" ? "business" : "personal",
+          next: ["business", "personal"],
         },
         business: {},
         personal: {},
@@ -667,7 +674,7 @@ describe("flowReducer", () => {
     });
     const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    // Valid target: matches function result
+    // Valid target: in next array
     const validAction: FlowAction<TestContext> = {
       type: "NEXT",
       target: "business",
@@ -676,22 +683,22 @@ describe("flowReducer", () => {
     const validState = flowReducer(state, validAction, flow);
     expect(validState.stepId).toBe("business");
 
-    // Invalid target: doesn't match function result
+    // Invalid target: not in next array
     const invalidAction: FlowAction<TestContext> = {
       type: "NEXT",
-      target: "personal", // Function returns "business" but we're targeting "personal"
+      target: "other", // Not in next array
     };
 
     const invalidState = flowReducer(state, invalidAction, flow);
     expect(invalidState.stepId).toBe("profile"); // Should stay on current step
     expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Invalid target "personal"'),
+      expect.stringContaining('Invalid target "other"'),
     );
 
     consoleSpy.mockRestore();
   });
 
-  it("should validate target that doesn't match function result", () => {
+  it("should allow explicit target even with resolve function", () => {
     type TestContext = { score: number };
 
     const flow: FlowDefinition<TestContext> = {
@@ -699,7 +706,8 @@ describe("flowReducer", () => {
       start: "game",
       steps: {
         game: {
-          next: (ctx) => (ctx.score >= 100 ? "win" : "lose"),
+          next: ["win", "lose"],
+          resolve: (ctx) => (ctx.score >= 100 ? "win" : "lose"),
         },
         win: {},
         lose: {},
@@ -707,21 +715,15 @@ describe("flowReducer", () => {
     };
 
     const state = createInitialState(flow, { score: 50 });
-    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    // Function returns "lose" (score < 100) but we try to target "win"
+    // Even though resolve would return "lose", explicit target should work
     const action: FlowAction<TestContext> = {
       type: "NEXT",
       target: "win",
     };
 
     const newState = flowReducer(state, action, flow);
-    expect(newState.stepId).toBe("game"); // Should stay on current step
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Invalid target "win"'),
-    );
-
-    consoleSpy.mockRestore();
+    expect(newState.stepId).toBe("win"); // Should use explicit target
   });
 
   it("should return state unchanged for unknown action types", () => {
@@ -813,17 +815,20 @@ describe("validateFlowDefinition", () => {
     expect(() => validateFlowDefinition(flow)).not.toThrow();
   });
 
-  it("should not validate function returns (can't check statically)", () => {
+  it("should not validate resolve returns (can't check statically)", () => {
     const flow: FlowDefinition<FlowContext> = {
       id: "test",
       start: "first",
       steps: {
-        first: { next: () => "missing" }, // Can't validate this
+        first: {
+          next: ["second"],
+          resolve: () => "missing", // Can't validate this at definition time
+        },
         second: {},
       },
     };
 
-    // Should not throw - function returns can't be validated statically
+    // Should not throw - resolve returns can't be validated statically
     expect(() => validateFlowDefinition(flow)).not.toThrow();
   });
 
@@ -988,5 +993,136 @@ describe("RESET action", () => {
     expect(state.stepId).toBe("b");
     expect(state.context.step).toBe(1);
     expect(state.history).toEqual(["a", "b"]);
+  });
+});
+
+describe("resolve property", () => {
+  it("should validate that resolve returns value from next array", () => {
+    type TestContext = { choice: string };
+
+    const flow: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "choice",
+      steps: {
+        choice: {
+          next: ["optionA", "optionB"],
+          resolve: () => "invalidOption", // Not in next array
+        },
+        optionA: {},
+        optionB: {},
+        invalidOption: {},
+      },
+    };
+
+    const state = createInitialState<TestContext>(flow, { choice: "" });
+
+    expect(() => flowReducer(state, { type: "NEXT" }, flow)).toThrow(
+      'resolve() returned "invalidOption" which is not in next array: [optionA, optionB]',
+    );
+  });
+
+  it("should use resolve when no explicit target provided", () => {
+    type TestContext = { userType: "business" | "personal" };
+
+    const flow: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "choice",
+      steps: {
+        choice: {
+          next: ["business", "personal"],
+          resolve: (ctx) => ctx.userType,
+        },
+        business: {},
+        personal: {},
+      },
+    };
+
+    let state = createInitialState<TestContext>(flow, { userType: "business" });
+    state = flowReducer(state, { type: "NEXT" }, flow);
+    expect(state.stepId).toBe("business");
+
+    state = createInitialState<TestContext>(flow, { userType: "personal" });
+    state = flowReducer(state, { type: "NEXT" }, flow);
+    expect(state.stepId).toBe("personal");
+  });
+
+  it("should allow explicit target to override resolve", () => {
+    type TestContext = { score: number };
+
+    const flow: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "game",
+      steps: {
+        game: {
+          next: ["win", "lose"],
+          resolve: (ctx) => (ctx.score >= 100 ? "win" : "lose"),
+        },
+        win: {},
+        lose: {},
+      },
+    };
+
+    const state = createInitialState<TestContext>(flow, { score: 50 });
+
+    // resolve would return "lose", but explicit target overrides it
+    const newState = flowReducer(state, { type: "NEXT", target: "win" }, flow);
+    expect(newState.stepId).toBe("win");
+  });
+
+  it("should stay on step when resolve returns undefined", () => {
+    type TestContext = { ready: boolean };
+
+    const flow: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "waiting",
+      steps: {
+        waiting: {
+          next: ["complete"],
+          resolve: (ctx) => (ctx.ready ? "complete" : undefined),
+        },
+        complete: {},
+      },
+    };
+
+    let state = createInitialState<TestContext>(flow, { ready: false });
+    state = flowReducer(state, { type: "NEXT" }, flow);
+    expect(state.stepId).toBe("waiting"); // Should stay on same step
+
+    // When ready is true, should navigate
+    state = flowReducer(
+      state,
+      { type: "SET_CONTEXT", update: { ready: true } },
+      flow,
+    );
+    state = flowReducer(state, { type: "NEXT" }, flow);
+    expect(state.stepId).toBe("complete");
+  });
+
+  it("should use resolve with context updates during NEXT", () => {
+    type TestContext = { status: string };
+
+    const flow: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "start",
+      steps: {
+        start: {
+          next: ["active", "inactive"],
+          resolve: (ctx) => (ctx.status === "ready" ? "active" : "inactive"),
+        },
+        active: {},
+        inactive: {},
+      },
+    };
+
+    let state = createInitialState<TestContext>(flow, { status: "pending" });
+
+    // Update context and navigate in one action - resolve should see updated context
+    state = flowReducer(
+      state,
+      { type: "NEXT", update: { status: "ready" } },
+      flow,
+    );
+    expect(state.stepId).toBe("active");
+    expect(state.context.status).toBe("ready");
   });
 });

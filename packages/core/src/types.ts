@@ -18,22 +18,54 @@ export type ContextUpdate<TContext extends FlowContext = FlowContext> =
 
 /**
  * Step transition configuration
- * - string: Single static destination
- * - string[]: Multiple possible destinations (component-driven branching)
- * - function: Dynamic destination based on context (context-driven branching)
+ * - string: Single static destination - component calls next() with no args
+ * - string[]: Multiple destinations - requires either:
+ *   - resolve function for context-driven branching, OR
+ *   - component calls next('target') with explicit target for component-driven branching
  */
-export type StepTransition<TContext extends FlowContext = FlowContext> =
-  | string
-  | string[]
-  | ((context: TContext) => string | undefined);
+export type StepTransition = string | readonly string[];
 
 /**
- * Step definition
+ * Step definition with optional context resolver
  * Component is added by framework-specific packages
  */
-export type StepDefinition<TContext extends FlowContext = FlowContext> = {
-  next?: StepTransition<TContext>;
-};
+export type StepDefinition<
+  TContext extends FlowContext = FlowContext,
+  TNext extends StepTransition = StepTransition,
+> = TNext extends readonly string[]
+  ? {
+      /**
+       * Next step(s) this step can navigate to - Array for branching
+       */
+      next: TNext;
+
+      /**
+       * Optional resolver for context-driven branching
+       * When next is an array, this function determines which step to navigate to
+       * Must return one of the step names from the next array
+       *
+       * If next is an array and no resolve is provided, component MUST call next() with explicit target
+       *
+       * Type-safe: return type is constrained to the values in the next array
+       *
+       * @param context - Current flow context
+       * @returns One of the step names from next, or undefined to stay on current step
+       */
+      resolve?: (context: TContext) => TNext[number] | undefined;
+    }
+  : {
+      /**
+       * Next step(s) this step can navigate to
+       * - string: Single destination - component calls next() with no args
+       * - undefined: Terminal step (flow complete)
+       */
+      next?: TNext;
+
+      /**
+       * resolve is not available for non-array next (use with array next only)
+       */
+      resolve?: never;
+    };
 
 /**
  * Persistable flow state - can be serialized to JSON
@@ -58,11 +90,19 @@ export type PersistedFlowState<TContext extends FlowContext = FlowContext> = {
 /**
  * Flow definition
  * Simple declarative object defining steps and transitions
+ *
+ * Use 'as const' to preserve literal types for type-safe resolve functions
  */
-export type FlowDefinition<TContext extends FlowContext = FlowContext> = {
+export type FlowDefinition<
+  TContext extends FlowContext = FlowContext,
+  TSteps extends Record<
+    string,
+    StepDefinition<TContext, StepTransition>
+  > = Record<string, StepDefinition<TContext, StepTransition>>,
+> = {
   id: string;
   start: string;
-  steps: Record<string, StepDefinition<TContext>>;
+  steps: TSteps;
 
   /**
    * Schema version for the flow (string, e.g., "v1", "v2", "2024-01")

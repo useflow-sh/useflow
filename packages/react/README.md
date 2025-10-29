@@ -131,7 +131,8 @@ export const myFlow = defineFlow({
   start: "welcome",
   steps: {
     welcome: {
-      next: (ctx) => (ctx.userType === "business" ? "business" : "personal"),
+      next: ["business", "personal"],
+      resolve: (ctx) => (ctx.userType === "business" ? "business" : "personal"),
     },
     business: { next: "complete" },
     personal: { next: "complete" },
@@ -292,22 +293,26 @@ function WelcomeStep() {
 
 ## Advanced Usage
 
-### Conditional Branching (Context-Driven)
+### Context-Driven Branching
 
-Flow decides next step based on context:
+Flow decides next step based on context using the `resolve` property:
 
 ```tsx
+import { defineFlow, step } from "@useflow/react";
+
 const flow = defineFlow({
   id: "flow",
   start: "userType",
   steps: {
-    userType: {
-      next: (ctx) => {
+    // ✨ Type-safe with step() helper
+    userType: step({
+      next: ["businessDetails", "enterpriseDetails", "preferences"],
+      resolve: (ctx) => {
         if (ctx.accountType === "business") return "businessDetails";
         if (ctx.accountType === "enterprise") return "enterpriseDetails";
         return "preferences";
-      },
-    },
+      }
+    }),
     businessDetails: {
       next: "preferences",
     },
@@ -320,6 +325,16 @@ const flow = defineFlow({
     complete: {},
   },
 } as const satisfies FlowConfig<Context>);
+```
+
+**Type Safety:** Use the `step()` helper function to get compile-time type checking. The `resolve` function's return type is automatically constrained to only the values in the `next` array (plus `undefined`). TypeScript will catch errors at compile time if you accidentally return an invalid step name.
+
+**Alternative (without helper):** You can also define steps inline without the helper, but you'll lose compile-time type checking:
+```tsx
+userType: {
+  next: ["businessDetails", "preferences"],
+  resolve: (ctx) => ctx.accountType === "business" ? "businessDetails" : "wrongStep", // ⚠️ No type error
+}
 ```
 
 ### Component-Driven Branching (Array Navigation)
@@ -393,7 +408,7 @@ next((ctx) => ({
 
 ### Guard Conditions
 
-Prevent navigation until conditions are met:
+Prevent navigation until conditions are met using `resolve`:
 
 ```tsx
 const flow = defineFlow({
@@ -402,7 +417,8 @@ const flow = defineFlow({
   steps: {
     form: {
       // Only navigate if form is valid
-      next: (ctx) => (ctx.isValid ? "complete" : undefined),
+      next: ["complete"],
+      resolve: (ctx) => (ctx.isValid ? "complete" : undefined),
     },
     complete: {},
   },
@@ -1411,7 +1427,8 @@ const flow = defineFlow({
   steps: {
     welcome: {
       // TypeScript knows ctx has all MyContext properties
-      next: (ctx) => (ctx.age >= 18 ? "adult" : "minor"),
+      next: ["adult", "minor"],
+      resolve: (ctx) => (ctx.age >= 18 ? "adult" : "minor"),
     },
     adult: { next: "complete" },
     minor: { next: "complete" },

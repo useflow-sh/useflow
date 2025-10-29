@@ -134,20 +134,23 @@ function ProfileStep() {
 
 ## Advanced Features
 
-### Conditional Branching (Context-Driven)
+### Context-Driven Branching
 
-Navigate to different steps based on context values:
+Navigate to different steps based on context values using the `resolve` property:
 
 ```tsx
+import { defineFlow, step } from "@useflow/react";
+
 const flow = defineFlow({
   id: "flow",
   start: "userType",
   steps: {
-    userType: {
-      // Flow decides next step based on context
-      next: (ctx) =>
-        ctx.accountType === "business" ? "businessDetails" : "preferences",
-    },
+    // ✨ Type-safe with step() helper
+    // TypeScript will catch errors at compile time if you return invalid step names
+    userType: step({
+      next: ["businessDetails", "preferences"],
+      resolve: (ctx) => ctx.accountType === "business" ? "businessDetails" : "preferences"
+    }),
     businessDetails: {
       next: "preferences",
     },
@@ -158,6 +161,8 @@ const flow = defineFlow({
   },
 } as const satisfies FlowConfig<Context>);
 ```
+
+**Type Safety:** Use `step()` helper to get compile-time type checking for your resolve functions. TypeScript will error if you try to return step names that aren't in the `next` array.
 
 ### Component-Driven Branching (Array Navigation)
 

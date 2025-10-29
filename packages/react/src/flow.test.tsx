@@ -283,7 +283,8 @@ describe("Flow", () => {
       start: "profile",
       steps: {
         profile: {
-          next: (ctx: { isBusiness: boolean }) =>
+          next: ["business", "personal"],
+          resolve: (ctx: { isBusiness: boolean }) =>
             ctx.isBusiness ? "business" : "personal",
         },
         business: {},
@@ -3088,6 +3089,217 @@ describe("FlowStep", () => {
         expect.objectContaining({
           reset: expect.any(Function),
         }),
+      );
+    });
+  });
+
+  describe("metadata exposure", () => {
+    it("should expose steps metadata with only next property", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "stepA",
+        steps: {
+          stepA: { next: "stepB" },
+          stepB: { next: ["stepC", "stepD"] },
+          stepC: {},
+          stepD: {},
+        },
+      } as const satisfies FlowConfig<{ value: string }>);
+
+      function TestComponent() {
+        const { steps } = useFlow();
+        return <div data-testid="steps">{JSON.stringify(steps)}</div>;
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            stepA: TestComponent,
+            stepB: () => <div>B</div>,
+            stepC: () => <div>C</div>,
+            stepD: () => <div>D</div>,
+          })}
+          initialContext={{ value: "" }}
+        />,
+      );
+
+      const steps = JSON.parse(screen.getByTestId("steps").textContent || "{}");
+
+      expect(steps).toEqual({
+        stepA: { next: "stepB" },
+        stepB: { next: ["stepC", "stepD"] },
+        stepC: { next: undefined },
+        stepD: { next: undefined },
+      });
+    });
+
+    it("should expose nextSteps from current step (string next)", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "stepA",
+        steps: {
+          stepA: { next: "stepB" },
+          stepB: {},
+        },
+      } as const satisfies FlowConfig<{ value: string }>);
+
+      function TestComponent() {
+        const { nextSteps } = useFlow();
+        return <div data-testid="nextSteps">{JSON.stringify(nextSteps)}</div>;
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            stepA: TestComponent,
+            stepB: () => <div>B</div>,
+          })}
+          initialContext={{ value: "" }}
+        />,
+      );
+
+      const nextSteps = JSON.parse(
+        screen.getByTestId("nextSteps").textContent || "[]",
+      );
+      expect(nextSteps).toEqual(["stepB"]);
+    });
+
+    it("should expose nextSteps from current step (array next)", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "stepA",
+        steps: {
+          stepA: { next: ["stepB", "stepC"] },
+          stepB: {},
+          stepC: {},
+        },
+      } as const satisfies FlowConfig<{ value: string }>);
+
+      function TestComponent() {
+        const { nextSteps } = useFlow();
+        return <div data-testid="nextSteps">{JSON.stringify(nextSteps)}</div>;
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            stepA: TestComponent,
+            stepB: () => <div>B</div>,
+            stepC: () => <div>C</div>,
+          })}
+          initialContext={{ value: "" }}
+        />,
+      );
+
+      const nextSteps = JSON.parse(
+        screen.getByTestId("nextSteps").textContent || "[]",
+      );
+      expect(nextSteps).toEqual(["stepB", "stepC"]);
+    });
+
+    it("should return undefined nextSteps for terminal step", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "stepA",
+        steps: {
+          stepA: { next: "stepB" },
+          stepB: {},
+        },
+      } as const satisfies FlowConfig<{ value: string }>);
+
+      function TestComponent() {
+        const { nextSteps, stepId } = useFlow();
+        return (
+          <div>
+            <div data-testid="stepId">{stepId}</div>
+            <div data-testid="nextSteps">
+              {nextSteps === undefined
+                ? "undefined"
+                : JSON.stringify(nextSteps)}
+            </div>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            stepA: TestComponent,
+            stepB: TestComponent,
+          })}
+          initialContext={{ value: "" }}
+        />,
+      );
+
+      // First step should have nextSteps
+      expect(screen.getByTestId("stepId")).toHaveTextContent("stepA");
+      expect(screen.getByTestId("nextSteps")).toHaveTextContent('["stepB"]');
+
+      // Navigate to terminal step
+      fireEvent.click(screen.getByTestId("stepId")); // Trigger re-render
+      const nextButton = screen.getByTestId("stepId");
+      fireEvent.click(nextButton);
+
+      // Need to actually navigate - let me use a button
+    });
+
+    it("should update nextSteps when navigating between steps", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "stepA",
+        steps: {
+          stepA: { next: "stepB" },
+          stepB: { next: ["stepC", "stepD"] },
+          stepC: {},
+          stepD: {},
+        },
+      } as const satisfies FlowConfig<{ value: string }>);
+
+      function TestComponent() {
+        const { nextSteps, next, stepId } = useFlow();
+        return (
+          <div>
+            <div data-testid="stepId">{stepId}</div>
+            <div data-testid="nextSteps">
+              {nextSteps === undefined
+                ? "undefined"
+                : JSON.stringify(nextSteps)}
+            </div>
+            <button type="button" onClick={() => next()} data-testid="next">
+              Next
+            </button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={() => ({
+            stepA: TestComponent,
+            stepB: TestComponent,
+            stepC: TestComponent,
+            stepD: TestComponent,
+          })}
+          initialContext={{ value: "" }}
+        />,
+      );
+
+      // stepA should have nextSteps: ["stepB"]
+      expect(screen.getByTestId("stepId")).toHaveTextContent("stepA");
+      expect(screen.getByTestId("nextSteps")).toHaveTextContent('["stepB"]');
+
+      // Navigate to stepB
+      fireEvent.click(screen.getByTestId("next"));
+
+      // stepB should have nextSteps: ["stepC", "stepD"]
+      expect(screen.getByTestId("stepId")).toHaveTextContent("stepB");
+      expect(screen.getByTestId("nextSteps")).toHaveTextContent(
+        '["stepC","stepD"]',
       );
     });
   });

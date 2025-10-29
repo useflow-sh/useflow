@@ -52,26 +52,7 @@ export function BranchingFlowDemo() {
     >
       {/* Flow Visualizer - Fixed on bottom left */}
       <div className="hidden xl:block fixed left-4 bottom-4 w-80">
-        <FlowVisualizer
-          steps={{
-            welcome: { label: "Welcome", next: "profile" },
-            profile: { label: "Profile", next: "userType" },
-            userType: {
-              label: "User Type",
-              next: ["businessDetails", "setupPreference"],
-            },
-            businessDetails: {
-              label: "Business Details",
-              next: "setupPreference",
-            },
-            setupPreference: {
-              label: "Setup Preference",
-              next: ["preferences", "complete"],
-            },
-            preferences: { label: "Preferences", next: "complete" },
-            complete: { label: "Complete" },
-          }}
-        />
+        <FlowVisualizer />
       </div>
 
       <FlowInspector flowId={branchingFlow.id} store={store} position="right" />

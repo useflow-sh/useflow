@@ -3,11 +3,15 @@ import type { ComponentType } from "react";
 import type { UseFlowReducerReturn } from "./use-flow-reducer";
 
 /**
- * Runtime step definition with component attached
+ * Step definition after components are attached via Flow component
+ *
+ * This is the internal representation after the flow is configured with components.
+ *
  * @internal
  */
 type RuntimeStepDefinition<TContext extends FlowContext = FlowContext> = {
-  next?: string | string[] | ((context: TContext) => string | undefined);
+  next?: string | readonly string[];
+  resolve?: (context: TContext) => string | undefined;
   // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
   component: ComponentType<any>;
 };
@@ -23,6 +27,15 @@ export type RuntimeFlowDefinition<TContext extends FlowContext = FlowContext> =
   };
 
 /**
+ * Stripped-down step info exposed to components
+ * Only contains navigation metadata, no component references
+ */
+export type StepInfo<TStepNames extends string = string> = {
+  /** Possible next step(s) from this step */
+  next?: TStepNames | readonly TStepNames[];
+};
+
+/**
  * Return type for the public useFlow() hook
  * This is what users get when they call useFlow() from context
  *
@@ -31,6 +44,7 @@ export type RuntimeFlowDefinition<TContext extends FlowContext = FlowContext> =
 export type UseFlowReturn<
   TContext extends FlowContext,
   TValidNextSteps extends string = string,
+  TStepNames extends string = string,
 > = UseFlowReducerReturn<TContext, TValidNextSteps> & {
   /** @internal Runtime flow definition with components */
   __flow: RuntimeFlowDefinition<TContext>;
@@ -42,4 +56,18 @@ export type UseFlowReturn<
    * Does nothing if no persister is configured
    */
   save: () => Promise<void>;
+
+  /**
+   * All steps in the flow as a record of step IDs to step info
+   * Each step only contains navigation metadata (next property)
+   * Keys are narrowed to actual step names from the flow config
+   */
+  steps: Record<TStepNames, StepInfo<TStepNames>>;
+
+  /**
+   * Possible next steps from the current step
+   * undefined if current step is terminal (no next steps)
+   * Narrowed to ValidNextSteps when using typed hook from defineFlow
+   */
+  nextSteps: readonly TValidNextSteps[] | undefined;
 };

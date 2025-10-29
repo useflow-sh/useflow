@@ -1,4 +1,4 @@
-import { defineFlow } from "@useflow/react";
+import { defineFlow, step } from "@useflow/react";
 
 /**
  * Branching Flow - Demonstrates Conditional Navigation
@@ -8,7 +8,7 @@ import { defineFlow } from "@useflow/react";
  * 1. **Context-Driven Branching** (userType step):
  *    - Flow definition decides next step based on context
  *    - Business users see extra step, personal users skip it
- *    - Uses: next: (ctx) => ctx.userType === 'business' ? 'businessDetails' : 'setupPreference'
+ *    - Uses: next: ['businessDetails', 'setupPreference'] + resolve: (ctx) => ...
  *
  * 2. **Component-Driven Branching** (setupPreference step):
  *    - Component explicitly chooses which step to navigate to
@@ -45,13 +45,14 @@ export const branchingFlow = defineFlow({
     profile: {
       next: "userType",
     },
-    userType: {
-      // ✨ CONTEXT-DRIVEN BRANCHING
-      // Flow automatically decides next step based on user's selection
-      // Business users need to provide company details, personal users skip ahead
-      next: (ctx: BranchingFlowContext) =>
+    // ✨ CONTEXT-DRIVEN BRANCHING WITH TYPE SAFETY
+    // Using step() helper provides compile-time type safety
+    // TypeScript will catch errors if resolve returns invalid step names
+    userType: step({
+      next: ["businessDetails", "setupPreference"],
+      resolve: (ctx: BranchingFlowContext) =>
         ctx.userType === "business" ? "businessDetails" : "setupPreference",
-    },
+    }),
     businessDetails: {
       // Only business users reach this step
       next: "setupPreference",

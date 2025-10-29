@@ -27,7 +27,8 @@ export {
   flowReducer,
   validateFlowDefinition,
 } from "./reducer";
-
+// Type-safe step builder
+export { step } from "./step-builder";
 // Core types
 export type {
   ContextUpdate,

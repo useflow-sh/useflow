@@ -87,7 +87,7 @@ Setup: Skip to Complete OR Configure Preferences → Complete
 
 **Key Concepts:**
 
-- Context-driven branching: `next: (ctx) => ctx.userType === "business" ? "details" : "setup"`
+- Context-driven branching: `next: ["details", "setup"], resolve: (ctx) => ctx.userType === "business" ? "details" : "setup"`
 - Component-driven branching: `next: ["preferences", "complete"]` + `next("complete")`
 - Multiple navigation patterns in one flow
 
@@ -429,12 +429,13 @@ Smooth slide-up animations defined in `index.css`:
 
 ### Pattern 1: Context-Driven Branching
 
-Flow automatically routes based on context:
+Flow automatically routes based on context using the `resolve` property:
 
 ```tsx
 // In flow definition
 userType: {
-  next: (ctx) => ctx.userType === "business" ? "businessDetails" : "setupPreference",
+  next: ["businessDetails", "setupPreference"],
+  resolve: (ctx) => ctx.userType === "business" ? "businessDetails" : "setupPreference",
 }
 
 // In component
@@ -443,7 +444,7 @@ function UserTypeStep() {
 
   const handleSelect = (type: "business" | "personal") => {
     setContext({ userType: type });
-    next(); // Flow decides destination
+    next(); // Flow decides destination based on context
   };
 }
 ```

@@ -65,6 +65,8 @@ type ComponentsFunction<TConfig extends FlowConfig<any>> = (flowState: {
   stepId: StepNames<TConfig>;
   status: "active" | "complete";
   history: readonly string[];
+  steps: Record<StepNames<TConfig>, { next?: string | readonly string[] }>;
+  nextSteps: readonly string[] | undefined;
   next: UseFlowReducerReturn<ExtractContext<TConfig>>["next"];
   back: () => void;
   setContext: (update: ContextUpdate<ExtractContext<TConfig>>) => void;
@@ -403,6 +405,25 @@ export function Flow<TConfig extends FlowConfig<any>>({
     save();
   }, [saveMode, saveDebounce, save]);
 
+  // Extract all steps (stripped down to only next property)
+  const steps = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(config.steps).map(([id, step]) => [
+        id,
+        { next: step.next },
+      ]),
+    );
+  }, [config.steps]);
+
+  // Extract possible next steps from current step
+  const nextSteps = useMemo(() => {
+    const currentStep = config.steps[flowState.stepId];
+    if (!currentStep?.next) return undefined;
+    return typeof currentStep.next === "string"
+      ? [currentStep.next]
+      : currentStep.next;
+  }, [config.steps, flowState.stepId]);
+
   // Resolve components - either use directly if dict, or call function if it's a function
   const resolvedComponents = useMemo(
     () =>
@@ -412,6 +433,8 @@ export function Flow<TConfig extends FlowConfig<any>>({
             stepId: flowState.stepId as StepNames<TConfig>,
             status: flowState.status,
             history: flowState.history,
+            steps,
+            nextSteps,
             next: wrappedNext,
             back: wrappedBack,
             setContext: wrappedSetContext,
@@ -425,6 +448,8 @@ export function Flow<TConfig extends FlowConfig<any>>({
       flowState.stepId,
       flowState.status,
       flowState.history,
+      steps,
+      nextSteps,
       wrappedNext,
       wrappedBack,
       wrappedSetContext,
@@ -461,6 +486,8 @@ export function Flow<TConfig extends FlowConfig<any>>({
       __flow: flowDefinition,
       component: flowDefinition.steps[flowState.stepId]?.component,
       isRestoring,
+      steps,
+      nextSteps,
     }),
     [
       flowState,
@@ -471,6 +498,8 @@ export function Flow<TConfig extends FlowConfig<any>>({
       save,
       flowDefinition,
       isRestoring,
+      steps,
+      nextSteps,
     ],
   );
 

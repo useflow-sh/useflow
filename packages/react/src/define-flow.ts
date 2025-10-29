@@ -26,7 +26,11 @@ export type FlowDefinition<TConfig extends FlowConfig<any>> = {
    */
   useFlow: <TStep extends StepNames<TConfig>>(options: {
     step: TStep;
-  }) => UseFlowReturn<ExtractContext<TConfig>, ValidNextSteps<TConfig, TStep>>;
+  }) => UseFlowReturn<
+    ExtractContext<TConfig>,
+    ValidNextSteps<TConfig, TStep>,
+    StepNames<TConfig>
+  >;
 };
 
 /**
@@ -42,29 +46,43 @@ export type FlowDefinition<TConfig extends FlowConfig<any>> = {
  * type MyContext = { userType: "business" | "personal" };
  *
  * export const myFlow = defineFlow({
+ *   id: 'my-flow',
  *   start: 'welcome',
  *   steps: {
  *     welcome: {
- *       next: (ctx) => ctx.userType === 'business' ? 'business' : 'personal'
- *     }
+ *       next: ['business', 'personal'],
+ *       resolve: (ctx) => ctx.userType === 'business' ? 'business' : 'personal'
+ *     },
+ *     business: { next: 'complete' },
+ *     personal: { next: 'complete' },
+ *     complete: {}
  *   }
  * } as const satisfies FlowConfig<MyContext>);
  *
  * // In component - use the hook:
  * function WelcomeStep() {
- *   const { next, context } = myFlow.useFlow({ step: 'welcome' });
- *   next('business'); // Type-safe!
+ *   const { next, setContext } = myFlow.useFlow({ step: 'welcome' });
+ *
+ *   return (
+ *     <button onClick={() => {
+ *       setContext({ userType: 'business' });
+ *       next(); // Flow decides based on context
+ *     }}>
+ *       Choose Business
+ *     </button>
+ *   );
  * }
  *
- * // Define components at FlowProvider:
- * <FlowProvider
+ * // Define components at Flow level:
+ * <Flow
  *   flow={myFlow}
  *   components={{
  *     welcome: WelcomeStep,
  *     business: BusinessStep,
- *     personal: PersonalStep
+ *     personal: PersonalStep,
+ *     complete: CompleteStep
  *   }}
- *   initialContext={{ userType: '' }}
+ *   initialContext={{ userType: 'business' }}
  * />
  * ```
  */
@@ -81,10 +99,18 @@ export function defineFlow<TConfig extends FlowConfig<any>>(
   // Create the hook
   const useFlowHook = <TStep extends StepNames<TConfig>>(options: {
     step: TStep;
-  }): UseFlowReturn<TContext, ValidNextSteps<TConfig, TStep>> => {
-    return useFlow<TContext>(options) as UseFlowReturn<
+  }): UseFlowReturn<
+    TContext,
+    ValidNextSteps<TConfig, TStep>,
+    StepNames<TConfig>
+  > => {
+    // Safe cast: The Flow component guarantees the runtime shape matches the types
+    // - steps contains all StepNames<TConfig> as keys with proper StepInfo
+    // - nextSteps is narrowed to ValidNextSteps based on current step
+    return useFlow<TContext>(options) as unknown as UseFlowReturn<
       TContext,
-      ValidNextSteps<TConfig, TStep>
+      ValidNextSteps<TConfig, TStep>,
+      StepNames<TConfig>
     >;
   };
 

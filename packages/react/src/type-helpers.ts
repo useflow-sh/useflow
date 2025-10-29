@@ -23,9 +23,9 @@ export type ExtractContext<TConfig> = TConfig extends FlowConfig<infer C>
 
 /**
  * Extract valid next step destinations for a specific step
- * - For arrays: extracts union of step names
- * - For strings: returns the string literal
- * - For functions: returns all step names (can't extract statically)
+ * - For arrays: extracts union of array element types (e.g., ["stepA", "stepB"] → "stepA" | "stepB")
+ * - For strings: returns the string literal type (e.g., "stepA" → "stepA")
+ * - For undefined: returns never (terminal step with no next)
  */
 export type ValidNextSteps<
   TConfig,
@@ -34,10 +34,10 @@ export type ValidNextSteps<
   ? TStep extends keyof S
     ? S[TStep] extends { next: infer N }
       ? N extends readonly (infer E)[]
-        ? E // Array: extract union type
+        ? E // Array: extract union of element types
         : N extends string
           ? N // String: use as-is
-          : StepNames<TConfig> // Function: allow any step (can't infer statically)
+          : never // No next or invalid type
       : never
     : never
   : never;

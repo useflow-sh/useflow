@@ -1,9 +1,17 @@
-import { BarChart3, GitBranch, Home, Layers, ListTodo } from "lucide-react";
+import {
+  BarChart3,
+  GitBranch,
+  Home,
+  Layers,
+  ListTodo,
+  Settings,
+} from "lucide-react";
 import type { ComponentType } from "react";
 
 // Import all page components
 import { FlowGallery } from "../components/FlowGallery";
 import { BranchingFlowDemo } from "../flows/branching/FlowDemo";
+import { FlowModificationDemo } from "../flows/flow-modification-demo/FlowModificationDemo";
 import { SimpleFlowDemo } from "../flows/simple/FlowDemo";
 import { SurveyFlowDemo } from "../flows/survey/FlowDemo";
 import { TaskFlowDemo } from "../flows/task/FlowDemo";
@@ -15,7 +23,7 @@ export interface PageConfig {
   icon: ComponentType<{ className?: string }>;
   description: string;
   component: ComponentType;
-  category?: "core" | "comparison" | "advanced";
+  category?: "examples" | "interactive";
   isGalleryItem?: boolean;
   galleryTitle?: string;
   galleryDescription?: string;
@@ -31,8 +39,22 @@ export const pages: PageConfig[] = [
     icon: Home,
     description: "Flow gallery",
     component: FlowGallery,
-    category: "core",
+    category: "examples",
     isGalleryItem: false,
+  },
+  {
+    id: "flow-modification-demo",
+    label: "Flow Modification",
+    path: "/flow-modification-demo",
+    icon: Settings,
+    description: "Modifying flows (static & dynamic)",
+    component: FlowModificationDemo,
+    category: "interactive",
+    isGalleryItem: true,
+    galleryTitle: "Flow Modification Demo",
+    galleryDescription:
+      "Interactive demo showing how easy it is to modify flows in real-time with useFlow.",
+    features: ["Modifying flows (static & dynamic)", "Interactive live demo"],
   },
   {
     id: "simple",
@@ -41,7 +63,7 @@ export const pages: PageConfig[] = [
     icon: Layers,
     description: "Linear progression",
     component: SimpleFlowDemo,
-    category: "core",
+    category: "examples",
     isGalleryItem: true,
     galleryTitle: "Simple Flow",
     galleryDescription: "Basic linear step progression with persistence",
@@ -60,7 +82,7 @@ export const pages: PageConfig[] = [
     icon: GitBranch,
     description: "Conditional navigation",
     component: BranchingFlowDemo,
-    category: "core",
+    category: "examples",
     isGalleryItem: true,
     galleryTitle: "Branching Flow",
     galleryDescription:
@@ -80,7 +102,7 @@ export const pages: PageConfig[] = [
     icon: ListTodo,
     description: "Multiple instances",
     component: TaskFlowDemo,
-    category: "advanced",
+    category: "examples",
     isGalleryItem: true,
     galleryTitle: "Task Flow",
     galleryDescription:
@@ -100,7 +122,7 @@ export const pages: PageConfig[] = [
     icon: BarChart3,
     description: "Event hooks demo",
     component: SurveyFlowDemo,
-    category: "advanced",
+    category: "examples",
     isGalleryItem: true,
     galleryTitle: "Survey Flow",
     galleryDescription:

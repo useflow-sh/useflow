@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Cloud,
   GitBranch,
   Home,
   Layers,
@@ -14,6 +15,7 @@ import { FlowGallery } from "../components/FlowGallery";
 import { BranchingFlowDemo } from "../flows/branching/FlowDemo";
 import { DynamicFlowDemo } from "../flows/dynamic/FlowDemo";
 import { FlowModificationDemo } from "../flows/flow-modification-demo/FlowModificationDemo";
+import { RemoteFlowDemo } from "../flows/remote/RemoteFlowDemo";
 import { SimpleFlowDemo } from "../flows/simple/FlowDemo";
 import { SurveyFlowDemo } from "../flows/survey/FlowDemo";
 import { TaskFlowDemo } from "../flows/task/FlowDemo";
@@ -154,6 +156,27 @@ export const pages: PageConfig[] = [
       "Runtime flow switching (A/B testing)",
       "Generic useFlow() hook",
       "Express vs Standard flow paths",
+    ],
+    complexityLabel: "Advanced",
+  },
+  {
+    id: "remote",
+    label: "Remote Flows",
+    path: "/remote",
+    icon: Cloud,
+    description: "Load flows from database/API",
+    component: RemoteFlowDemo,
+    category: "examples",
+    isGalleryItem: true,
+    galleryTitle: "Remote Flow Demo",
+    galleryDescription:
+      "Load flows from external sources (database/API) with schema validation and A/B testing",
+    features: [
+      "Fetch flows from database/API",
+      "Schema-based validation",
+      "A/B testing support",
+      "Fallback handling",
+      "No code deployment required",
     ],
     complexityLabel: "Advanced",
   },

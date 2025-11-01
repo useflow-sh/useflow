@@ -18,7 +18,15 @@ describe("createPersister", () => {
       const state: PersistedFlowState = {
         stepId: "profile",
         context: { name: "John" },
-        history: ["welcome", "profile"],
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890, completedAt: 1234567891 },
+          { stepId: "profile", startedAt: 1234567891, completedAt: 1234567892 },
+        ],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890, completedAt: 1234567891 },
+          { stepId: "profile", startedAt: 1234567891, completedAt: 1234567892 },
+        ],
         status: "active",
       };
 
@@ -30,7 +38,18 @@ describe("createPersister", () => {
         expect.objectContaining({
           stepId: "profile",
           context: { name: "John" },
-          history: ["welcome", "profile"],
+          history: [
+            {
+              stepId: "welcome",
+              startedAt: 1234567890,
+              completedAt: 1234567891,
+            },
+            {
+              stepId: "profile",
+              startedAt: 1234567891,
+              completedAt: 1234567892,
+            },
+          ],
           status: "active",
           __meta: expect.objectContaining({
             savedAt: expect.any(Number),
@@ -43,8 +62,16 @@ describe("createPersister", () => {
       const onRestore = vi.fn();
       const savedState: PersistedFlowState = {
         stepId: "profile",
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         context: { name: "John" },
-        history: ["welcome", "profile"],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
         __meta: { savedAt: Date.now(), version: "v1" },
       };
@@ -68,16 +95,32 @@ describe("createPersister", () => {
       const onRestore = vi.fn();
       const oldState: PersistedFlowState = {
         stepId: "profile",
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         context: { email: "john@example.com" },
-        history: ["welcome", "profile"],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
         __meta: { version: "v1" },
       };
 
       const migratedState: PersistedFlowState = {
         stepId: "profile",
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         context: { emailAddress: "john@example.com" },
-        history: ["welcome", "profile"],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
         __meta: { version: "v2" },
       };
@@ -122,8 +165,16 @@ describe("createPersister", () => {
       const onRestore = vi.fn();
       const savedState: PersistedFlowState = {
         stepId: "profile",
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         context: { email: "invalid-email" },
-        history: ["welcome", "profile"],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
       };
 
@@ -147,8 +198,16 @@ describe("createPersister", () => {
       const onRestore = vi.fn();
       const savedState: PersistedFlowState = {
         stepId: "profile",
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         context: { name: "John" },
-        history: ["welcome", "profile"],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
         __meta: { savedAt: Date.now() - 10000 }, // 10 seconds ago
       };
@@ -189,7 +248,15 @@ describe("createPersister", () => {
       const state: PersistedFlowState = {
         stepId: "profile",
         context: { name: "John" },
-        history: ["welcome", "profile"],
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
       };
 
@@ -221,8 +288,16 @@ describe("createPersister", () => {
       const onRestore = vi.fn();
       const oldState: PersistedFlowState = {
         stepId: "profile",
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         context: { email: "john@example.com" },
-        history: ["welcome", "profile"],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
         __meta: { version: "v1" },
       };
@@ -251,8 +326,16 @@ describe("createPersister", () => {
       const onRestore = vi.fn();
       const oldState: PersistedFlowState = {
         stepId: "profile",
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         context: { email: "john@example.com" },
-        history: ["welcome", "profile"],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
         __meta: { version: "v1" },
       };
@@ -303,7 +386,15 @@ describe("createPersister", () => {
       const state: PersistedFlowState = {
         stepId: "profile",
         context: { name: "John" },
-        history: ["welcome", "profile"],
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
       };
 
@@ -314,7 +405,10 @@ describe("createPersister", () => {
         expect.objectContaining({
           stepId: "profile",
           context: { name: "John" },
-          history: ["welcome", "profile"],
+          history: [
+            { stepId: "welcome", startedAt: 1234567890 },
+            { stepId: "profile", startedAt: 1234567891 },
+          ],
           status: "active",
           __meta: expect.objectContaining({
             savedAt: expect.any(Number),
@@ -337,7 +431,15 @@ describe("createPersister", () => {
       const state: PersistedFlowState = {
         stepId: "profile",
         context: { name: "John" },
-        history: ["welcome", "profile"],
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
       };
 
@@ -348,7 +450,10 @@ describe("createPersister", () => {
         expect.objectContaining({
           stepId: "profile",
           context: { name: "John" },
-          history: ["welcome", "profile"],
+          history: [
+            { stepId: "welcome", startedAt: 1234567890 },
+            { stepId: "profile", startedAt: 1234567891 },
+          ],
           status: "active",
           __meta: expect.objectContaining({
             savedAt: expect.any(Number),
@@ -389,7 +494,15 @@ describe("createPersister", () => {
       const state: PersistedFlowState = {
         stepId: "profile",
         context: { name: "John" },
-        history: ["welcome", "profile"],
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
       };
 
@@ -411,8 +524,16 @@ describe("createPersister", () => {
     it("should restore with instanceId", async () => {
       const savedState: PersistedFlowState = {
         stepId: "profile",
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         context: { name: "John" },
-        history: ["welcome", "profile"],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
       };
 
@@ -464,7 +585,9 @@ describe("createPersister", () => {
       const state: PersistedFlowState = {
         stepId: "profile",
         context: {},
-        history: ["profile"],
+        startedAt: 1234567890,
+        path: [{ stepId: "profile", startedAt: 1234567890 }],
+        history: [{ stepId: "profile", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -488,8 +611,16 @@ describe("createPersister", () => {
     it("should remove expired state with instanceId when TTL exceeded", async () => {
       const savedState: PersistedFlowState = {
         stepId: "profile",
+        startedAt: 1234567890,
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         context: { name: "John" },
-        history: ["welcome", "profile"],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
         __meta: { savedAt: Date.now() - 10000 }, // 10 seconds ago
       };

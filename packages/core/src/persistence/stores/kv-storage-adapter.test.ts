@@ -45,8 +45,10 @@ describe("kvStorageAdapter", () => {
   it("should get state from storage", async () => {
     const state: PersistedFlowState = {
       stepId: "step1",
+      startedAt: 1234567890,
+      path: [{ stepId: "step1", startedAt: 1234567890 }],
       context: { name: "John" },
-      history: ["step1"],
+      history: [{ stepId: "step1", startedAt: 1234567890 }],
       status: "active",
     };
 
@@ -126,8 +128,10 @@ describe("kvStorageAdapter", () => {
   it("should set state to storage", async () => {
     const state: PersistedFlowState = {
       stepId: "step1",
+      startedAt: 1234567890,
+      path: [{ stepId: "step1", startedAt: 1234567890 }],
       context: { name: "John" },
-      history: ["step1"],
+      history: [{ stepId: "step1", startedAt: 1234567890 }],
       status: "active",
     };
 
@@ -175,8 +179,10 @@ describe("kvStorageAdapter", () => {
   it("should use custom formatKey function", async () => {
     const state: PersistedFlowState = {
       stepId: "step1",
+      startedAt: 1234567890,
+      path: [{ stepId: "step1", startedAt: 1234567890 }],
       context: {},
-      history: ["step1"],
+      history: [{ stepId: "step1", startedAt: 1234567890 }],
       status: "active",
     };
 
@@ -227,8 +233,10 @@ describe("kvStorageAdapter", () => {
   it("should work with synchronous storage", async () => {
     const state: PersistedFlowState = {
       stepId: "step1",
+      startedAt: 1234567890,
+      path: [{ stepId: "step1", startedAt: 1234567890 }],
       context: {},
-      history: ["step1"],
+      history: [{ stepId: "step1", startedAt: 1234567890 }],
       status: "active",
     };
 
@@ -257,8 +265,10 @@ describe("kvStorageAdapter", () => {
   it("should deserialize state with metadata", async () => {
     const state: PersistedFlowState = {
       stepId: "step1",
+      startedAt: 1234567890,
+      path: [{ stepId: "step1", startedAt: 1234567890 }],
       context: { name: "John" },
-      history: ["step1"],
+      history: [{ stepId: "step1", startedAt: 1234567890 }],
       status: "active",
       __meta: {
         savedAt: Date.now(),
@@ -296,8 +306,10 @@ describe("kvStorageAdapter", () => {
     it("should get state with instanceId", async () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
         context: {},
-        history: ["step1"],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -331,8 +343,10 @@ describe("kvStorageAdapter", () => {
     it("should set state with instanceId", async () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
         context: {},
-        history: ["step1"],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -380,8 +394,10 @@ describe("kvStorageAdapter", () => {
     it("should use custom getKey with instanceId", async () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
         context: {},
-        history: ["step1"],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -558,16 +574,23 @@ describe("kvStorageAdapter", () => {
     it("should list all instances of a flow", async () => {
       const state1: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
         context: { name: "Task 1" },
-        history: ["step1"],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { savedAt: Date.now(), instanceId: "instance-1" },
       };
 
       const state2: PersistedFlowState = {
         stepId: "step2",
+        startedAt: 1234567890,
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
         context: { name: "Task 2" },
-        history: ["step1", "step2"],
+        history: [
+          { stepId: "step1", startedAt: 1234567890 },
+          { stepId: "step2", startedAt: 1234567891 },
+        ],
         status: "active",
         __meta: { savedAt: Date.now(), instanceId: "instance-2" },
       };
@@ -666,8 +689,10 @@ describe("kvStorageAdapter", () => {
     it("should skip invalid entries", async () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
         context: {},
-        history: ["step1"],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -740,8 +765,10 @@ describe("kvStorageAdapter", () => {
     it("should skip entries that fail deserialization", async () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
         context: {},
-        history: ["step1"],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -816,8 +843,10 @@ describe("kvStorageAdapter", () => {
     it("should skip entries when getItem throws an error", async () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
         context: {},
-        history: ["step1"],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -906,8 +935,10 @@ describe("kvStorageAdapter", () => {
     it("should work with custom getKey function", async () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
         context: {},
-        history: ["step1"],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -984,8 +1015,10 @@ describe("kvStorageAdapter", () => {
     it("should include base flow key with undefined instanceId", async () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
         context: {},
-        history: ["step1"],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -1245,8 +1278,10 @@ describe("kvStorageAdapter", () => {
     it("should skip entries where getItem returns null", async () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
         context: {},
-        history: ["step1"],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { savedAt: Date.now(), instanceId: "instance-1" },
       };

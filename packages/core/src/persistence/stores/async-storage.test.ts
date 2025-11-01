@@ -36,6 +36,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: { name: "test" },
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -58,6 +59,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: { name: "test" },
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -78,6 +80,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: { name: "test" },
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -103,6 +106,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: { name: "test" },
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -126,6 +130,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: { taskId: "123" },
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -146,6 +151,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: { taskId: "123" },
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -166,6 +172,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: {},
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -196,6 +203,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: { taskId: "123" },
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -233,6 +241,7 @@ describe("createAsyncStorageStore", () => {
 
       const state1: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: {},
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -242,6 +251,7 @@ describe("createAsyncStorageStore", () => {
 
       const state2: PersistedFlowState = {
         stepId: "step2",
+        startedAt: 1234567890,
         context: {},
         path: [{ stepId: "step2", startedAt: 1234567890 }],
         history: [{ stepId: "step2", startedAt: 1234567890 }],
@@ -274,6 +284,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: {},
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -301,6 +312,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: {},
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -333,6 +345,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: {},
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -360,6 +373,7 @@ describe("createAsyncStorageStore", () => {
 
       const state1: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: { id: 1 },
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -374,6 +388,7 @@ describe("createAsyncStorageStore", () => {
 
       const state2: PersistedFlowState = {
         stepId: "step2",
+        startedAt: 1234567890,
         context: { id: 2 },
         path: [{ stepId: "step2", startedAt: 1234567890 }],
         history: [{ stepId: "step2", startedAt: 1234567890 }],
@@ -438,6 +453,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: { name: "test" },
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -467,6 +483,7 @@ describe("createAsyncStorageStore", () => {
 
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: { name: "test" },
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -488,6 +505,7 @@ describe("createAsyncStorageStore", () => {
 
       const state1: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: { id: 1 },
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -497,6 +515,7 @@ describe("createAsyncStorageStore", () => {
 
       const state2: PersistedFlowState = {
         stepId: "step2",
+        startedAt: 1234567890,
         context: { id: 2 },
         path: [{ stepId: "step2", startedAt: 1234567890 }],
         history: [{ stepId: "step2", startedAt: 1234567890 }],

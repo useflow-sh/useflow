@@ -16,6 +16,7 @@ describe("validatePersistedState", () => {
   it("should validate valid state", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "profile",
+      startedAt: 1234567890,
       context: { name: "John" },
       path: [
         { stepId: "welcome", startedAt: 1234567890 },
@@ -37,6 +38,7 @@ describe("validatePersistedState", () => {
   it("should reject state with invalid stepId", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "invalid",
+      startedAt: 1234567890,
       context: { name: "John" },
       path: [
         { stepId: "welcome", startedAt: 1234567890 },
@@ -62,6 +64,7 @@ describe("validatePersistedState", () => {
   it("should reject state with empty history", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "profile",
+      startedAt: 1234567890,
       context: { name: "John" },
       path: [],
       history: [],
@@ -77,6 +80,7 @@ describe("validatePersistedState", () => {
   it("should reject state with wrong start step in history", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "profile",
+      startedAt: 1234567890,
       context: { name: "John" },
       path: [{ stepId: "profile", startedAt: 1234567890 }],
       history: [{ stepId: "profile", startedAt: 1234567890 }],
@@ -94,6 +98,7 @@ describe("validatePersistedState", () => {
   it("should reject state with invalid step in history", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "profile",
+      startedAt: 1234567890,
       context: { name: "John" },
       path: [
         { stepId: "welcome", startedAt: 1234567890 },
@@ -121,6 +126,7 @@ describe("validatePersistedState", () => {
   it("should reject state where stepId doesn't match last history item", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "complete",
+      startedAt: 1234567890,
       context: { name: "John" },
       path: [
         { stepId: "welcome", startedAt: 1234567890 },
@@ -148,6 +154,7 @@ describe("validatePersistedState", () => {
   it("should reject state with incorrect status", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "complete",
+      startedAt: 1234567890,
       context: { name: "John" },
       path: [
         { stepId: "welcome", startedAt: 1234567890 },
@@ -175,6 +182,7 @@ describe("validatePersistedState", () => {
   it("should validate complete status correctly", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "complete",
+      startedAt: 1234567890,
       context: { name: "John" },
       path: [
         { stepId: "welcome", startedAt: 1234567890 },

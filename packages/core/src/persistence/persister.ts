@@ -1,4 +1,4 @@
-import type { FlowState, PersistedFlowState } from "../types";
+import type { FlowContext, FlowState, PersistedFlowState } from "../types";
 import type { FlowStore } from "./store";
 
 /**
@@ -168,7 +168,18 @@ export function createPersister(options: PersisterOptions): FlowPersister {
       }
     },
 
-    restore: async (flowId, restoreOptions) => {
+    restore: async <TContext extends FlowContext = FlowContext>(
+      flowId: string,
+      restoreOptions?: {
+        version?: string;
+        instanceId?: string;
+        variantId?: string;
+        migrate?: (
+          state: PersistedFlowState<TContext>,
+          fromVersion: string | undefined,
+        ) => PersistedFlowState<TContext> | null;
+      },
+    ) => {
       try {
         const state = await store.get(flowId, {
           instanceId: restoreOptions?.instanceId,
@@ -176,9 +187,12 @@ export function createPersister(options: PersisterOptions): FlowPersister {
         });
         if (!state) return null;
 
+        // Cast to the typed version - store doesn't enforce type safety
+        const typedState = state as PersistedFlowState<TContext>;
+
         // TTL check
-        if (ttl && state.__meta?.savedAt) {
-          const age = Date.now() - state.__meta.savedAt;
+        if (ttl && typedState.__meta?.savedAt) {
+          const age = Date.now() - typedState.__meta.savedAt;
           if (age > ttl) {
             await store.remove(flowId, {
               instanceId: restoreOptions?.instanceId,
@@ -191,13 +205,13 @@ export function createPersister(options: PersisterOptions): FlowPersister {
         // Version check and migration
         if (
           restoreOptions?.version &&
-          state.__meta?.version !== restoreOptions.version
+          typedState.__meta?.version !== restoreOptions.version
         ) {
           // If migrate function exists, try to migrate
           if (restoreOptions?.migrate) {
             const migrated = restoreOptions.migrate(
-              state,
-              state.__meta?.version,
+              typedState,
+              typedState.__meta?.version,
             );
             if (!migrated) {
               // Migration failed or returned null, discard state
@@ -211,12 +225,12 @@ export function createPersister(options: PersisterOptions): FlowPersister {
         }
 
         // Custom validation
-        if (validate && !validate(state)) {
+        if (validate && !validate(typedState)) {
           return null;
         }
 
-        onRestore?.(flowId, state);
-        return state;
+        onRestore?.(flowId, typedState);
+        return typedState;
       } catch (error) {
         onError?.(error as Error);
         return null;

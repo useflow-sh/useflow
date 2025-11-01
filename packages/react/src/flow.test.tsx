@@ -3011,6 +3011,7 @@ describe("FlowStep", () => {
         save: vi.fn(async () => ({
           stepId: "test",
           context: {},
+          startedAt: Date.now(),
           path: [],
           history: [],
           status: "active" as const,
@@ -3092,6 +3093,7 @@ describe("FlowStep", () => {
         save: vi.fn(async () => ({
           stepId: "test",
           context: {},
+          startedAt: Date.now(),
           path: [],
           history: [],
           status: "active" as const,
@@ -3159,6 +3161,7 @@ describe("FlowStep", () => {
         save: vi.fn(async () => ({
           stepId: "test",
           context: {},
+          startedAt: Date.now(),
           path: [],
           history: [],
           status: "active" as const,

@@ -336,6 +336,7 @@ describe("useFlowReducer", () => {
       const initialState = {
         stepId: "second",
         context: { count: 5 },
+        startedAt: 1234567890,
         path: [
           {
             stepId: "first",

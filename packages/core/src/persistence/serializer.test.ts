@@ -7,6 +7,7 @@ describe("JsonSerializer", () => {
     it("should serialize a flow instance to JSON string", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: {},
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -25,13 +26,14 @@ describe("JsonSerializer", () => {
       );
 
       expect(result).toBe(
-        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"path":[{"stepId":"step1","startedAt":1234567890}],"history":[{"stepId":"step1","startedAt":1234567890}],"status":"active"}}',
+        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","startedAt":1234567890,"context":{},"path":[{"stepId":"step1","startedAt":1234567890}],"history":[{"stepId":"step1","startedAt":1234567890}],"status":"active"}}',
       );
     });
 
     it("should serialize flow instance with context data", () => {
       const state: PersistedFlowState = {
         stepId: "profile",
+        startedAt: 1234567890,
         context: { name: "John", email: "john@example.com" },
         path: [
           { stepId: "welcome", startedAt: 1234567890 },
@@ -78,6 +80,7 @@ describe("JsonSerializer", () => {
     it("should serialize flow instance with metadata", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: {},
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -109,6 +112,7 @@ describe("JsonSerializer", () => {
     it("should serialize flow instance with complete status", () => {
       const state: PersistedFlowState = {
         stepId: "complete",
+        startedAt: 1234567890,
         context: { result: "success" },
         path: [
           { stepId: "step1", startedAt: 1234567890 },
@@ -141,6 +145,7 @@ describe("JsonSerializer", () => {
     it("should serialize flow instance with nested context", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: {
           user: {
             name: "John",
@@ -181,6 +186,7 @@ describe("JsonSerializer", () => {
     it("should serialize flow instance with array in context", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: {
           items: ["item1", "item2", "item3"],
         },
@@ -392,6 +398,7 @@ describe("JsonSerializer", () => {
     it("should serialize and deserialize without data loss", () => {
       const state: PersistedFlowState = {
         stepId: "profile",
+        startedAt: 1234567890,
         context: {
           name: "John Doe",
           email: "john@example.com",
@@ -430,6 +437,7 @@ describe("JsonSerializer", () => {
     it("should handle minimal instance round-trip", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
+        startedAt: 1234567890,
         context: {},
         path: [{ stepId: "step1", startedAt: 1234567890 }],
         history: [{ stepId: "step1", startedAt: 1234567890 }],
@@ -454,6 +462,7 @@ describe("JsonSerializer", () => {
     it("should handle complete status round-trip", () => {
       const state: PersistedFlowState = {
         stepId: "complete",
+        startedAt: 1234567890,
         context: { result: "success" },
         path: [
           { stepId: "step1", startedAt: 1234567890 },

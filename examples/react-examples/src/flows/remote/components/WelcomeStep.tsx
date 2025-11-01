@@ -53,14 +53,11 @@ export function WelcomeStep() {
       return;
     }
 
-    // Update context with collected data
-    setContext({
+    // Update context and navigate (determined by remote configuration)
+    next({
       email,
       userType: context.userType,
     });
-
-    // Navigate to next step (determined by remote configuration)
-    next();
   };
 
   // Clear error when user types

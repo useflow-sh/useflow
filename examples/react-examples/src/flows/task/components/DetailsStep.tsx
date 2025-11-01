@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { taskFlow } from "../flow";
 
 export function DetailsStep() {
-  const { context, next, back, setContext } = taskFlow.useFlow({
+  const { context, next, back } = taskFlow.useFlow({
     step: "details",
   });
 
@@ -23,7 +23,6 @@ export function DetailsStep() {
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setTitle(value);
-    setContext({ title: value });
   };
 
   const handleDescriptionChange = (
@@ -31,7 +30,6 @@ export function DetailsStep() {
   ) => {
     const value = e.target.value;
     setDescription(value);
-    setContext({ description: value });
   };
 
   const canProceed = title.trim() !== "" && description.trim() !== "";
@@ -72,7 +70,7 @@ export function DetailsStep() {
           Back
         </Button>
         <Button
-          onClick={() => next()}
+          onClick={() => next({ title, description })}
           disabled={!canProceed}
           className="flex-1"
         >

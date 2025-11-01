@@ -13,17 +13,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function ProfileStep() {
-  const { context, next, back, setContext } = useFlow<{ name: string }>();
+  const { context, next, back } = useFlow<{ name: string }>();
 
   const [nameInput, setNameInput] = useState(context.name);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setNameInput(value);
-    setContext({ name: value });
   };
 
-  const canProceed = context.name !== "";
+  const canProceed = nameInput !== "";
 
   return (
     <Card className="w-full max-w-2xl border-0">
@@ -47,7 +46,10 @@ export function ProfileStep() {
         <Button variant="outline" onClick={() => back()}>
           Back
         </Button>
-        <Button onClick={() => next()} disabled={!canProceed}>
+        <Button
+          onClick={() => next({ name: nameInput })}
+          disabled={!canProceed}
+        >
           Continue
         </Button>
       </CardFooter>

@@ -24,8 +24,7 @@ import type { RemoteOnboardingContext } from "../types";
  * - Could have branching logic (business flow)
  */
 export function AccountStep() {
-  const { context, next, back, setContext } =
-    useFlow<RemoteOnboardingContext>();
+  const { context, next, back } = useFlow<RemoteOnboardingContext>();
   const [name, setName] = useState(context.name || "");
   const [nameError, setNameError] = useState("");
 
@@ -34,8 +33,7 @@ export function AccountStep() {
       setNameError("Full name is required");
       return;
     }
-    setContext({ name });
-    next(); // Remote config determines where this goes
+    next({ name }); // Remote config determines where this goes
   };
 
   const handleNameChange = (value: string) => {

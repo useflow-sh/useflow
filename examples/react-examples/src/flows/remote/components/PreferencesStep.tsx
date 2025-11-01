@@ -36,8 +36,7 @@ const themeOptions = [
  * - Business flow: includes preferences with business-specific options
  */
 export function PreferencesStep() {
-  const { context, next, back, setContext } =
-    useFlow<RemoteOnboardingContext>();
+  const { context, next, back } = useFlow<RemoteOnboardingContext>();
 
   const [preferences, setPreferences] = useState(
     context.preferences || {
@@ -45,11 +44,6 @@ export function PreferencesStep() {
       notifications: true,
     },
   );
-
-  const handleContinue = () => {
-    setContext({ preferences });
-    next(); // Remote config determines where this goes
-  };
 
   const updatePreference = <K extends keyof typeof preferences>(
     key: K,
@@ -108,7 +102,7 @@ export function PreferencesStep() {
         <Button variant="outline" onClick={() => back()} className="flex-1">
           Back
         </Button>
-        <Button onClick={handleContinue} className="flex-1">
+        <Button onClick={() => next({ preferences })} className="flex-1">
           Complete Setup
         </Button>
       </CardFooter>

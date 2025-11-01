@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function ProfileStep() {
-  const { context, next, back, setContext } = useFlow({ step: "profile" });
+  const { context, next, back } = useFlow({ step: "profile" });
 
   const [name, setName] = useState(context.name || "");
   const [bio, setBio] = useState(context.bio || "");
@@ -22,21 +22,19 @@ export function ProfileStep() {
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setName(value);
-    setContext({ name: value });
     if (showErrors) setShowErrors(false);
   };
 
   const handleBioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setBio(value);
-    setContext({ bio: value });
   };
 
   const canProceed = name.trim() !== "";
 
   const handleContinue = () => {
     if (canProceed) {
-      next();
+      next({ name, bio });
     } else {
       setShowErrors(true);
     }

@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { branchingFlow } from "../flow";
 
 export function BusinessDetailsStep() {
-  const { context, next, back, setContext } = branchingFlow.useFlow({
+  const { context, next, back } = branchingFlow.useFlow({
     step: "businessDetails",
   });
 
@@ -25,13 +25,11 @@ export function BusinessDetailsStep() {
   const handleIndustryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setIndustryInput(value);
-    setContext({ businessIndustry: value });
   };
 
   const handleCompanyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCompanyInput(value);
-    setContext({ companyName: value });
   };
 
   const canProceed = industryInput !== "";
@@ -79,7 +77,9 @@ export function BusinessDetailsStep() {
           Back
         </Button>
         <Button
-          onClick={() => next()}
+          onClick={() =>
+            next({ businessIndustry: industryInput, companyName: companyInput })
+          }
           disabled={!canProceed}
           className="flex-1"
         >

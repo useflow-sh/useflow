@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function AccountStep() {
-  const { context, next, back, setContext } = useFlow({ step: "account" });
+  const { context, next, back } = useFlow({ step: "account" });
 
   const [email, setEmail] = useState(context.email || "");
   const [username, setUsername] = useState(context.username || "");
@@ -22,14 +22,12 @@ export function AccountStep() {
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setEmail(value);
-    setContext({ email: value });
     if (showErrors) setShowErrors(false);
   };
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setUsername(value);
-    setContext({ username: value });
     if (showErrors) setShowErrors(false);
   };
 
@@ -39,7 +37,7 @@ export function AccountStep() {
 
   const handleContinue = () => {
     if (canProceed) {
-      next();
+      next({ email, username });
     } else {
       setShowErrors(true);
     }

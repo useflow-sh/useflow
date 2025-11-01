@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function VerificationStep() {
-  const { context, next, back, setContext } = useFlow({
+  const { context, next, back } = useFlow({
     step: "verification",
   });
 
@@ -23,7 +23,6 @@ export function VerificationStep() {
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCode(value);
-    setContext({ verificationCode: value });
     if (showErrors) setShowErrors(false);
   };
 
@@ -31,7 +30,7 @@ export function VerificationStep() {
 
   const handleContinue = () => {
     if (canProceed) {
-      next();
+      next({ verificationCode: code });
     } else {
       setShowErrors(true);
     }

@@ -22,7 +22,7 @@ import { PreferencesStep } from "./components/PreferencesStep";
 import { ProfileStep } from "./components/ProfileStep";
 import { VerificationStep } from "./components/VerificationStep";
 import { WelcomeStep } from "./components/WelcomeStep";
-import { expressFlow, type OnboardingContext, standardFlow } from "./flow";
+import { expressFlow, standardFlow } from "./flow";
 
 export function DynamicFlowDemo() {
   const [isStarted, setIsStarted] = useState(false);
@@ -138,31 +138,26 @@ export function DynamicFlowDemo() {
   // Select flow based on state
   const selectedFlow = useExpressFlow ? expressFlow : standardFlow;
 
-  // All components needed for both flows
-  const allComponents = {
-    welcome: WelcomeStep,
-    account: AccountStep,
-    verification: VerificationStep,
-    profile: ProfileStep,
-    preferences: PreferencesStep,
-    complete: CompleteStep,
-  };
-
-  // Initial context shared by both flows
-  const initialContext: OnboardingContext = {
-    email: "",
-    username: "",
-    name: "",
-    notifications: true,
-  };
-
   return (
     <Flow
       key={selectedFlow.id}
       // biome-ignore lint/suspicious/noExplicitAny: Union of different flow types requires type assertion for dynamic switching
       flow={selectedFlow as any}
-      components={allComponents}
-      initialContext={initialContext}
+      // All components needed for both flows
+      components={{
+        welcome: WelcomeStep,
+        account: AccountStep,
+        verification: VerificationStep, // Required by standardFlow
+        profile: ProfileStep,
+        preferences: PreferencesStep, // Required by standardFlow
+        complete: CompleteStep,
+      }}
+      initialContext={{
+        email: "",
+        username: "",
+        name: "",
+        notifications: true,
+      }}
       persister={persister}
       saveMode="always"
       loadingComponent={<LoadingView />}

@@ -73,7 +73,6 @@ type FlowProps<TConfig extends FlowConfig<any>> = {
   components: ComponentsProp<TConfig>;
   initialContext: ExtractContext<TConfig>;
   instanceId?: string;
-  variantId?: string;
   onComplete?: () => void;
   onNext?: (event: {
     from: StepNames<TConfig>;
@@ -195,7 +194,6 @@ export function Flow<TConfig extends FlowConfig<any>>({
   components,
   initialContext,
   instanceId,
-  variantId,
   onComplete,
   onNext,
   onBack,
@@ -292,7 +290,10 @@ export function Flow<TConfig extends FlowConfig<any>>({
     // Clear persisted state if persister is available
     if (persister) {
       try {
-        await persister.remove?.(flow.id, { instanceId, variantId });
+        await persister.remove?.(flow.id, {
+          instanceId,
+          variantId: config.variantId,
+        });
       } catch (error) {
         console.error(
           "[Flow] Failed to remove persisted state on reset:",
@@ -307,7 +308,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
     persister,
     flow.id,
     instanceId,
-    variantId,
+    config.variantId,
     onPersistenceError,
   ]);
 
@@ -330,7 +331,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
       const persistedState = await persister.save(flow.id, stateToSave, {
         version,
         instanceId,
-        variantId,
+        variantId: config.variantId,
       });
 
       if (persistedState) {
@@ -348,7 +349,6 @@ export function Flow<TConfig extends FlowConfig<any>>({
     flowState.status,
     config,
     instanceId,
-    variantId,
     persister,
     onSave,
     onPersistenceError,
@@ -423,7 +423,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
           version: config.version,
           migrate: flow.runtimeConfig?.migrate as MigrateFunction | undefined,
           instanceId,
-          variantId,
+          variantId: config.variantId,
         });
 
         if (state) {
@@ -471,7 +471,6 @@ export function Flow<TConfig extends FlowConfig<any>>({
     flow.id,
     flow.runtimeConfig?.migrate,
     instanceId,
-    variantId,
     config,
     onPersistenceError,
     onRestore,

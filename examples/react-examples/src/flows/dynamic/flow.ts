@@ -69,7 +69,8 @@ export type OnboardingContext = {
  * email verification before allowing users to proceed.
  */
 export const standardFlow = defineFlow({
-  id: "standard-onboarding",
+  id: "onboarding-flow",
+  variantId: "standard",
   start: "welcome",
   steps: {
     welcome: {
@@ -106,7 +107,8 @@ export const standardFlow = defineFlow({
  * - Low-friction onboarding experiments
  */
 export const expressFlow = defineFlow({
-  id: "express-onboarding",
+  id: "onboarding-flow",
+  variantId: "express",
   start: "welcome",
   steps: {
     welcome: {

@@ -29,7 +29,7 @@ import type { RemoteOnboardingContext } from "../types";
  * and adapts to show different information based on what steps were taken.
  */
 export function CompleteStep() {
-  const { context, reset, history } = useFlow<RemoteOnboardingContext>();
+  const { context, reset, path } = useFlow<RemoteOnboardingContext>();
 
   const handleRestart = () => {
     reset();
@@ -113,12 +113,12 @@ export function CompleteStep() {
     },
   };
 
-  // Get the steps from history (excluding the current 'complete' step)
-  const completedSteps = history
-    .filter((step) => step !== "complete")
-    .map((stepId) => ({
-      stepId,
-      ...stepInfo[stepId],
+  // Get the steps from path (excluding the current 'complete' step)
+  const completedSteps = path
+    .filter((entry) => entry.stepId !== "complete")
+    .map((entry) => ({
+      stepId: entry.stepId,
+      ...stepInfo[entry.stepId],
     }))
     .filter((step) => step.icon); // Only include steps we have info for
   const userTypeLabel =

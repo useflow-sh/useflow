@@ -27,29 +27,30 @@ export function validatePersistedState<TContext extends FlowContext>(
     );
   }
 
-  // Validate history is not empty
-  if (persisted.history.length === 0) {
-    errors.push("History cannot be empty");
+  // Validate path is not empty
+  if (persisted.path.length === 0) {
+    errors.push("Path cannot be empty");
   } else {
-    // Validate start step exists in history
-    if (persisted.history[0] !== definition.start) {
+    // Validate start step exists in path
+    const firstInPath = persisted.path[0];
+    if (firstInPath && firstInPath.stepId !== definition.start) {
       errors.push(
-        `History must start with "${definition.start}", got "${persisted.history[0]}"`,
+        `Path must start with "${definition.start}", got "${firstInPath.stepId}"`,
       );
     }
 
-    // Validate all history steps exist
-    for (const stepId of persisted.history) {
-      if (!stepNames.has(stepId)) {
-        errors.push(`History contains non-existent step "${stepId}"`);
+    // Validate all path steps exist
+    for (const entry of persisted.path) {
+      if (!stepNames.has(entry.stepId)) {
+        errors.push(`Path contains non-existent step "${entry.stepId}"`);
       }
     }
 
-    // Validate history consistency
-    const lastInHistory = persisted.history[persisted.history.length - 1];
-    if (lastInHistory !== persisted.stepId) {
+    // Validate path consistency
+    const lastInPath = persisted.path[persisted.path.length - 1];
+    if (lastInPath && lastInPath.stepId !== persisted.stepId) {
       errors.push(
-        `Current stepId "${persisted.stepId}" must match last item in history "${lastInHistory}"`,
+        `Current stepId "${persisted.stepId}" must match last item in path "${lastInPath.stepId}"`,
       );
     }
   }

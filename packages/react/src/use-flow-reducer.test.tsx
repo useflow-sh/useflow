@@ -191,25 +191,57 @@ describe("useFlowReducer", () => {
     const { result } = renderHook(() => useFlowReducer(definition, {}));
 
     // Initial history should contain start step
-    expect(result.current.history).toEqual(["first"]);
+    expect(result.current.path).toEqual([
+      { stepId: "first", startedAt: expect.any(Number) },
+    ]);
 
     // Navigate forward
     act(() => {
       result.current.next();
     });
-    expect(result.current.history).toEqual(["first", "second"]);
+    expect(result.current.path).toEqual([
+      {
+        stepId: "first",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      { stepId: "second", startedAt: expect.any(Number) },
+    ]);
 
     // Navigate forward again
     act(() => {
       result.current.next();
     });
-    expect(result.current.history).toEqual(["first", "second", "third"]);
+    expect(result.current.path).toEqual([
+      {
+        stepId: "first",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      {
+        stepId: "second",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      { stepId: "third", startedAt: expect.any(Number) },
+    ]);
 
     // Navigate back
     act(() => {
       result.current.back();
     });
-    expect(result.current.history).toEqual(["first", "second"]);
+    expect(result.current.path).toEqual([
+      {
+        stepId: "first",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      { stepId: "second", startedAt: expect.any(Number) },
+    ]);
   });
 
   describe("persistence", () => {
@@ -226,7 +258,24 @@ describe("useFlowReducer", () => {
       const initialState = {
         stepId: "second",
         context: { count: 5 },
-        history: ["first", "second"],
+        path: [
+          {
+            stepId: "first",
+            startedAt: 1234567890,
+            completedAt: 1234567890,
+            action: "next" as const,
+          },
+          { stepId: "second", startedAt: 1234567891 },
+        ],
+        history: [
+          {
+            stepId: "first",
+            startedAt: 1234567890,
+            completedAt: 1234567890,
+            action: "next" as const,
+          },
+          { stepId: "second", startedAt: 1234567891 },
+        ],
         status: "active" as const,
       };
 
@@ -236,7 +285,15 @@ describe("useFlowReducer", () => {
 
       expect(result.current.stepId).toBe("second");
       expect(result.current.context).toEqual({ count: 5 });
-      expect(result.current.history).toEqual(["first", "second"]);
+      expect(result.current.path).toEqual([
+        {
+          stepId: "first",
+          startedAt: expect.any(Number),
+          completedAt: expect.any(Number),
+          action: "next",
+        },
+        { stepId: "second", startedAt: expect.any(Number) },
+      ]);
     });
   });
 
@@ -275,7 +332,9 @@ describe("useFlowReducer", () => {
 
       expect(result.current.stepId).toBe("first");
       expect(result.current.context).toEqual({ count: 0, name: "initial" });
-      expect(result.current.history).toEqual(["first"]);
+      expect(result.current.path).toEqual([
+        { stepId: "first", startedAt: expect.any(Number) },
+      ]);
       expect(result.current.status).toBe("active");
     });
 
@@ -379,7 +438,15 @@ describe("useFlowReducer", () => {
       });
       expect(result.current.stepId).toBe("b");
       expect(result.current.context.step).toBe(1);
-      expect(result.current.history).toEqual(["a", "b"]);
+      expect(result.current.path).toEqual([
+        {
+          stepId: "a",
+          startedAt: expect.any(Number),
+          completedAt: expect.any(Number),
+          action: "next",
+        },
+        { stepId: "b", startedAt: expect.any(Number) },
+      ]);
     });
 
     it("should have stable reset callback", () => {

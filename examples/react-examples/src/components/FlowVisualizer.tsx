@@ -25,9 +25,10 @@ type FlowNode = {
  * No need to manually pass in step configurations!
  */
 export function FlowVisualizer() {
-  const { stepId, history, status, steps } = useFlow();
+  const { stepId, path, status, steps } = useFlow();
 
   const nodes = useMemo((): FlowNode[] => {
+    const pathStepIds = path.map((entry) => entry.stepId);
     return Object.entries(steps).map(([id, config]) => ({
       id,
       label: id
@@ -36,10 +37,10 @@ export function FlowVisualizer() {
         .join(" "), // Convert to "Title Case"
       next: config.next,
       isActive: stepId === id,
-      isCompleted: status === "complete" && history.includes(id),
-      isVisited: history.includes(id),
+      isCompleted: status === "complete" && pathStepIds.includes(id),
+      isVisited: pathStepIds.includes(id),
     }));
-  }, [steps, stepId, history, status]);
+  }, [steps, stepId, path, status]);
 
   return (
     <Card className="w-full bg-background/80 backdrop-blur-sm">

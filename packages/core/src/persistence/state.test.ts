@@ -17,7 +17,14 @@ describe("validatePersistedState", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "profile",
       context: { name: "John" },
-      history: ["welcome", "profile"],
+      path: [
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "profile", startedAt: 1234567891 },
+      ],
+      history: [
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "profile", startedAt: 1234567891 },
+      ],
       status: "active",
     };
 
@@ -31,7 +38,14 @@ describe("validatePersistedState", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "invalid",
       context: { name: "John" },
-      history: ["welcome", "invalid"],
+      path: [
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "invalid", startedAt: 1234567891 },
+      ],
+      history: [
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "invalid", startedAt: 1234567891 },
+      ],
       status: "active",
     };
 
@@ -49,6 +63,7 @@ describe("validatePersistedState", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "profile",
       context: { name: "John" },
+      path: [],
       history: [],
       status: "active",
     };
@@ -56,14 +71,15 @@ describe("validatePersistedState", () => {
     const result = validatePersistedState(persisted, definition);
 
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain("History cannot be empty");
+    expect(result.errors).toContain("Path cannot be empty");
   });
 
   it("should reject state with wrong start step in history", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "profile",
       context: { name: "John" },
-      history: ["profile"],
+      path: [{ stepId: "profile", startedAt: 1234567890 }],
+      history: [{ stepId: "profile", startedAt: 1234567890 }],
       status: "active",
     };
 
@@ -71,9 +87,7 @@ describe("validatePersistedState", () => {
 
     expect(result.valid).toBe(false);
     expect(
-      result.errors?.some((e) =>
-        e.includes('History must start with "welcome"'),
-      ),
+      result.errors?.some((e) => e.includes('Path must start with "welcome"')),
     ).toBe(true);
   });
 
@@ -81,7 +95,16 @@ describe("validatePersistedState", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "profile",
       context: { name: "John" },
-      history: ["welcome", "invalid", "profile"],
+      path: [
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "invalid", startedAt: 1234567891 },
+        { stepId: "profile", startedAt: 1234567892 },
+      ],
+      history: [
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "invalid", startedAt: 1234567891 },
+        { stepId: "profile", startedAt: 1234567892 },
+      ],
       status: "active",
     };
 
@@ -90,7 +113,7 @@ describe("validatePersistedState", () => {
     expect(result.valid).toBe(false);
     expect(
       result.errors?.some((e) =>
-        e.includes('History contains non-existent step "invalid"'),
+        e.includes('Path contains non-existent step "invalid"'),
       ),
     ).toBe(true);
   });
@@ -99,7 +122,14 @@ describe("validatePersistedState", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "complete",
       context: { name: "John" },
-      history: ["welcome", "profile"],
+      path: [
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "profile", startedAt: 1234567891 },
+      ],
+      history: [
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "profile", startedAt: 1234567891 },
+      ],
       status: "active",
     };
 
@@ -109,7 +139,7 @@ describe("validatePersistedState", () => {
     expect(
       result.errors?.some((e) =>
         e.includes(
-          'Current stepId "complete" must match last item in history "profile"',
+          'Current stepId "complete" must match last item in path "profile"',
         ),
       ),
     ).toBe(true);
@@ -119,7 +149,16 @@ describe("validatePersistedState", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "complete",
       context: { name: "John" },
-      history: ["welcome", "profile", "complete"],
+      path: [
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "profile", startedAt: 1234567891 },
+        { stepId: "complete", startedAt: 1234567892 },
+      ],
+      history: [
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "profile", startedAt: 1234567891 },
+        { stepId: "complete", startedAt: 1234567892 },
+      ],
       status: "active",
     };
 
@@ -137,7 +176,16 @@ describe("validatePersistedState", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "complete",
       context: { name: "John" },
-      history: ["welcome", "profile", "complete"],
+      path: [
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "profile", startedAt: 1234567891 },
+        { stepId: "complete", startedAt: 1234567892 },
+      ],
+      history: [
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "profile", startedAt: 1234567891 },
+        { stepId: "complete", startedAt: 1234567892 },
+      ],
       status: "complete",
     };
 

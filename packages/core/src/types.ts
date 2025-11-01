@@ -45,6 +45,35 @@ export type StepDefinition<TNext extends StepTransition = StepTransition> = {
 };
 
 /**
+ * Action taken when leaving a step
+ * Represents how the user exited/completed a step
+ */
+export type NavigationAction = "next" | "back";
+
+/**
+ * Navigation history entry tracking step visits
+ * Records when a user entered and exited each step
+ *
+ * Current step: Has startedAt but no completedAt/action (user is still there)
+ * Completed steps: Have all fields (user has left)
+ */
+export type HistoryEntry = {
+  stepId: string;
+  /** When the user arrived at this step */
+  startedAt: number;
+  /** When the user left this step (undefined if still on this step) */
+  completedAt?: number;
+  /** How the user left this step: next or back (undefined if still on this step) */
+  action?: NavigationAction;
+};
+
+/**
+ * Path entry - same as HistoryEntry but semantically represents the navigation path
+ * This is the route the user took to get to the current step (used for back navigation)
+ */
+export type PathEntry = HistoryEntry;
+
+/**
  * Persistable flow state - can be serialized to JSON
  * Includes optional metadata for versioning, TTL, etc.
  *
@@ -54,7 +83,10 @@ export type StepDefinition<TNext extends StepTransition = StepTransition> = {
 export type PersistedFlowState<TContext extends FlowContext = FlowContext> = {
   stepId: string;
   context: TContext;
-  history: string[];
+  /** Path taken through the flow - used for back navigation */
+  path: PathEntry[];
+  /** Complete navigation history with timestamps - tracks all movements */
+  history: HistoryEntry[];
   status: "active" | "complete";
   __meta?: {
     savedAt?: number;
@@ -122,7 +154,10 @@ export type FlowDefinition<
 export type FlowState<TContext extends FlowContext = FlowContext> = {
   stepId: string;
   context: TContext;
-  history: string[];
+  /** Path taken through the flow - used for back navigation */
+  path: PathEntry[];
+  /** Complete navigation history with timestamps - tracks all movements */
+  history: HistoryEntry[];
   status: "active" | "complete";
 };
 

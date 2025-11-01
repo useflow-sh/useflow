@@ -84,10 +84,17 @@ export function createInitialState<TContext extends FlowContext>(
   definition: FlowDefinition<TContext>,
   initialContext: TContext,
 ): FlowState<TContext> {
+  const now = Date.now();
+  const startEntry = {
+    stepId: definition.start,
+    startedAt: now,
+    // No completedAt or action - user hasn't left this step yet
+  };
   return {
     stepId: definition.start,
     context: initialContext,
-    history: [definition.start],
+    path: [startEntry],
+    history: [startEntry],
     status: "active",
   };
 }
@@ -198,28 +205,99 @@ export function flowReducer<TContext extends FlowContext>(
       const nextStep = definition.steps[nextStepId];
       const isFinalStep = !nextStep?.next;
 
-      // Navigate to next step
+      const now = Date.now();
+
+      // Complete the current step by adding completedAt and action to its history entry
+      const completedHistory = updatedState.history.map((entry, index) => {
+        // Update the last entry (current step) with completion info
+        if (index === updatedState.history.length - 1) {
+          return {
+            ...entry,
+            completedAt: now,
+            action: "next" as const,
+          };
+        }
+        return entry;
+      });
+
+      // Also update the path entry for the current step
+      const completedPath = updatedState.path.map((entry, index) => {
+        if (index === updatedState.path.length - 1) {
+          return {
+            ...entry,
+            completedAt: now,
+            action: "next" as const,
+          };
+        }
+        return entry;
+      });
+
+      // Create entry for the new step (started but not completed yet)
+      const nextEntry = {
+        stepId: nextStepId,
+        startedAt: now,
+        // No completedAt or action yet - user just arrived
+      };
+
       return {
         ...updatedState,
         stepId: nextStepId,
-        history: [...updatedState.history, nextStepId],
+        path: [...completedPath, nextEntry],
+        history: [...completedHistory, nextEntry],
         status: isFinalStep ? "complete" : "active",
       };
     }
 
     case "BACK": {
-      if (state.history.length <= 1) {
+      if (state.path.length <= 1) {
         return state;
       }
 
-      const newHistory = state.history.slice(0, -1);
-      const previousStepId = newHistory[newHistory.length - 1];
+      const now = Date.now();
+
+      // Complete the current step by marking it as exited via "back"
+      const completedHistory = state.history.map((entry, index) => {
+        // Update the last entry (current step) with completion info
+        if (index === state.history.length - 1) {
+          return {
+            ...entry,
+            completedAt: now,
+            action: "back" as const,
+          };
+        }
+        return entry;
+      });
+
+      // Remove current step from path (going back)
+      const pathWithoutCurrent = state.path.slice(0, -1);
+
+      // Update the previous step in path to clear its completion (user is re-entering it)
+      const updatedPath = pathWithoutCurrent.map((entry, index) => {
+        // Clear completedAt and action from the step we're returning to
+        if (index === pathWithoutCurrent.length - 1) {
+          return {
+            stepId: entry.stepId,
+            startedAt: now, // New start time for re-entry
+          };
+        }
+        return entry;
+      });
+
+      // biome-ignore lint/style/noNonNullAssertion: should always be defined since we check path.length > 1
+      const previousEntry = updatedPath[updatedPath.length - 1]!;
+
+      // Re-enter the previous step in history
+      const reentryEntry = {
+        stepId: previousEntry.stepId,
+        startedAt: now,
+        // No completedAt or action - user just arrived back
+      };
 
       return {
         ...state,
-        // biome-ignore lint/style/noNonNullAssertion: should always be defined since we check history.length > 1
-        stepId: previousStepId!,
-        history: newHistory,
+        stepId: previousEntry.stepId,
+        path: updatedPath,
+        history: [...completedHistory, reentryEntry],
       };
     }
 

@@ -324,6 +324,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
       const stateToSave = {
         stepId: flowState.stepId,
         context: flowState.context,
+        path: flowState.path,
         history: flowState.history,
         status: flowState.status,
       };
@@ -345,6 +346,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
     flow.id,
     flowState.stepId,
     flowState.context,
+    flowState.path,
     flowState.history,
     flowState.status,
     config,
@@ -509,6 +511,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
         stepId: flowState.stepId,
         step: flowState.step,
         context: flowState.context,
+        path: flowState.path,
         history: flowState.history,
         status: flowState.status,
         restore: flowState.restore,

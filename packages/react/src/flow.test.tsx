@@ -1497,7 +1497,24 @@ describe("FlowStep", () => {
       const savedState = {
         stepId: "step2",
         context: { name: "John" },
-        history: ["step1", "step2"],
+        path: [
+          {
+            stepId: "step1",
+            startedAt: 1234567890,
+            completedAt: 1234567890,
+            action: "next" as const,
+          },
+          { stepId: "step2", startedAt: 1234567891 },
+        ],
+        history: [
+          {
+            stepId: "step1",
+            startedAt: Date.now(),
+            completedAt: Date.now(),
+            action: "next" as const,
+          },
+          { stepId: "step2", startedAt: Date.now() },
+        ],
         status: "active",
       };
 
@@ -1545,7 +1562,24 @@ describe("FlowStep", () => {
       const savedState = {
         stepId: "step2",
         context: { name: "John" },
-        history: ["step1", "step2"],
+        path: [
+          {
+            stepId: "step1",
+            startedAt: 1234567890,
+            completedAt: 1234567890,
+            action: "next" as const,
+          },
+          { stepId: "step2", startedAt: 1234567891 },
+        ],
+        history: [
+          {
+            stepId: "step1",
+            startedAt: Date.now(),
+            completedAt: Date.now(),
+            action: "next" as const,
+          },
+          { stepId: "step2", startedAt: Date.now() },
+        ],
         status: "active" as const,
       };
 
@@ -1686,7 +1720,8 @@ describe("FlowStep", () => {
       const invalidState = {
         stepId: "invalid-step", // Invalid step ID
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: Date.now() }],
         status: "active" as const,
       };
 
@@ -1938,10 +1973,17 @@ describe("FlowStep", () => {
           expect.objectContaining({
             stepId: "step2",
             context: {},
-            history: ["step1", "step2"],
+            path: expect.arrayContaining([
+              expect.objectContaining({ stepId: "step1" }),
+              expect.objectContaining({ stepId: "step2" }),
+            ]),
+            history: expect.arrayContaining([
+              expect.objectContaining({ stepId: "step1" }),
+              expect.objectContaining({ stepId: "step2" }),
+            ]),
             status: "complete",
           }),
-          { version: "v1" },
+          expect.objectContaining({ version: "v1" }),
         );
       });
     });
@@ -2523,7 +2565,24 @@ describe("FlowStep", () => {
         const savedState = {
           stepId: "step2",
           context: { name: "John" },
-          history: ["step1", "step2"],
+          path: [
+            {
+              stepId: "step1",
+              startedAt: 1234567890,
+              completedAt: 1234567890,
+              action: "next" as const,
+            },
+            { stepId: "step2", startedAt: 1234567891 },
+          ],
+          history: [
+            {
+              stepId: "step1",
+              startedAt: Date.now(),
+              completedAt: Date.now(),
+              action: "next" as const,
+            },
+            { stepId: "step2", startedAt: Date.now() },
+          ],
           status: "active" as const,
         };
 
@@ -2780,6 +2839,7 @@ describe("FlowStep", () => {
         save: vi.fn(async () => ({
           stepId: "test",
           context: {},
+          path: [],
           history: [],
           status: "active" as const,
         })),
@@ -2860,6 +2920,7 @@ describe("FlowStep", () => {
         save: vi.fn(async () => ({
           stepId: "test",
           context: {},
+          path: [],
           history: [],
           status: "active" as const,
         })),
@@ -2926,6 +2987,7 @@ describe("FlowStep", () => {
         save: vi.fn(async () => ({
           stepId: "test",
           context: {},
+          path: [],
           history: [],
           status: "active" as const,
         })),

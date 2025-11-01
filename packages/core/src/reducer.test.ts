@@ -23,7 +23,9 @@ describe("flowReducer", () => {
 
     expect(state.stepId).toBe("idle");
     expect(state.context).toEqual({ count: 0 });
-    expect(state.history).toEqual(["idle"]);
+    expect(state.path).toEqual([
+      { stepId: "idle", startedAt: expect.any(Number) },
+    ]);
     expect(state.status).toBe("active");
   });
 
@@ -45,11 +47,33 @@ describe("flowReducer", () => {
 
     state = flowReducer(state, { type: "NEXT" }, definition);
     expect(state.stepId).toBe("second");
-    expect(state.history).toEqual(["first", "second"]);
+    expect(state.path).toEqual([
+      {
+        stepId: "first",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      { stepId: "second", startedAt: expect.any(Number) },
+    ]);
 
     state = flowReducer(state, { type: "NEXT" }, definition);
     expect(state.stepId).toBe("third");
-    expect(state.history).toEqual(["first", "second", "third"]);
+    expect(state.path).toEqual([
+      {
+        stepId: "first",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      {
+        stepId: "second",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      { stepId: "third", startedAt: expect.any(Number) },
+    ]);
   });
 
   it("should navigate back through history", () => {
@@ -73,11 +97,21 @@ describe("flowReducer", () => {
 
     state = flowReducer(state, { type: "BACK" }, definition);
     expect(state.stepId).toBe("second");
-    expect(state.history).toEqual(["first", "second"]);
+    expect(state.path).toEqual([
+      {
+        stepId: "first",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      { stepId: "second", startedAt: expect.any(Number) },
+    ]);
 
     state = flowReducer(state, { type: "BACK" }, definition);
     expect(state.stepId).toBe("first");
-    expect(state.history).toEqual(["first"]);
+    expect(state.path).toEqual([
+      { stepId: "first", startedAt: expect.any(Number) },
+    ]);
   });
 
   it("should not go back from first step", () => {
@@ -96,7 +130,9 @@ describe("flowReducer", () => {
     state = flowReducer(state, { type: "BACK" }, definition);
 
     expect(state.stepId).toBe("first");
-    expect(state.history).toEqual(["first"]);
+    expect(state.path).toEqual([
+      { stepId: "first", startedAt: expect.any(Number) },
+    ]);
   });
 
   it("should update context with SET_CONTEXT", () => {
@@ -228,7 +264,9 @@ describe("flowReducer", () => {
     state = flowReducer(state, { type: "NEXT" }, definition, { resolvers });
 
     expect(state.stepId).toBe("form");
-    expect(state.history).toEqual(["form"]);
+    expect(state.path).toEqual([
+      { stepId: "form", startedAt: expect.any(Number) },
+    ]);
 
     state = flowReducer(
       state,
@@ -529,7 +567,21 @@ describe("flowReducer", () => {
     // From pathA, choose end2
     state = flowReducer(state, { type: "NEXT", target: "end2" }, flow);
     expect(state.stepId).toBe("end2");
-    expect(state.history).toEqual(["start", "pathA", "end2"]);
+    expect(state.path).toEqual([
+      {
+        stepId: "start",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      {
+        stepId: "pathA",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      { stepId: "end2", startedAt: expect.any(Number) },
+    ]);
   });
 
   it("should combine context-driven and component-driven navigation", () => {
@@ -893,18 +945,42 @@ describe("RESET action", () => {
     );
     expect(state.stepId).toBe("second");
     expect(state.context).toEqual({ count: 1, name: "updated" });
-    expect(state.history).toEqual(["first", "second"]);
+    expect(state.path).toEqual([
+      {
+        stepId: "first",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      { stepId: "second", startedAt: expect.any(Number) },
+    ]);
 
     state = flowReducer(state, { type: "NEXT" }, definition);
     expect(state.stepId).toBe("third");
-    expect(state.history).toEqual(["first", "second", "third"]);
+    expect(state.path).toEqual([
+      {
+        stepId: "first",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      {
+        stepId: "second",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      { stepId: "third", startedAt: expect.any(Number) },
+    ]);
 
     // Reset should go back to initial state
     state = flowReducer(state, { type: "RESET", initialContext }, definition);
 
     expect(state.stepId).toBe("first");
     expect(state.context).toEqual({ count: 0, name: "initial" });
-    expect(state.history).toEqual(["first"]);
+    expect(state.path).toEqual([
+      { stepId: "first", startedAt: expect.any(Number) },
+    ]);
     expect(state.status).toBe("active");
   });
 
@@ -939,7 +1015,9 @@ describe("RESET action", () => {
     expect(state.stepId).toBe("first");
     expect(state.status).toBe("active");
     expect(state.context.value).toBe("start");
-    expect(state.history).toEqual(["first"]);
+    expect(state.path).toEqual([
+      { stepId: "first", startedAt: expect.any(Number) },
+    ]);
   });
 
   it("should reset context to provided initial context, not current context", () => {
@@ -1012,7 +1090,15 @@ describe("RESET action", () => {
     );
     expect(state.stepId).toBe("b");
     expect(state.context.step).toBe(1);
-    expect(state.history).toEqual(["a", "b"]);
+    expect(state.path).toEqual([
+      {
+        stepId: "a",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      { stepId: "b", startedAt: expect.any(Number) },
+    ]);
   });
 });
 

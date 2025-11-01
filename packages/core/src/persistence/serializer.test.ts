@@ -8,7 +8,8 @@ describe("JsonSerializer", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -24,7 +25,7 @@ describe("JsonSerializer", () => {
       );
 
       expect(result).toBe(
-        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}',
+        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"path":[{"stepId":"step1","startedAt":1234567890}],"history":[{"stepId":"step1","startedAt":1234567890}],"status":"active"}}',
       );
     });
 
@@ -32,7 +33,14 @@ describe("JsonSerializer", () => {
       const state: PersistedFlowState = {
         stepId: "profile",
         context: { name: "John", email: "john@example.com" },
-        history: ["welcome", "profile"],
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
       };
 
@@ -56,7 +64,14 @@ describe("JsonSerializer", () => {
         name: "John",
         email: "john@example.com",
       });
-      expect(parsed.state.history).toEqual(["welcome", "profile"]);
+      expect(parsed.state.path).toEqual([
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "profile", startedAt: 1234567891 },
+      ]);
+      expect(parsed.state.history).toEqual([
+        { stepId: "welcome", startedAt: 1234567890 },
+        { stepId: "profile", startedAt: 1234567891 },
+      ]);
       expect(parsed.state.status).toBe("active");
     });
 
@@ -64,7 +79,8 @@ describe("JsonSerializer", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: {
           savedAt: 1234567890,
@@ -94,7 +110,16 @@ describe("JsonSerializer", () => {
       const state: PersistedFlowState = {
         stepId: "complete",
         context: { result: "success" },
-        history: ["step1", "step2", "complete"],
+        path: [
+          { stepId: "step1", startedAt: 1234567890 },
+          { stepId: "step2", startedAt: 1234567891 },
+          { stepId: "complete", startedAt: 1234567892 },
+        ],
+        history: [
+          { stepId: "step1", startedAt: 1234567890 },
+          { stepId: "step2", startedAt: 1234567891 },
+          { stepId: "complete", startedAt: 1234567892 },
+        ],
         status: "complete",
       };
 
@@ -125,7 +150,8 @@ describe("JsonSerializer", () => {
             },
           },
         },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -158,7 +184,8 @@ describe("JsonSerializer", () => {
         context: {
           items: ["item1", "item2", "item3"],
         },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -181,7 +208,7 @@ describe("JsonSerializer", () => {
   describe("deserialize", () => {
     it("should deserialize a valid flow instance", () => {
       const json =
-        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
+        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"path":[{"stepId":"step1","startedAt":1234567890}],"history":[{"stepId":"step1","startedAt":1234567890}],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
@@ -193,14 +220,15 @@ describe("JsonSerializer", () => {
       expect(instance.state).toEqual({
         stepId: "step1",
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       });
     });
 
     it("should deserialize flow instance with context data", () => {
       const json =
-        '{"flowId":"onboarding","instanceId":"user-123","variantId":"premium","state":{"stepId":"profile","context":{"name":"John","email":"john@example.com"},"history":["welcome","profile"],"status":"active"}}';
+        '{"flowId":"onboarding","instanceId":"user-123","variantId":"premium","state":{"stepId":"profile","context":{"name":"John","email":"john@example.com"},"path":[{"stepId":"welcome","startedAt":1234567890},{"stepId":"profile","startedAt":1234567891}],"history":[{"stepId":"welcome","startedAt":1234567890},{"stepId":"profile","startedAt":1234567891}],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
@@ -216,7 +244,7 @@ describe("JsonSerializer", () => {
 
     it("should deserialize flow instance with metadata", () => {
       const json =
-        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active","__meta":{"savedAt":1234567890,"version":"1.0.0"}}}';
+        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"path":[{"stepId":"step1","startedAt":1234567890}],"history":[{"stepId":"step1","startedAt":1234567890}],"status":"active","__meta":{"savedAt":1234567890,"version":"1.0.0"}}}';
 
       const result = JsonSerializer.deserialize(json);
 
@@ -229,7 +257,7 @@ describe("JsonSerializer", () => {
 
     it("should deserialize flow instance with complete status", () => {
       const json =
-        '{"flowId":"survey","instanceId":"default","variantId":"default","state":{"stepId":"complete","context":{"result":"success"},"history":["step1","step2","complete"],"status":"complete"}}';
+        '{"flowId":"survey","instanceId":"default","variantId":"default","state":{"stepId":"complete","context":{"result":"success"},"path":[{"stepId":"step1","startedAt":1234567890},{"stepId":"step2","startedAt":1234567891},{"stepId":"complete","startedAt":1234567892}],"history":[{"stepId":"step1","startedAt":1234567890},{"stepId":"step2","startedAt":1234567891},{"stepId":"complete","startedAt":1234567892}],"status":"complete"}}';
 
       const result = JsonSerializer.deserialize(json);
 
@@ -269,7 +297,7 @@ describe("JsonSerializer", () => {
 
     it("should return null when flowId is missing", () => {
       const json =
-        '{"instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
+        '{"instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"path":[{"stepId":"step1","startedAt":1234567890}],"history":[{"stepId":"step1","startedAt":1234567890}],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
@@ -278,7 +306,7 @@ describe("JsonSerializer", () => {
 
     it("should return null when flowId is not a string", () => {
       const json =
-        '{"flowId":123,"instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
+        '{"flowId":123,"instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"path":[{"stepId":"step1","startedAt":1234567890}],"history":[{"stepId":"step1","startedAt":1234567890}],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
@@ -287,7 +315,7 @@ describe("JsonSerializer", () => {
 
     it("should return null when instanceId is missing", () => {
       const json =
-        '{"flowId":"test-flow","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
+        '{"flowId":"test-flow","variantId":"default","state":{"stepId":"step1","context":{},"path":[{"stepId":"step1","startedAt":1234567890}],"history":[{"stepId":"step1","startedAt":1234567890}],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
@@ -296,7 +324,7 @@ describe("JsonSerializer", () => {
 
     it("should return null when instanceId is not a string", () => {
       const json =
-        '{"flowId":"test-flow","instanceId":123,"variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
+        '{"flowId":"test-flow","instanceId":123,"variantId":"default","state":{"stepId":"step1","context":{},"path":[{"stepId":"step1","startedAt":1234567890}],"history":[{"stepId":"step1","startedAt":1234567890}],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
@@ -305,7 +333,7 @@ describe("JsonSerializer", () => {
 
     it("should return null when variantId is missing", () => {
       const json =
-        '{"flowId":"test-flow","instanceId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
+        '{"flowId":"test-flow","instanceId":"default","state":{"stepId":"step1","context":{},"path":[{"stepId":"step1","startedAt":1234567890}],"history":[{"stepId":"step1","startedAt":1234567890}],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
@@ -314,7 +342,7 @@ describe("JsonSerializer", () => {
 
     it("should return null when variantId is not a string", () => {
       const json =
-        '{"flowId":"test-flow","instanceId":"default","variantId":123,"state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
+        '{"flowId":"test-flow","instanceId":"default","variantId":123,"state":{"stepId":"step1","context":{},"path":[{"stepId":"step1","startedAt":1234567890}],"history":[{"stepId":"step1","startedAt":1234567890}],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
@@ -350,7 +378,7 @@ describe("JsonSerializer", () => {
 
     it("should handle extra fields gracefully", () => {
       const json =
-        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"},"extraField":"ignored"}';
+        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"path":[{"stepId":"step1","startedAt":1234567890}],"history":[{"stepId":"step1","startedAt":1234567890}],"status":"active"},"extraField":"ignored"}';
 
       const result = JsonSerializer.deserialize(json);
 
@@ -369,7 +397,14 @@ describe("JsonSerializer", () => {
           email: "john@example.com",
           preferences: { theme: "dark" },
         },
-        history: ["welcome", "profile"],
+        path: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
+        history: [
+          { stepId: "welcome", startedAt: 1234567890 },
+          { stepId: "profile", startedAt: 1234567891 },
+        ],
         status: "active",
         __meta: {
           savedAt: Date.now(),
@@ -396,7 +431,8 @@ describe("JsonSerializer", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
       };
 
@@ -419,7 +455,16 @@ describe("JsonSerializer", () => {
       const state: PersistedFlowState = {
         stepId: "complete",
         context: { result: "success" },
-        history: ["step1", "step2", "complete"],
+        path: [
+          { stepId: "step1", startedAt: 1234567890 },
+          { stepId: "step2", startedAt: 1234567891 },
+          { stepId: "complete", startedAt: 1234567892 },
+        ],
+        history: [
+          { stepId: "step1", startedAt: 1234567890 },
+          { stepId: "step2", startedAt: 1234567891 },
+          { stepId: "complete", startedAt: 1234567892 },
+        ],
         status: "complete",
       };
 

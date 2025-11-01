@@ -37,7 +37,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { name: "test" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -58,7 +59,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { name: "test" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -77,7 +79,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { name: "test" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -101,7 +104,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { name: "test" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -123,7 +127,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { taskId: "123" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -142,7 +147,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { taskId: "123" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -161,7 +167,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -190,7 +197,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { taskId: "123" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -226,7 +234,8 @@ describe("createAsyncStorageStore", () => {
       const state1: PersistedFlowState = {
         stepId: "step1",
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -234,7 +243,8 @@ describe("createAsyncStorageStore", () => {
       const state2: PersistedFlowState = {
         stepId: "step2",
         context: {},
-        history: ["step2"],
+        path: [{ stepId: "step2", startedAt: 1234567890 }],
+        history: [{ stepId: "step2", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -265,7 +275,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -291,7 +302,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -322,7 +334,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -348,7 +361,8 @@ describe("createAsyncStorageStore", () => {
       const state1: PersistedFlowState = {
         stepId: "step1",
         context: { id: 1 },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -361,7 +375,8 @@ describe("createAsyncStorageStore", () => {
       const state2: PersistedFlowState = {
         stepId: "step2",
         context: { id: 2 },
-        history: ["step2"],
+        path: [{ stepId: "step2", startedAt: 1234567890 }],
+        history: [{ stepId: "step2", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now(), instanceId: "task-2" },
       };
@@ -424,7 +439,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { name: "test" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -452,7 +468,8 @@ describe("createAsyncStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { name: "test" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -472,7 +489,8 @@ describe("createAsyncStorageStore", () => {
       const state1: PersistedFlowState = {
         stepId: "step1",
         context: { id: 1 },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -480,7 +498,8 @@ describe("createAsyncStorageStore", () => {
       const state2: PersistedFlowState = {
         stepId: "step2",
         context: { id: 2 },
-        history: ["step2"],
+        path: [{ stepId: "step2", startedAt: 1234567890 }],
+        history: [{ stepId: "step2", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -499,6 +518,25 @@ describe("createAsyncStorageStore", () => {
 
       expect(result1).toEqual(state1);
       expect(result2).toEqual(state2);
+    });
+  });
+
+  describe("formatKey method", () => {
+    it("should handle undefined variantId and instanceId in formatKey method", () => {
+      const store = createAsyncStorageStore(mockAsyncStorage);
+
+      // Access the formatKey method directly with undefined values
+      const key1 = store.formatKey("test-flow", {
+        variantId: undefined,
+        instanceId: undefined,
+      });
+      expect(key1).toBe("useflow:test-flow:default:default");
+
+      const key2 = store.formatKey("test-flow", { instanceId: "inst-1" });
+      expect(key2).toBe("useflow:test-flow:default:inst-1");
+
+      const key3 = store.formatKey("test-flow", { variantId: "v2" });
+      expect(key3).toBe("useflow:test-flow:v2:default");
     });
   });
 });

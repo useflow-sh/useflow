@@ -27,7 +27,7 @@ export function FlowInspector({
   variantId?: string;
   position?: "left" | "right";
 }) {
-  const { context, stepId, status, history, isRestoring } = useFlow();
+  const { context, stepId, status, path, history, isRestoring } = useFlow();
   const [showDebug, setShowDebug] = useState(true);
   const [persistedState, setPersistedState] =
     useState<PersistedFlowState | null>(null);
@@ -90,7 +90,16 @@ export function FlowInspector({
                 <strong>Step:</strong> {stepId}
               </div>
               <div>
-                <strong>History:</strong> {history.join(" → ")}
+                <strong>Path:</strong>{" "}
+                {path.length > 0
+                  ? path.map((e) => e.stepId).join(" → ")
+                  : "(empty)"}
+              </div>
+              <div>
+                <strong>History:</strong>
+                <pre className="mt-1 text-[0.7rem] overflow-auto bg-muted p-2 rounded max-h-24">
+                  {JSON.stringify(history, null, 2)}
+                </pre>
               </div>
               <div>
                 <strong>Context:</strong>

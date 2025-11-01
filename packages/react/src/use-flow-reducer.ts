@@ -6,6 +6,8 @@ import {
   type FlowDefinition,
   type FlowState,
   flowReducer,
+  type HistoryEntry,
+  type PathEntry,
   type ResolverMap,
 } from "@useflow/core";
 import { useCallback, useReducer, useRef } from "react";
@@ -23,7 +25,10 @@ export type UseFlowReducerReturn<
   step: FlowDefinition<TContext>["steps"][string];
   context: TContext;
   status: "active" | "complete";
-  history: string[];
+  /** Path taken through the flow - used for back navigation */
+  path: PathEntry[];
+  /** Complete navigation history with timestamps - tracks all movements */
+  history: HistoryEntry[];
   // Overloaded next function signatures
   next: {
     (target: TValidNextSteps, update?: ContextUpdate<TContext>): void;
@@ -101,6 +106,7 @@ export function useFlowReducer<TContext extends FlowContext>(
     step: currentStep || {},
     context: state.context,
     status: state.status,
+    path: state.path,
     history: state.history,
     next,
     back,

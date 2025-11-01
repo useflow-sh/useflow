@@ -47,7 +47,8 @@ describe("createLocalStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { name: "test" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -68,7 +69,8 @@ describe("createLocalStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { name: "test" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -87,7 +89,8 @@ describe("createLocalStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { name: "test" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -111,7 +114,8 @@ describe("createLocalStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { name: "test" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -133,7 +137,8 @@ describe("createLocalStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { taskId: "123" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -152,7 +157,8 @@ describe("createLocalStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { taskId: "123" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -169,7 +175,8 @@ describe("createLocalStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -197,7 +204,8 @@ describe("createLocalStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { taskId: "123" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -217,15 +225,17 @@ describe("createLocalStorageStore", () => {
       const state1: PersistedFlowState = {
         stepId: "step1",
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
 
       const state2: PersistedFlowState = {
-        stepId: "step2",
+        stepId: "step1",
         context: {},
-        history: ["step2"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -258,7 +268,8 @@ describe("createLocalStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {},
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -289,7 +300,8 @@ describe("createLocalStorageStore", () => {
       const state1: PersistedFlowState = {
         stepId: "step1",
         context: { id: 1 },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -302,7 +314,8 @@ describe("createLocalStorageStore", () => {
       const state2: PersistedFlowState = {
         stepId: "step2",
         context: { id: 2 },
-        history: ["step2"],
+        path: [{ stepId: "step2", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now(), instanceId: "task-2" },
       };
@@ -357,7 +370,8 @@ describe("createLocalStorageStore", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: { name: "test" },
-        history: ["step1"],
+        path: [{ stepId: "step1", startedAt: 1234567890 }],
+        history: [{ stepId: "step1", startedAt: 1234567890 }],
         status: "active",
         __meta: { version: "v1", savedAt: Date.now() },
       };
@@ -394,7 +408,8 @@ describe("createSessionStorageStore", () => {
     const state: PersistedFlowState = {
       stepId: "step1",
       context: { name: "test" },
-      history: ["step1"],
+      path: [{ stepId: "step1", startedAt: 1234567890 }],
+      history: [{ stepId: "step1", startedAt: 1234567890 }],
       status: "active",
       __meta: { version: "v1", savedAt: Date.now() },
     };
@@ -416,7 +431,8 @@ describe("createSessionStorageStore", () => {
     const state: PersistedFlowState = {
       stepId: "step1",
       context: {},
-      history: ["step1"],
+      path: [{ stepId: "step1", startedAt: 1234567890 }],
+      history: [{ stepId: "step1", startedAt: 1234567890 }],
       status: "active",
       __meta: { version: "v1", savedAt: Date.now() },
     };
@@ -459,7 +475,8 @@ describe("createSessionStorageStore", () => {
     const state: PersistedFlowState = {
       stepId: "step1",
       context: {},
-      history: ["step1"],
+      path: [{ stepId: "step1", startedAt: 1234567890 }],
+      history: [{ stepId: "step1", startedAt: 1234567890 }],
       status: "active",
       __meta: { savedAt: Date.now() },
     };
@@ -478,7 +495,8 @@ describe("createSessionStorageStore", () => {
     const state: PersistedFlowState = {
       stepId: "step1",
       context: {},
-      history: ["step1"],
+      path: [{ stepId: "step1", startedAt: 1234567890 }],
+      history: [{ stepId: "step1", startedAt: 1234567890 }],
       status: "active",
       __meta: { savedAt: Date.now() },
     };
@@ -491,5 +509,41 @@ describe("createSessionStorageStore", () => {
     await store.removeAll?.();
 
     expect(mockStorage.length).toBe(0);
+  });
+
+  describe("formatKey method", () => {
+    it("should handle undefined variantId and instanceId in formatKey method for localStorage", () => {
+      const store = createLocalStorageStore(mockStorage, { prefix: "test" });
+
+      // Access the formatKey method directly with undefined values
+      const key1 = store.formatKey("test-flow", {
+        variantId: undefined,
+        instanceId: undefined,
+      });
+      expect(key1).toBe("test:test-flow:default:default");
+
+      const key2 = store.formatKey("test-flow", { instanceId: "inst-1" });
+      expect(key2).toBe("test:test-flow:default:inst-1");
+
+      const key3 = store.formatKey("test-flow", { variantId: "v2" });
+      expect(key3).toBe("test:test-flow:v2:default");
+    });
+
+    it("should handle undefined variantId and instanceId in formatKey method for sessionStorage", () => {
+      const store = createSessionStorageStore(mockStorage, { prefix: "test" });
+
+      // Access the formatKey method directly with undefined values
+      const key1 = store.formatKey("test-flow", {
+        variantId: undefined,
+        instanceId: undefined,
+      });
+      expect(key1).toBe("test:test-flow:default:default");
+
+      const key2 = store.formatKey("test-flow", { instanceId: "inst-1" });
+      expect(key2).toBe("test:test-flow:default:inst-1");
+
+      const key3 = store.formatKey("test-flow", { variantId: "v2" });
+      expect(key3).toBe("test:test-flow:v2:default");
+    });
   });
 });

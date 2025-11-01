@@ -1,4 +1,9 @@
-import { validateFlowDefinition } from "@useflow/core";
+import {
+  type RuntimeFlowDefinition as CoreRuntimeFlowDefinition,
+  defineFlow as coreDefineFlow,
+  type FlowContext,
+  type FlowRuntimeConfig,
+} from "@useflow/core";
 import { useFlow } from "./flow";
 import type {
   ExtractContext,
@@ -9,55 +14,66 @@ import type {
 import type { UseFlowReturn } from "./types";
 
 /**
- * Enhanced flow object returned by defineFlow
- * Contains a type-safe useFlow hook, the original config, and flow ID
+ * React-enhanced flow definition
+ * Extends core RuntimeFlowDefinition with React-specific useFlow hook
  */
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-export type FlowDefinition<TConfig extends FlowConfig<any>> = {
-  id: string;
-
-  /**
-   * The flow configuration (raw config object)
-   */
-  config: TConfig;
-
-  /**
-   * Custom hook for this flow with type-safe step navigation
-   */
-  useFlow: <TStep extends StepNames<TConfig>>(options: {
-    step: TStep;
-  }) => UseFlowReturn<
-    ExtractContext<TConfig>,
-    ValidNextSteps<TConfig, TStep>,
-    StepNames<TConfig>
-  >;
-};
+export type FlowDefinition<TConfig extends FlowConfig<any>> =
+  CoreRuntimeFlowDefinition<TConfig, ExtractContext<TConfig>> & {
+    /**
+     * Custom hook for this flow with type-safe step navigation
+     */
+    useFlow: <TStep extends StepNames<TConfig>>(options: {
+      step: TStep;
+    }) => UseFlowReturn<
+      ExtractContext<TConfig>,
+      ValidNextSteps<TConfig, TStep>,
+      StepNames<TConfig>
+    >;
+  };
 
 /**
- * Define a flow configuration with type-safe navigation
- * Returns an object with a type-safe useFlow hook and config
+ * Define a React flow with type-safe navigation and optional runtime config
  *
- * Use with 'as const satisfies FlowConfig<YourContext>' for full type safety!
+ * Wraps the core defineFlow with React-specific useFlow hook for type-safe step navigation.
  *
- * Components are defined at the FlowProvider level for better co-location.
+ * **Note:** No `as const` needed! The `const` type parameter automatically infers literal types.
+ * Optionally specify context type via generic parameter `defineFlow<MyContext>(...)`.
+ *
+ * @param config - Flow configuration (serializable)
+ * @param runtimeConfig - Optional runtime configuration builder (receives type-safe step references)
  *
  * @example
  * ```ts
+ * // Simple flow - no "as const" needed!
+ * export const simpleFlow = defineFlow({
+ *   id: 'simple-flow',
+ *   start: 'welcome',
+ *   steps: {
+ *     welcome: { next: 'complete' },
+ *     complete: {}
+ *   }
+ * });
+ *
+ * // With context type and runtime config
  * type MyContext = { userType: "business" | "personal" };
  *
- * export const myFlow = defineFlow({
+ * export const myFlow = defineFlow<MyContext>({
  *   id: 'my-flow',
  *   start: 'welcome',
  *   steps: {
- *     welcome: {
- *       next: ['business', 'personal'],
- *       resolve: (ctx) => ctx.userType === 'business' ? 'business' : 'personal'
- *     },
+ *     welcome: { next: ['business', 'personal'] },
  *     business: { next: 'complete' },
  *     personal: { next: 'complete' },
  *     complete: {}
  *   }
- * } as const satisfies FlowConfig<MyContext>);
+ * }, (steps) => ({
+ *   resolve: {
+ *     welcome: (ctx) => ctx.userType === 'business'
+ *       ? steps.business
+ *       : steps.personal
+ *   }
+ * }));
  *
  * // In component - use the hook:
  * function WelcomeStep() {
@@ -72,51 +88,46 @@ export type FlowDefinition<TConfig extends FlowConfig<any>> = {
  *     </button>
  *   );
  * }
- *
- * // Define components at Flow level:
- * <Flow
- *   flow={myFlow}
- *   components={{
- *     welcome: WelcomeStep,
- *     business: BusinessStep,
- *     personal: PersonalStep,
- *     complete: CompleteStep
- *   }}
- *   initialContext={{ userType: 'business' }}
- * />
  * ```
  */
-// biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-export function defineFlow<TConfig extends FlowConfig<any>>(
+// Support two calling patterns:
+// 1. defineFlow({ config }) - context type defaults to FlowContext
+// 2. defineFlow<MyContext>({ config }) - context type explicitly provided for resolvers
+export function defineFlow<
+  TContext extends FlowContext = FlowContext,
+  const TConfig extends FlowConfig<TContext> = FlowConfig<TContext>,
+>(
   config: TConfig,
+  runtimeConfig?: FlowRuntimeConfig<TConfig, TContext>,
 ): FlowDefinition<TConfig> {
-  type TContext = ExtractContext<TConfig>;
+  // Call core defineFlow to get enhanced definition
+  const coreDefinition = coreDefineFlow<TContext, TConfig>(
+    config,
+    runtimeConfig,
+  );
 
-  // Always validate flow definition (catches config errors immediately)
-  // This is a one-time check at initialization, not in hot path
-  validateFlowDefinition(config);
-
-  // Create the hook
+  // Create React-specific hook
   const useFlowHook = <TStep extends StepNames<TConfig>>(options: {
     step: TStep;
   }): UseFlowReturn<
-    TContext,
+    ExtractContext<TConfig>,
     ValidNextSteps<TConfig, TStep>,
     StepNames<TConfig>
   > => {
     // Safe cast: The Flow component guarantees the runtime shape matches the types
     // - steps contains all StepNames<TConfig> as keys with proper StepInfo
     // - nextSteps is narrowed to ValidNextSteps based on current step
-    return useFlow<TContext>(options) as unknown as UseFlowReturn<
-      TContext,
+    return useFlow<ExtractContext<TConfig>>(
+      options,
+    ) as unknown as UseFlowReturn<
+      ExtractContext<TConfig>,
       ValidNextSteps<TConfig, TStep>,
       StepNames<TConfig>
     >;
   };
 
   return {
-    id: config.id,
-    config,
+    ...coreDefinition,
     useFlow: useFlowHook,
-  };
+  } as FlowDefinition<TConfig>;
 }

@@ -159,12 +159,8 @@ export function DynamicFlowDemo() {
   return (
     <Flow
       key={selectedFlow.id}
-      // Type assertion needed because TypeScript sees standardFlow and expressFlow as distinct types
-      // even though they share the same context. This is safe because:
-      // 1. Both flows use OnboardingContext
-      // 2. allComponents provides all steps needed by both flows
-      // 3. The key prop ensures Flow remounts when switching flows
-      flow={selectedFlow}
+      // biome-ignore lint/suspicious/noExplicitAny: Union of different flow types requires type assertion for dynamic switching
+      flow={selectedFlow as any}
       components={allComponents}
       initialContext={initialContext}
       persister={persister}

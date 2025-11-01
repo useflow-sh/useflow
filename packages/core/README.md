@@ -160,40 +160,7 @@ const state = createInitialState(definition, { name: "", age: 0 });
 // Returns: { stepId: "welcome", context: { name: "", age: 0 }, history: ["welcome"], status: "active" }
 ```
 
-#### `step(config)`
 
-**Type-safe helper** for creating steps with resolve functions. Provides compile-time type checking to ensure resolve only returns values from the next array:
-
-```typescript
-import { step } from "@useflow/core";
-
-// ✅ Type-safe - TypeScript will catch errors
-const userTypeStep = step({
-  next: ["businessDetails", "personalDetails"],
-  resolve: (ctx: Context) => ctx.accountType === "business" ? "businessDetails" : "personalDetails"
-});
-
-// ❌ Type error - "invalidStep" is not in next array
-const badStep = step({
-  next: ["businessDetails", "personalDetails"],
-  resolve: (ctx: Context) => "invalidStep"  // TypeScript error!
-});
-
-// Use in flow definition
-const flow = {
-  id: "my-flow",
-  start: "userType",
-  steps: {
-    userType: step({
-      next: ["businessDetails", "personalDetails"],
-      resolve: (ctx) => ctx.accountType === "business" ? "businessDetails" : "personalDetails"
-    }),
-    businessDetails: { next: "complete" },
-    personalDetails: { next: "complete" },
-    complete: {},
-  },
-};
-```
 
 ## Examples
 
@@ -214,7 +181,7 @@ const flow: FlowDefinition<Context> = {
 
 ### Context-Driven Branching
 
-Dynamic routing based on context using the `resolve` property:
+Dynamic routing based on context using runtime resolvers (implemented by framework adapters like `@useflow/react`):
 
 ```typescript
 type Context = {
@@ -222,23 +189,27 @@ type Context = {
   name: string;
 };
 
-import { step } from "@useflow/core";
-
-const flow: FlowDefinition<Context> = {
+const config: FlowConfig<Context> = {
   id: "account-flow",
   start: "userType",
   steps: {
-    // ✨ Type-safe with step() helper
-    userType: step({
+    userType: {
       next: ["businessDetails", "personalDetails"],
-      resolve: (ctx) => ctx.accountType === "business" ? "businessDetails" : "personalDetails"
-    }),
+    },
     businessDetails: { next: "complete" },
     personalDetails: { next: "complete" },
     complete: {},
   },
 };
+
+// Runtime resolvers (passed to flowReducer)
+const resolvers = {
+  userType: (ctx: Context) => 
+    ctx.accountType === "business" ? "businessDetails" : "personalDetails",
+};
 ```
+
+**Note:** Framework adapters like `@useflow/react` provide the `defineFlow()` function with a `runtimeConfig` parameter for defining resolvers with type-safe step references.
 
 ### Component-Driven Branching (Array Navigation)
 
@@ -292,25 +263,35 @@ state = flowReducer(
 
 ### Guard Conditions
 
-Prevent navigation until conditions are met using `resolve`:
+Prevent navigation until conditions are met using runtime resolvers:
 
 ```typescript
-const flow: FlowDefinition<Context> = {
+type Context = {
+  isValid: boolean;
+};
+
+const config: FlowConfig<Context> = {
   id: "form-flow",
   start: "form",
   steps: {
     form: {
       next: ["complete"],
-      resolve: (ctx) => ctx.isValid ? "complete" : undefined,
     },
     complete: {},
   },
 };
 
-// When resolve returns undefined, stays on current step
-state = flowReducer(state, { type: "NEXT" }, flow);
+// Runtime resolvers (passed to flowReducer)
+const resolvers = {
+  form: (ctx: Context) => ctx.isValid ? "complete" : undefined,
+};
+
+// When resolver returns undefined, stays on current step
+state = flowReducer(state, { type: "NEXT" }, config, resolvers);
 // If isValid is false, stepId remains "form"
 ```
+
+**Note:** Framework adapters like `@useflow/react` handle passing resolvers to the reducer automatically.
 
 ## Type Safety
 

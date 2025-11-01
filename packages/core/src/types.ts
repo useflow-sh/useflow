@@ -26,46 +26,23 @@ export type ContextUpdate<TContext extends FlowContext = FlowContext> =
 export type StepTransition = string | readonly string[];
 
 /**
- * Step definition with optional context resolver
+ * Step definition - purely declarative structure
  * Component is added by framework-specific packages
+ *
+ * Note: Resolver functions are defined separately in the runtime configuration
+ * to keep this type serializable for remote configs
  */
-export type StepDefinition<
-  TContext extends FlowContext = FlowContext,
-  TNext extends StepTransition = StepTransition,
-> = TNext extends readonly string[]
-  ? {
-      /**
-       * Next step(s) this step can navigate to - Array for branching
-       */
-      next: TNext;
-
-      /**
-       * Optional resolver for context-driven branching
-       * When next is an array, this function determines which step to navigate to
-       * Must return one of the step names from the next array
-       *
-       * If next is an array and no resolve is provided, component MUST call next() with explicit target
-       *
-       * Type-safe: return type is constrained to the values in the next array
-       *
-       * @param context - Current flow context
-       * @returns One of the step names from next, or undefined to stay on current step
-       */
-      resolve?: (context: TContext) => TNext[number] | undefined;
-    }
-  : {
-      /**
-       * Next step(s) this step can navigate to
-       * - string: Single destination - component calls next() with no args
-       * - undefined: Terminal step (flow complete)
-       */
-      next?: TNext;
-
-      /**
-       * resolve is not available for non-array next (use with array next only)
-       */
-      resolve?: never;
-    };
+export type StepDefinition<TNext extends StepTransition = StepTransition> = {
+  /**
+   * Next step(s) this step can navigate to
+   * - string: Single destination - component calls next() with no args
+   * - string[]: Multiple destinations - requires either:
+   *   - Resolver function (defined in runtime config), OR
+   *   - Component calls next('target') with explicit target
+   * - undefined: Terminal step (flow complete)
+   */
+  next?: TNext;
+};
 
 /**
  * Persistable flow state - can be serialized to JSON
@@ -100,17 +77,18 @@ export type PersistedFlowInstance<TContext extends FlowContext = FlowContext> =
   };
 
 /**
- * Flow definition
- * Simple declarative object defining steps and transitions
+ * Flow definition - purely declarative, JSON-serializable structure
+ * No runtime functions (migrate, resolve) - those are defined separately
+ * in the runtime configuration to enable remote configs
  *
- * Use 'as const' to preserve literal types for type-safe resolve functions
+ * Use 'as const' to preserve literal types for type-safe step references
  */
 export type FlowDefinition<
-  TContext extends FlowContext = FlowContext,
-  TSteps extends Record<
+  _TContext extends FlowContext = FlowContext,
+  TSteps extends Record<string, StepDefinition<StepTransition>> = Record<
     string,
-    StepDefinition<TContext, StepTransition>
-  > = Record<string, StepDefinition<TContext, StepTransition>>,
+    StepDefinition<StepTransition>
+  >,
 > = {
   id: string;
   start: string;
@@ -135,74 +113,6 @@ export type FlowDefinition<
    * @optional
    */
   variantId?: string;
-
-  /**
-   * Migration function to transform persisted state from old versions
-   * Called when persisted state version doesn't match current version
-   *
-   * **IMPORTANT:** If you use persistence, you MUST handle migrations properly when making
-   * breaking changes to your flow. Breaking changes include:
-   * - Renaming or removing context fields
-   * - Renaming or removing steps
-   * - Changing the flow structure
-   *
-   * Without proper migrations, users with old persisted state will experience errors or
-   * lose their progress. Always update `version` (e.g., "v1" → "v2") and provide a
-   * `migrate` function when making breaking changes.
-   *
-   * Receives the full persisted state (stepId, context, history, status) to allow
-   * migrations that need to update step names, history, or other fields beyond context.
-   *
-   * @param persistedState - The saved state with old version (includes all fields)
-   * @param fromVersion - The version of the persisted state (from __meta.version)
-   * @returns Migrated state with updated fields, or null to discard
-   *
-   * @example
-   * ```ts
-   * // Example 1: Simple context migration
-   * const flow = defineFlow({
-   *   id: 'onboarding',
-   *   version: 'v2',
-   *   migrate: (state, fromVersion) => {
-   *     if (fromVersion === 'v1') {
-   *       return {
-   *         ...state,
-   *         context: {
-   *           ...state.context,
-   *           emailAddress: state.context.email, // Renamed field
-   *         },
-   *       };
-   *     }
-   *     return null; // Unknown version, discard
-   *   },
-   *   start: 'welcome',
-   *   steps: { ... }
-   * });
-   *
-   * // Example 2: Migration with step name changes
-   * const flow = defineFlow({
-   *   id: 'onboarding',
-   *   version: 'v3',
-   *   migrate: (state, fromVersion) => {
-   *     if (fromVersion === 'v2') {
-   *       // Renamed step: 'userProfile' -> 'profile'
-   *       return {
-   *         ...state,
-   *         stepId: state.stepId === 'userProfile' ? 'profile' : state.stepId,
-   *         history: state.history.map(s => s === 'userProfile' ? 'profile' : s),
-   *       };
-   *     }
-   *     return null;
-   *   },
-   *   start: 'welcome',
-   *   steps: { ... }
-   * });
-   * ```
-   */
-  migrate?: (
-    persistedState: PersistedFlowState<TContext>,
-    fromVersion: string | undefined,
-  ) => PersistedFlowState<TContext> | null;
 };
 
 /**

@@ -6,6 +6,7 @@ import {
   type FlowDefinition,
   type FlowState,
   flowReducer,
+  type ResolverMap,
 } from "@useflow/core";
 import { useCallback, useReducer, useRef } from "react";
 
@@ -43,19 +44,22 @@ export type UseFlowReducerReturn<
  * @internal
  * @param definition - Flow definition
  * @param initialContext - Initial context values
+ * @param initialState - Optional initial state to restore
+ * @param resolvers - Optional resolver map for context-driven branching
  * @returns Flow state and control functions
  */
 export function useFlowReducer<TContext extends FlowContext>(
   definition: FlowDefinition<TContext>,
   initialContext: TContext,
   initialState?: FlowState<TContext>,
+  resolvers?: ResolverMap<TContext>,
 ): UseFlowReducerReturn<TContext> {
   // Store initial context in a ref so it's stable across re-renders
   const initialContextRef = useRef(initialContext);
 
   const [state, dispatch] = useReducer(
     (state: FlowState<TContext>, action: FlowAction<TContext>) =>
-      flowReducer(state, action, definition),
+      flowReducer(state, action, definition, { resolvers }),
     initialState ?? createInitialState(definition, initialContext),
   );
 

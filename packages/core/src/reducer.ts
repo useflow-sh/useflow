@@ -1,3 +1,4 @@
+import type { ResolverMap } from "./runtime";
 import type {
   ContextUpdate,
   FlowAction,
@@ -98,12 +99,16 @@ export function createInitialState<TContext extends FlowContext>(
  * @param state - Current flow state
  * @param action - Action to perform
  * @param definition - Flow definition
+ * @param options - Optional runtime configuration (resolvers for context-driven branching)
  * @returns New flow state
  */
 export function flowReducer<TContext extends FlowContext>(
   state: FlowState<TContext>,
   action: FlowAction<TContext>,
   definition: FlowDefinition<TContext>,
+  options?: {
+    resolvers?: ResolverMap<TContext>;
+  },
 ): FlowState<TContext> {
   switch (action.type) {
     case "SET_CONTEXT": {
@@ -159,15 +164,16 @@ export function flowReducer<TContext extends FlowContext>(
           // String: simple static navigation
           nextStepId = step.next;
         } else if (Array.isArray(step.next)) {
-          // Array: check for resolve function
-          if (step.resolve) {
-            // Context-driven: use resolve to determine next step
-            const resolved = step.resolve(updatedContext);
+          // Array: check for resolver function
+          const resolver = options?.resolvers?.[updatedState.stepId];
+          if (resolver) {
+            // Context-driven: use resolver to determine next step
+            const resolved = resolver(updatedContext);
 
             // Validate resolved value is in next array
             if (resolved && !step.next.includes(resolved)) {
               throw new Error(
-                `resolve() returned "${resolved}" which is not in next array: [${step.next.join(", ")}] ` +
+                `resolver() returned "${resolved}" which is not in next array: [${step.next.join(", ")}] ` +
                   `for step "${updatedState.stepId}"`,
               );
             }
@@ -176,7 +182,7 @@ export function flowReducer<TContext extends FlowContext>(
           } else {
             // Component-driven but no explicit target - ERROR
             throw new Error(
-              `Step "${updatedState.stepId}" has multiple next steps [${step.next.join(", ")}] but no resolve function. ` +
+              `Step "${updatedState.stepId}" has multiple next steps [${step.next.join(", ")}] but no resolver function. ` +
                 `Component must call next() with explicit target: ${step.next.map((s) => `next('${s}')`).join(" or ")}`,
             );
           }

@@ -33,18 +33,21 @@ export interface FlowPersister {
    * @param flowId - Unique identifier for the flow
    * @param options - Optional restore options (version, instanceId, variantId, and migration)
    */
-  restore(
+  restore<TContext extends FlowContext = FlowContext>(
     flowId: string,
     options?: {
       version?: string;
       instanceId?: string;
       variantId?: string;
       migrate?: (
-        state: PersistedFlowState,
+        state: PersistedFlowState<TContext>,
         fromVersion: string | undefined,
-      ) => PersistedFlowState | null;
+      ) => PersistedFlowState<TContext> | null;
     },
-  ): PersistedFlowState | null | Promise<PersistedFlowState | null>;
+  ):
+    | PersistedFlowState<TContext>
+    | null
+    | Promise<PersistedFlowState<TContext> | null>;
 
   /**
    * Remove saved state for a specific flow instance

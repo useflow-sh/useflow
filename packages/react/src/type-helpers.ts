@@ -2,7 +2,7 @@ import type { FlowContext, FlowDefinition } from "@useflow/core";
 
 /**
  * FlowConfig is an alias for core's FlowDefinition
- * Used for defining flows with 'as const satisfies FlowConfig<MyContext>'
+ * Used for type constraints in defineFlow
  */
 export type FlowConfig<TContext extends FlowContext = FlowContext> =
   FlowDefinition<TContext>;

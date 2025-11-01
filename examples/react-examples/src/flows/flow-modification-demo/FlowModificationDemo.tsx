@@ -185,7 +185,7 @@ export function FlowModificationDemo() {
       id: `demo-flow-${flowKey}`,
       start: "stepA",
       steps,
-    } as const);
+    });
   }, [config, flowKey]);
 
   const updateConfig = (updates: Partial<FlowConfig>) => {
@@ -265,7 +265,7 @@ export function FlowModificationDemo() {
 
     lines.push("    final: {}");
     lines.push("  }");
-    lines.push("} as const);");
+    lines.push("});");
 
     return lines.join("\n");
   }, [config]);

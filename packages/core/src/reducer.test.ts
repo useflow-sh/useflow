@@ -160,20 +160,23 @@ describe("flowReducer", () => {
       steps: {
         profile: {
           next: ["business", "personal"],
-          resolve: (ctx) => (ctx.isBusiness ? "business" : "personal"),
         },
         business: {},
         personal: {},
       },
     };
 
+    const resolvers = {
+      profile: (ctx: TestContext) => (ctx.isBusiness ? "business" : "personal"),
+    };
+
     let state = createInitialState(definition, { isBusiness: true });
-    state = flowReducer(state, { type: "NEXT" }, definition);
+    state = flowReducer(state, { type: "NEXT" }, definition, { resolvers });
     expect(state.stepId).toBe("business");
     expect(state.status).toBe("complete"); // Final step
 
     state = createInitialState(definition, { isBusiness: false });
-    state = flowReducer(state, { type: "NEXT" }, definition);
+    state = flowReducer(state, { type: "NEXT" }, definition, { resolvers });
     expect(state.stepId).toBe("personal");
     expect(state.status).toBe("complete"); // Final step
   });
@@ -212,14 +215,17 @@ describe("flowReducer", () => {
       steps: {
         form: {
           next: ["complete"],
-          resolve: (ctx) => (ctx.isValid ? "complete" : undefined),
         },
         complete: {},
       },
     };
 
+    const resolvers = {
+      form: (ctx: TestContext) => (ctx.isValid ? "complete" : undefined),
+    };
+
     let state = createInitialState(definition, { isValid: false });
-    state = flowReducer(state, { type: "NEXT" }, definition);
+    state = flowReducer(state, { type: "NEXT" }, definition, { resolvers });
 
     expect(state.stepId).toBe("form");
     expect(state.history).toEqual(["form"]);
@@ -228,8 +234,9 @@ describe("flowReducer", () => {
       state,
       { type: "SET_CONTEXT", update: { isValid: true } },
       definition,
+      { resolvers },
     );
-    state = flowReducer(state, { type: "NEXT" }, definition);
+    state = flowReducer(state, { type: "NEXT" }, definition, { resolvers });
 
     expect(state.stepId).toBe("complete");
   });
@@ -311,11 +318,14 @@ describe("flowReducer", () => {
       steps: {
         game: {
           next: ["win", "lose"],
-          resolve: (ctx) => (ctx.score >= 100 ? "win" : "lose"),
         },
         win: {},
         lose: {},
       },
+    };
+
+    const resolvers = {
+      game: (ctx: TestContext) => (ctx.score >= 100 ? "win" : "lose"),
     };
 
     let state = createInitialState(definition, { score: 50 });
@@ -328,6 +338,7 @@ describe("flowReducer", () => {
         update: (ctx) => ({ score: ctx.score + 30 }),
       },
       definition,
+      { resolvers },
     );
 
     expect(state.stepId).toBe("lose");
@@ -342,6 +353,7 @@ describe("flowReducer", () => {
         update: (ctx) => ({ score: ctx.score + 20 }),
       },
       definition,
+      { resolvers },
     );
 
     expect(state.stepId).toBe("win");
@@ -421,7 +433,7 @@ describe("flowReducer", () => {
       'Step "choice" has multiple next steps',
     );
     expect(() => flowReducer(state, action, flow)).toThrow(
-      "but no resolve function",
+      "but no resolver function",
     );
   });
 
@@ -533,8 +545,6 @@ describe("flowReducer", () => {
         userType: {
           // Context-driven branching
           next: ["businessSetup", "setup"],
-          resolve: (ctx) =>
-            ctx.userType === "business" ? "businessSetup" : "setup",
         },
         businessSetup: {
           next: "setup",
@@ -548,6 +558,11 @@ describe("flowReducer", () => {
       },
     };
 
+    const resolvers = {
+      userType: (ctx: TestContext) =>
+        ctx.userType === "business" ? "businessSetup" : "setup",
+    };
+
     let state = createInitialState<TestContext>(flow, {});
 
     // Context-driven: navigate as business
@@ -555,11 +570,12 @@ describe("flowReducer", () => {
       state,
       { type: "NEXT", update: (ctx) => ({ ...ctx, userType: "business" }) },
       flow,
+      { resolvers },
     );
     expect(state.stepId).toBe("businessSetup");
 
     // Continue to setup
-    state = flowReducer(state, { type: "NEXT" }, flow);
+    state = flowReducer(state, { type: "NEXT" }, flow, { resolvers });
     expect(state.stepId).toBe("setup");
 
     // Array-based: explicitly choose advanced
@@ -571,6 +587,7 @@ describe("flowReducer", () => {
         update: (ctx) => ({ ...ctx, setupChoice: "advanced" }),
       },
       flow,
+      { resolvers },
     );
     expect(state.stepId).toBe("advanced");
     expect(state.context.setupChoice).toBe("advanced");
@@ -707,11 +724,14 @@ describe("flowReducer", () => {
       steps: {
         game: {
           next: ["win", "lose"],
-          resolve: (ctx) => (ctx.score >= 100 ? "win" : "lose"),
         },
         win: {},
         lose: {},
       },
+    };
+
+    const resolvers = {
+      game: (ctx: TestContext) => (ctx.score >= 100 ? "win" : "lose"),
     };
 
     const state = createInitialState(flow, { score: 50 });
@@ -722,7 +742,7 @@ describe("flowReducer", () => {
       target: "win",
     };
 
-    const newState = flowReducer(state, action, flow);
+    const newState = flowReducer(state, action, flow, { resolvers });
     expect(newState.stepId).toBe("win"); // Should use explicit target
   });
 
@@ -822,13 +842,13 @@ describe("validateFlowDefinition", () => {
       steps: {
         first: {
           next: ["second"],
-          resolve: () => "missing", // Can't validate this at definition time
         },
         second: {},
       },
     };
 
     // Should not throw - resolve returns can't be validated statically
+    // (resolvers are validated at runtime)
     expect(() => validateFlowDefinition(flow)).not.toThrow();
   });
 
@@ -1006,7 +1026,6 @@ describe("resolve property", () => {
       steps: {
         choice: {
           next: ["optionA", "optionB"],
-          resolve: () => "invalidOption", // Not in next array
         },
         optionA: {},
         optionB: {},
@@ -1014,10 +1033,16 @@ describe("resolve property", () => {
       },
     };
 
+    const resolvers = {
+      choice: () => "invalidOption", // Not in next array
+    };
+
     const state = createInitialState<TestContext>(flow, { choice: "" });
 
-    expect(() => flowReducer(state, { type: "NEXT" }, flow)).toThrow(
-      'resolve() returned "invalidOption" which is not in next array: [optionA, optionB]',
+    expect(() =>
+      flowReducer(state, { type: "NEXT" }, flow, { resolvers }),
+    ).toThrow(
+      'resolver() returned "invalidOption" which is not in next array: [optionA, optionB] for step "choice"',
     );
   });
 
@@ -1030,19 +1055,22 @@ describe("resolve property", () => {
       steps: {
         choice: {
           next: ["business", "personal"],
-          resolve: (ctx) => ctx.userType,
         },
         business: {},
         personal: {},
       },
     };
 
+    const resolvers = {
+      choice: (ctx: TestContext) => ctx.userType,
+    };
+
     let state = createInitialState<TestContext>(flow, { userType: "business" });
-    state = flowReducer(state, { type: "NEXT" }, flow);
+    state = flowReducer(state, { type: "NEXT" }, flow, { resolvers });
     expect(state.stepId).toBe("business");
 
     state = createInitialState<TestContext>(flow, { userType: "personal" });
-    state = flowReducer(state, { type: "NEXT" }, flow);
+    state = flowReducer(state, { type: "NEXT" }, flow, { resolvers });
     expect(state.stepId).toBe("personal");
   });
 
@@ -1055,17 +1083,22 @@ describe("resolve property", () => {
       steps: {
         game: {
           next: ["win", "lose"],
-          resolve: (ctx) => (ctx.score >= 100 ? "win" : "lose"),
         },
         win: {},
         lose: {},
       },
     };
 
+    const resolvers = {
+      game: (ctx: TestContext) => (ctx.score >= 100 ? "win" : "lose"),
+    };
+
     const state = createInitialState<TestContext>(flow, { score: 50 });
 
     // resolve would return "lose", but explicit target overrides it
-    const newState = flowReducer(state, { type: "NEXT", target: "win" }, flow);
+    const newState = flowReducer(state, { type: "NEXT", target: "win" }, flow, {
+      resolvers,
+    });
     expect(newState.stepId).toBe("win");
   });
 
@@ -1078,14 +1111,17 @@ describe("resolve property", () => {
       steps: {
         waiting: {
           next: ["complete"],
-          resolve: (ctx) => (ctx.ready ? "complete" : undefined),
         },
         complete: {},
       },
     };
 
+    const resolvers = {
+      waiting: (ctx: TestContext) => (ctx.ready ? "complete" : undefined),
+    };
+
     let state = createInitialState<TestContext>(flow, { ready: false });
-    state = flowReducer(state, { type: "NEXT" }, flow);
+    state = flowReducer(state, { type: "NEXT" }, flow, { resolvers });
     expect(state.stepId).toBe("waiting"); // Should stay on same step
 
     // When ready is true, should navigate
@@ -1093,8 +1129,9 @@ describe("resolve property", () => {
       state,
       { type: "SET_CONTEXT", update: { ready: true } },
       flow,
+      { resolvers },
     );
-    state = flowReducer(state, { type: "NEXT" }, flow);
+    state = flowReducer(state, { type: "NEXT" }, flow, { resolvers });
     expect(state.stepId).toBe("complete");
   });
 
@@ -1107,11 +1144,15 @@ describe("resolve property", () => {
       steps: {
         start: {
           next: ["active", "inactive"],
-          resolve: (ctx) => (ctx.status === "ready" ? "active" : "inactive"),
         },
         active: {},
         inactive: {},
       },
+    };
+
+    const resolvers = {
+      start: (ctx: TestContext) =>
+        ctx.status === "ready" ? "active" : "inactive",
     };
 
     let state = createInitialState<TestContext>(flow, { status: "pending" });
@@ -1121,6 +1162,7 @@ describe("resolve property", () => {
       state,
       { type: "NEXT", update: { status: "ready" } },
       flow,
+      { resolvers },
     );
     expect(state.stepId).toBe("active");
     expect(state.context.status).toBe("ready");

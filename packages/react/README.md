@@ -45,7 +45,7 @@ export const onboardingFlow = defineFlow({
       // No next = final step
     },
   },
-} as const satisfies FlowConfig<OnboardingContext>);
+});
 ```
 
 ### 2. Render Your Flow
@@ -141,7 +141,7 @@ export const myFlow = defineFlow({
     personal: { next: "complete" },
     complete: {},
   },
-} as const satisfies FlowConfig<MyContext>);
+});
 ```
 
 **Returns:**
@@ -301,47 +301,49 @@ function WelcomeStep() {
 
 ### Context-Driven Branching
 
-Flow decides next step based on context using the `resolve` property:
+Flow decides next step based on context using resolver functions in `runtimeConfig`:
 
 ```tsx
-import { defineFlow, step } from "@useflow/react";
+import { defineFlow } from "@useflow/react";
 
-const flow = defineFlow({
-  id: "flow",
-  start: "userType",
-  steps: {
-    // ✨ Type-safe with step() helper
-    userType: step({
-      next: ["businessDetails", "enterpriseDetails", "preferences"],
-      resolve: (ctx) => {
-        if (ctx.accountType === "business") return "businessDetails";
-        if (ctx.accountType === "enterprise") return "enterpriseDetails";
-        return "preferences";
-      }
-    }),
-    businessDetails: {
-      next: "preferences",
+type Context = {
+  accountType: "business" | "enterprise" | "personal";
+};
+
+const flow = defineFlow(
+  {
+    id: "flow",
+    start: "userType",
+    steps: {
+      userType: {
+        next: ["businessDetails", "enterpriseDetails", "preferences"],
+      },
+      businessDetails: {
+        next: "preferences",
+      },
+      enterpriseDetails: {
+        next: "preferences",
+      },
+      preferences: {
+        next: "complete",
+      },
+      complete: {},
     },
-    enterpriseDetails: {
-      next: "preferences",
-    },
-    preferences: {
-      next: "complete",
-    },
-    complete: {},
   },
-} as const satisfies FlowConfig<Context>);
+  (steps) => ({
+    resolve: {
+      // Type annotation on ctx parameter for type safety
+      userType: (ctx: Context) => {
+        if (ctx.accountType === "business") return steps.businessDetails;
+        if (ctx.accountType === "enterprise") return steps.enterpriseDetails;
+        return steps.preferences;
+      },
+    },
+  })
+);
 ```
 
-**Type Safety:** Use the `step()` helper function to get compile-time type checking. The `resolve` function's return type is automatically constrained to only the values in the `next` array (plus `undefined`). TypeScript will catch errors at compile time if you accidentally return an invalid step name.
-
-**Alternative (without helper):** You can also define steps inline without the helper, but you'll lose compile-time type checking:
-```tsx
-userType: {
-  next: ["businessDetails", "preferences"],
-  resolve: (ctx) => ctx.accountType === "business" ? "businessDetails" : "wrongStep", // ⚠️ No type error
-}
-```
+**Type Safety:** By annotating the `ctx` parameter with your context type (`ctx: Context`), you get full type safety. The resolver returns type-safe step references (`steps.businessDetails`) instead of string IDs.
 
 ### Component-Driven Branching (Array Navigation)
 
@@ -361,7 +363,7 @@ const flow = defineFlow({
     skip: { next: "complete" },
     complete: {},
   },
-} as const satisfies FlowConfig<Context>);
+});
 
 function SetupStep() {
   const { next } = useFlow();
@@ -414,21 +416,32 @@ next((ctx) => ({
 
 ### Guard Conditions
 
-Prevent navigation until conditions are met using `resolve`:
+Prevent navigation until conditions are met using resolver functions:
 
 ```tsx
-const flow = defineFlow({
-  id: "flow",
-  start: "form",
-  steps: {
-    form: {
-      // Only navigate if form is valid
-      next: ["complete"],
-      resolve: (ctx) => (ctx.isValid ? "complete" : undefined),
+type Context = {
+  name: string;
+  isValid: boolean;
+};
+
+const flow = defineFlow(
+  {
+    id: "flow",
+    start: "form",
+    steps: {
+      form: {
+        next: ["complete"],
+      },
+      complete: {},
     },
-    complete: {},
   },
-} as const satisfies FlowConfig<Context>);
+  (steps) => ({
+    resolve: {
+      // Only navigate if form is valid
+      form: (ctx: Context) => (ctx.isValid ? steps.complete : undefined),
+    },
+  })
+);
 
 function FormStep() {
   const { context, next, setContext } = useFlow<Context>();
@@ -630,7 +643,7 @@ export const onboardingFlow = defineFlow({
   id: "user-onboarding", // Required for persistence
   start: "welcome",
   steps: { /* ... */ },
-} as const);
+});
 
 // Create store and persister (simplified!)
 const store = createLocalStorageStore(localStorage, { prefix: "myapp" });
@@ -927,7 +940,7 @@ const feedbackFlow = defineFlow({
     comments: { next: "complete" },
     complete: {},
   },
-} as const satisfies FlowConfig<FeedbackContext>);
+});
 
 // Assuming you have a store already created (see Storage Adapters section)
 const persister = createPersister({ store });
@@ -1201,7 +1214,7 @@ const onboardingFlow = defineFlow({
   steps: {
     /* ... */
   },
-} as const);
+});
 
 // Persister doesn't need version config - it's on the flow
 // Assuming you have a store and persister already created (see Storage Adapters section)
@@ -1237,7 +1250,7 @@ const onboardingFlow = defineFlow({
     profile: { next: "complete" },
     complete: {},
   },
-} as const);
+});
 ```
 
 **How it works:**
@@ -1277,7 +1290,7 @@ const flow = defineFlow({
   steps: {
     /* ... */
   },
-} as const);
+});
 
 // ⚠️ Risky - no version means no migration support
 const flow = defineFlow({
@@ -1287,7 +1300,7 @@ const flow = defineFlow({
   steps: {
     /* ... */
   },
-} as const);
+});
 ```
 
 **2. Use descriptive flow IDs:**
@@ -1444,7 +1457,7 @@ const flow = defineFlow({
     minor: { next: "complete" },
     complete: {},
   },
-} as const satisfies FlowConfig<MyContext>);
+});
 
 function MyStep() {
   const { context, setContext } = useFlow<MyContext>();
@@ -1473,7 +1486,7 @@ const myFlow = defineFlow({
     skip: { next: "complete" },
     complete: {},
   },
-} as const satisfies FlowConfig<Context>);
+});
 
 function ProfileStep() {
   const { next } = myFlow.useFlow({ step: "profile" });

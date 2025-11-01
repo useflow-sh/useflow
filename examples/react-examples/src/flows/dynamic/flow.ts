@@ -25,12 +25,10 @@ import { defineFlow } from "@useflow/react";
  *   - Customize flows per user/tenant
  *   - Test new flows with specific users
  *
- * ⚠️ IMPORTANT: No `as const` on the flow definitions
+ * ⚠️ IMPORTANT: Dynamic flow switching
  *
- * Notice these flows don't end with `as const` (unlike the branching example).
- * Example: defineFlow({ ... } as const)  ← We don't do this here!
- *
- * Why? It allows you to write:
+ * This example shows how to switch between different flow definitions at runtime.
+ * TypeScript infers the exact step types for each flow automatically.
  *
  *   // Example 1: Switch based on condition
  *   const selectedFlow = useExpress ? expressFlow : standardFlow;
@@ -41,15 +39,12 @@ import { defineFlow } from "@useflow/react";
  *   const flow = defineFlow(flowConfig);
  *   <Flow flow={flow} />  // ✅ Works!
  *
- * If we used `as const`, TypeScript would complain about mixing the two flows.
- *
- * Trade-off:
+ * Trade-off when mixing flows with different steps:
  * ✅ You CAN switch flows dynamically
- * ❌ You LOSE autocomplete when calling next() in components
+ * ❌ TypeScript sees the union type, so type-safe navigation is limited
  *
- * BUT in the case of dynamic flows, that's fine because components don't use
- * flow.useFlow() anyway as this locks the component into using a specific flow config.
- * Instead, components in dynamic flows use the generic useFlow() hook to be usable by both flows.
+ * Components in dynamic flows use the generic useFlow() hook (not flow.useFlow())
+ * to be reusable across both flow configurations.
  */
 
 export type OnboardingContext = {
@@ -130,9 +125,3 @@ export const expressFlow = defineFlow({
     },
   },
 });
-
-/**
- * Type helper for components to access both flow types
- * This allows components to work with either flow definition
- */
-export type OnboardingFlow = typeof standardFlow | typeof expressFlow;

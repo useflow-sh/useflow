@@ -349,7 +349,7 @@ Smooth slide-up animations defined in `index.css`:
        step2: { next: "complete" },
        complete: {},
      },
-   } as const);
+   });
    ```
 
 3. **Create demo component:**

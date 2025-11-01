@@ -1,4 +1,4 @@
-import { defineFlow, step } from "@useflow/react";
+import { defineFlow } from "@useflow/react";
 
 /**
  * Branching Flow - Demonstrates Conditional Navigation
@@ -8,7 +8,7 @@ import { defineFlow, step } from "@useflow/react";
  * 1. **Context-Driven Branching** (userType step):
  *    - Flow definition decides next step based on context
  *    - Business users see extra step, personal users skip it
- *    - Uses: next: ['businessDetails', 'setupPreference'] + resolve: (ctx) => ...
+ *    - Uses: next: ['businessDetails', 'setupPreference'] + resolve in runtimeConfig
  *
  * 2. **Component-Driven Branching** (setupPreference step):
  *    - Component explicitly chooses which step to navigate to
@@ -35,42 +35,51 @@ export type BranchingFlowContext = {
   setupPreference?: "advanced" | "quick";
 };
 
-export const branchingFlow = defineFlow({
-  id: "branching-flow",
-  start: "welcome",
-  steps: {
-    welcome: {
-      next: "profile",
-    },
-    profile: {
-      next: "userType",
-    },
-    // ✨ CONTEXT-DRIVEN BRANCHING WITH TYPE SAFETY
-    // Using step() helper provides compile-time type safety
-    // TypeScript will catch errors if resolve returns invalid step names
-    userType: step({
-      next: ["businessDetails", "setupPreference"],
-      resolve: (ctx: BranchingFlowContext) =>
-        ctx.userType === "business" ? "businessDetails" : "setupPreference",
-    }),
-    businessDetails: {
-      // Only business users reach this step
-      next: "setupPreference",
-    },
-    setupPreference: {
-      // ✨ COMPONENT-DRIVEN BRANCHING
-      // Component explicitly calls next('preferences') or next('complete')
-      // This gives components full control over navigation logic
-      // This also makes navigation type-safe when using branchingFlow.useFlow()
-      // See type-safe navigation example in SetupPreferenceStep.tsx
-      next: ["preferences", "complete"],
-    },
-    preferences: {
-      // Only users who chose "advanced" setup reach this step
-      next: "complete",
-    },
-    complete: {
-      // Terminal step - flow is complete
+export const branchingFlow = defineFlow(
+  {
+    id: "branching-flow",
+    start: "welcome",
+    steps: {
+      welcome: {
+        next: "profile",
+      },
+      profile: {
+        next: "userType",
+      },
+      // ✨ CONTEXT-DRIVEN BRANCHING WITH TYPE SAFETY
+      // The resolve function is defined in runtimeConfig below
+      // TypeScript will catch errors if resolve returns invalid step names
+      userType: {
+        next: ["businessDetails", "setupPreference"],
+      },
+      businessDetails: {
+        // Only business users reach this step
+        next: "setupPreference",
+      },
+      setupPreference: {
+        // ✨ COMPONENT-DRIVEN BRANCHING
+        // Component explicitly calls next('preferences') or next('complete')
+        // This gives components full control over navigation logic
+        // This also makes navigation type-safe when using branchingFlow.useFlow()
+        // See type-safe navigation example in SetupPreferenceStep.tsx
+        next: ["preferences", "complete"],
+      },
+      preferences: {
+        // Only users who chose "advanced" setup reach this step
+        next: "complete",
+      },
+      complete: {
+        // Terminal step - flow is complete
+      },
     },
   },
-} as const);
+  (steps) => ({
+    resolve: {
+      // Type annotation on ctx parameter provides type safety for resolvers
+      userType: (ctx: BranchingFlowContext) =>
+        ctx.userType === "business"
+          ? steps.businessDetails
+          : steps.setupPreference,
+    },
+  }),
+);

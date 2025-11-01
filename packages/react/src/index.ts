@@ -1,16 +1,24 @@
 // Re-export core types and utilities
 // Re-export persister types and factory from core (framework-agnostic)
+// Re-export runtime types from core for convenience
 export type {
   AsyncStorageOptions,
   BrowserStorageOptions,
   FlowPersister,
+  FlowRuntimeConfig,
   FlowStore,
   KVFlowStore,
   KVStorageAdapterOptions,
   KVStore,
+  MigrateFunction,
+  PersistedFlowInstance,
   PersistedFlowState,
   PersisterOptions,
+  ResolveFunction,
+  ResolverMap,
+  RuntimeFlowDefinition,
   Serializer,
+  StepRefs,
   StringSerializer,
   ValidationResult,
 } from "@useflow/core";
@@ -22,7 +30,6 @@ export {
   createSessionStorageStore,
   JsonSerializer,
   kvStorageAdapter,
-  step,
   validatePersistedState,
 } from "@useflow/core";
 

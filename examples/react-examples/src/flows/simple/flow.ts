@@ -39,4 +39,4 @@ export const simpleFlow = defineFlow({
       // Terminal step - flow is complete
     },
   },
-} as const);
+});

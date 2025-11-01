@@ -2,6 +2,7 @@ import type {
   ContextUpdate,
   FlowContext,
   FlowPersister,
+  MigrateFunction,
   PersistedFlowState,
 } from "@useflow/core";
 import { validatePersistedState } from "@useflow/core";
@@ -131,7 +132,7 @@ type LastActionType =
  * const myFlow = defineFlow({
  *   start: 'welcome',
  *   steps: { ... }
- * } as const satisfies FlowConfig<MyContext>);
+ * });
  *
  * // Auto-render (default) - step renders automatically
  * <Flow
@@ -228,6 +229,8 @@ export function Flow<TConfig extends FlowConfig<any>>({
   const flowState = useFlowReducer<ExtractContext<TConfig>>(
     flowDefinitionWithoutComponents,
     initialContext,
+    undefined, // initialState - restoration happens in useEffect
+    flow.runtimeConfig?.resolvers, // resolvers from enhanced definition
   );
 
   // Extract all steps (stripped down to only next property)
@@ -418,7 +421,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
       try {
         const state = await persister.restore(flow.id, {
           version: config.version,
-          migrate: config.migrate,
+          migrate: flow.runtimeConfig?.migrate as MigrateFunction | undefined,
           instanceId,
           variantId,
         });
@@ -466,6 +469,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
   }, [
     persister,
     flow.id,
+    flow.runtimeConfig?.migrate,
     instanceId,
     variantId,
     config,

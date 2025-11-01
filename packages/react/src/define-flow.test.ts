@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { defineFlow } from "./define-flow";
-import type { FlowConfig } from "./type-helpers";
 
 describe("defineFlow validation", () => {
   it("should throw error when defining flow with missing next step", () => {
@@ -12,7 +11,7 @@ describe("defineFlow validation", () => {
           first: { next: "missing" }, // "missing" doesn't exist!
           second: {},
         },
-      } as const satisfies FlowConfig<object>),
+      }),
     ).toThrow('Step "first" references non-existent step "missing"');
   });
 
@@ -24,7 +23,7 @@ describe("defineFlow validation", () => {
         steps: {
           first: {},
         },
-      } as const satisfies FlowConfig<object>),
+      }),
     ).toThrow('Start step "missing" does not exist');
   });
 
@@ -37,7 +36,7 @@ describe("defineFlow validation", () => {
           first: { next: ["second", "missing"] },
           second: {},
         },
-      } as const satisfies FlowConfig<object>),
+      }),
     ).toThrow('Step "first" references non-existent step "missing"');
   });
 
@@ -52,7 +51,7 @@ describe("defineFlow validation", () => {
           third: {},
           fourth: {},
         },
-      } as const satisfies FlowConfig<object>),
+      }),
     ).not.toThrow();
   });
 
@@ -69,7 +68,7 @@ describe("defineFlow validation", () => {
           },
           second: {},
         },
-      } as const satisfies FlowConfig<object>),
+      }),
     ).not.toThrow();
   });
 });

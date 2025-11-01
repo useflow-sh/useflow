@@ -1,4 +1,7 @@
 // Persistence module
+
+// Flow definition with runtime config
+export { defineFlow } from "./define-flow";
 export type {
   AsyncStorageOptions,
   BrowserStorageOptions,
@@ -27,8 +30,14 @@ export {
   flowReducer,
   validateFlowDefinition,
 } from "./reducer";
-// Type-safe step builder
-export { step } from "./step-builder";
+export type {
+  FlowRuntimeConfig,
+  MigrateFunction,
+  ResolveFunction,
+  ResolverMap,
+  RuntimeFlowDefinition,
+  StepRefs,
+} from "./runtime";
 // Core types
 export type {
   ContextUpdate,
@@ -36,6 +45,7 @@ export type {
   FlowContext,
   FlowDefinition,
   FlowState,
+  PersistedFlowInstance,
   PersistedFlowState,
   StepDefinition,
   StepTransition,

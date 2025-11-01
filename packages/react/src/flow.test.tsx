@@ -1,9 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useState } from "react";
+import { act, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { defineFlow } from "./define-flow";
 import { Flow, FlowStep, useFlow } from "./flow";
-import type { FlowConfig } from "./type-helpers";
 
 describe("Flow", () => {
   it("should provide flow context to children", () => {
@@ -16,7 +15,7 @@ describe("Flow", () => {
         },
         active: {},
       },
-    } as const satisfies FlowConfig<{ count: number }>);
+    });
 
     function TestComponent() {
       const { context, stepId, status } = useFlow();
@@ -57,7 +56,7 @@ describe("Flow", () => {
         },
         second: {},
       },
-    } as const satisfies FlowConfig<object>);
+    });
 
     function TestComponent() {
       const { stepId, next } = useFlow();
@@ -99,7 +98,7 @@ describe("Flow", () => {
         },
         second: {},
       },
-    } as const satisfies FlowConfig<object>);
+    });
 
     function TestComponent() {
       const { stepId, next, back } = useFlow();
@@ -139,7 +138,7 @@ describe("Flow", () => {
       steps: {
         profile: {},
       },
-    } as const satisfies FlowConfig<{ name: string }>);
+    });
 
     function TestComponent() {
       const { context, setContext } = useFlow<{ name: string }>();
@@ -184,7 +183,7 @@ describe("Flow", () => {
           // No next = final step
         },
       },
-    } as const satisfies FlowConfig<object>);
+    });
 
     const onComplete = vi.fn();
 
@@ -225,7 +224,7 @@ describe("Flow", () => {
           // No next = final step
         },
       },
-    } as const satisfies FlowConfig<object>);
+    });
 
     const onCompleteSpy = vi.fn();
 
@@ -278,19 +277,25 @@ describe("Flow", () => {
   });
 
   it("should support conditional next with function", () => {
-    const flow = defineFlow({
-      id: "test",
-      start: "profile",
-      steps: {
-        profile: {
-          next: ["business", "personal"],
-          resolve: (ctx: { isBusiness: boolean }) =>
-            ctx.isBusiness ? "business" : "personal",
+    const flow = defineFlow(
+      {
+        id: "test",
+        start: "profile",
+        steps: {
+          profile: {
+            next: ["business", "personal"],
+          },
+          business: {},
+          personal: {},
         },
-        business: {},
-        personal: {},
       },
-    } as const satisfies FlowConfig<{ isBusiness: boolean }>);
+      (steps) => ({
+        resolve: {
+          profile: (ctx: { isBusiness: boolean }) =>
+            ctx.isBusiness ? steps.business : steps.personal,
+        },
+      }),
+    );
 
     function TestComponent() {
       const { stepId, next, setContext } = useFlow<{ isBusiness: boolean }>();
@@ -331,7 +336,7 @@ describe("Flow", () => {
         step1: { next: "step2" },
         step2: {},
       },
-    } as const satisfies FlowConfig<object>);
+    });
 
     render(
       <Flow
@@ -376,7 +381,7 @@ describe("useFlow", () => {
         second: {},
         third: {},
       },
-    } as const satisfies FlowConfig<{ value: string }>);
+    });
 
     function TestComponent() {
       // Use the typed hook from the flow definition
@@ -423,7 +428,7 @@ describe("Edge cases", () => {
         },
         second: {},
       },
-    } as const satisfies FlowConfig<object>);
+    });
 
     function TestComponent() {
       const { stepId, next, back } = useFlow();
@@ -479,7 +484,7 @@ describe("Edge cases", () => {
         },
         second: {},
       },
-    } as const satisfies FlowConfig<{ count: number }>);
+    });
 
     function TestComponent() {
       const { stepId, context, next } = useFlow<{ count: number }>();
@@ -535,7 +540,7 @@ describe("Edge cases", () => {
       steps: {
         test: {},
       },
-    } as const satisfies FlowConfig<NestedContext>);
+    });
 
     function TestComponent() {
       const { context, setContext } = useFlow<NestedContext>();
@@ -591,7 +596,7 @@ describe("FlowStep", () => {
       steps: {
         test: {},
       },
-    } as const satisfies FlowConfig<object>);
+    });
 
     render(
       <Flow
@@ -621,7 +626,7 @@ describe("FlowStep", () => {
       steps: {
         test: {},
       },
-    } as const satisfies FlowConfig<object>);
+    });
 
     render(
       <Flow
@@ -647,7 +652,7 @@ describe("FlowStep", () => {
         },
         second: {},
       },
-    } as const satisfies FlowConfig<object>);
+    });
 
     function TestApp() {
       const { next } = useFlow();
@@ -692,7 +697,7 @@ describe("FlowStep", () => {
       steps: {
         test: {},
       },
-    } as const satisfies FlowConfig<object>);
+    });
 
     render(
       <Flow
@@ -727,7 +732,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       const onNext = vi.fn();
 
@@ -767,7 +772,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       const onBack = vi.fn();
 
@@ -817,7 +822,7 @@ describe("FlowStep", () => {
         steps: {
           form: {},
         },
-      } as const satisfies FlowConfig<{ name: string }>);
+      });
 
       const onContextUpdate = vi.fn();
 
@@ -859,7 +864,7 @@ describe("FlowStep", () => {
           option1: {},
           option2: {},
         },
-      } as const satisfies FlowConfig<{ choice: string }>);
+      });
 
       const onNext = vi.fn();
       const onContextUpdate = vi.fn();
@@ -912,7 +917,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       function TestComponent() {
         const { next, stepId } = useFlow();
@@ -948,7 +953,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       const onNext = vi.fn();
       // onBack and onContextUpdate not provided
@@ -991,7 +996,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<{ count: number }>);
+      });
 
       const onTransition = vi.fn();
 
@@ -1037,7 +1042,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       const onTransition = vi.fn();
 
@@ -1095,7 +1100,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<{ name: string }>);
+      });
 
       const onTransition = vi.fn();
 
@@ -1136,7 +1141,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       const onNext = vi.fn();
       const onTransition = vi.fn();
@@ -1187,7 +1192,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       const onBack = vi.fn();
       const onTransition = vi.fn();
@@ -1252,7 +1257,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       function TestComponent() {
         const { component, stepId } = useFlow();
@@ -1292,7 +1297,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       function TestComponent() {
         const { component: Component, next, stepId } = useFlow();
@@ -1343,7 +1348,7 @@ describe("FlowStep", () => {
         steps: {
           test: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       const TestStep = () => <div data-testid="content">Test Content</div>;
 
@@ -1381,7 +1386,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       const componentRefs: unknown[] = [];
 
@@ -1431,7 +1436,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       // Simplified AnimatedFlowStep pattern
       function CustomAnimatedStep() {
@@ -1487,13 +1492,13 @@ describe("FlowStep", () => {
           step2: { next: "step3" },
           step3: {},
         },
-      } as const satisfies FlowConfig<{ name: string }>);
+      });
 
       const savedState = {
         stepId: "step2",
         context: { name: "John" },
         history: ["step1", "step2"],
-        status: "active" as const,
+        status: "active",
       };
 
       const persister = {
@@ -1535,7 +1540,7 @@ describe("FlowStep", () => {
           step2: { next: "step3" },
           step3: {},
         },
-      } as const satisfies FlowConfig<{ name: string }>);
+      });
 
       const savedState = {
         stepId: "step2",
@@ -1583,7 +1588,7 @@ describe("FlowStep", () => {
           step1: { next: "step2" },
           step2: {},
         },
-      } as const satisfies FlowConfig<{ count: number }>);
+      });
 
       const persister = {
         save: vi
@@ -1640,7 +1645,7 @@ describe("FlowStep", () => {
         steps: {
           step1: {},
         },
-      } as const satisfies FlowConfig<Record<string, never>>);
+      });
 
       const persister = {
         save: vi.fn(),
@@ -1676,7 +1681,7 @@ describe("FlowStep", () => {
           step1: { next: "step2" },
           step2: {},
         },
-      } as const satisfies FlowConfig<Record<string, never>>);
+      });
 
       const invalidState = {
         stepId: "invalid-step", // Invalid step ID
@@ -1722,7 +1727,7 @@ describe("FlowStep", () => {
         steps: {
           step1: {},
         },
-      } as const satisfies FlowConfig<Record<string, never>>);
+      });
 
       const error = new Error("Storage error");
       const persister = {
@@ -1756,7 +1761,7 @@ describe("FlowStep", () => {
         steps: {
           step1: {},
         },
-      } as const satisfies FlowConfig<Record<string, never>>);
+      });
 
       const persister = {
         save: vi.fn(),
@@ -1787,15 +1792,19 @@ describe("FlowStep", () => {
 
     it("should pass version and migrate to persister.restore", async () => {
       const migrate = vi.fn((state) => state);
-      const flow = defineFlow({
-        id: "test-flow",
-        start: "step1",
-        version: "v2",
-        migrate,
-        steps: {
-          step1: {},
-        },
-      } as const);
+      const flow = defineFlow(
+        {
+          id: "test-flow",
+          start: "step1",
+          version: "v2",
+          steps: {
+            step1: {},
+          },
+        } as const,
+        () => ({
+          migrate,
+        }),
+      );
 
       const persister = {
         save: vi.fn(),
@@ -1817,7 +1826,7 @@ describe("FlowStep", () => {
 
       expect(persister.restore).toHaveBeenCalledWith("test-flow", {
         version: "v2",
-        migrate: flow.config.migrate,
+        migrate: flow.runtimeConfig?.migrate,
       });
     });
 
@@ -1829,7 +1838,7 @@ describe("FlowStep", () => {
           step1: { next: "step2" },
           step2: {},
         },
-      } as const satisfies FlowConfig<Record<string, never>>);
+      });
 
       const saveError = new Error("Save failed");
       const persister = {
@@ -1938,83 +1947,96 @@ describe("FlowStep", () => {
     });
 
     it("should debounce saves when saveDebounce > 0", async () => {
-      const flow = defineFlow({
-        id: "test-flow-debounce",
-        start: "step1",
-        steps: {
-          step1: { next: "step2" },
-          step2: { next: "step3" },
-          step3: {},
-        },
-      } as const satisfies FlowConfig<Record<string, never>>);
+      vi.useFakeTimers();
 
-      const persister = {
-        save: vi.fn().mockResolvedValue(undefined),
-        restore: vi.fn().mockResolvedValue(null),
-      };
+      try {
+        const flow = defineFlow({
+          id: "test-flow-debounce",
+          start: "step1",
+          steps: {
+            step1: { next: "step2" },
+            step2: { next: "step3" },
+            step3: {},
+          },
+        });
 
-      function TestContent() {
-        const { next } = useFlow();
-        return (
-          <div>
-            <FlowStep />
-            <button onClick={() => next()}>Next</button>
-          </div>
+        const persister = {
+          save: vi.fn().mockResolvedValue(undefined),
+          restore: vi.fn().mockResolvedValue(null),
+        };
+
+        function TestContent() {
+          const { next, isRestoring } = useFlow();
+          if (isRestoring) return <div>Loading...</div>;
+          return (
+            <div>
+              <FlowStep />
+              <button onClick={() => next()}>Next</button>
+            </div>
+          );
+        }
+
+        render(
+          <Flow
+            flow={flow}
+            components={{
+              step1: () => <div>Step 1</div>,
+              step2: () => <div>Step 2</div>,
+              step3: () => <div>Step 3</div>,
+            }}
+            initialContext={{}}
+            persister={persister}
+            saveDebounce={100}
+          >
+            <TestContent />
+          </Flow>,
         );
+
+        // Wait for restoration to complete (persister.restore returns null so it uses initial state)
+        await act(async () => {
+          await vi.runAllTimersAsync();
+        });
+
+        expect(screen.getByText("Step 1")).toBeInTheDocument();
+
+        // Navigate multiple times quickly
+        await act(async () => {
+          fireEvent.click(screen.getByText("Next"));
+        });
+        expect(screen.getByText("Step 2")).toBeInTheDocument();
+
+        // Should not have saved yet (debounced)
+        expect(persister.save).not.toHaveBeenCalled();
+
+        // Navigate again
+        await act(async () => {
+          fireEvent.click(screen.getByText("Next"));
+        });
+        expect(screen.getByText("Step 3")).toBeInTheDocument();
+
+        // Still should not have saved yet
+        expect(persister.save).not.toHaveBeenCalled();
+
+        // Fast-forward time to trigger debounced save
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(100);
+        });
+
+        // Should only save once (last state) due to debounce cleanup
+        expect(persister.save).toHaveBeenCalledTimes(1);
+        expect(persister.save).toHaveBeenCalledWith(
+          "test-flow-debounce",
+          expect.objectContaining({
+            stepId: "step3",
+          }),
+          expect.objectContaining({
+            instanceId: undefined,
+            version: undefined,
+          }),
+        );
+      } finally {
+        vi.useRealTimers();
       }
-
-      render(
-        <Flow
-          flow={flow}
-          components={{
-            step1: () => <div>Step 1</div>,
-            step2: () => <div>Step 2</div>,
-            step3: () => <div>Step 3</div>,
-          }}
-          initialContext={{}}
-          persister={persister}
-          saveDebounce={100}
-        >
-          <TestContent />
-        </Flow>,
-      );
-
-      await screen.findByText("Step 1");
-
-      // Navigate multiple times quickly
-      fireEvent.click(screen.getByText("Next"));
-      await screen.findByText("Step 2");
-
-      // Should not have saved yet (debounced)
-      expect(persister.save).not.toHaveBeenCalled();
-
-      // Navigate again
-      fireEvent.click(screen.getByText("Next"));
-      await screen.findByText("Step 3");
-
-      // Still should not have saved yet
-      expect(persister.save).not.toHaveBeenCalled();
-
-      // Wait for debounce to complete
-      await vi.waitFor(
-        () => {
-          expect(persister.save).toHaveBeenCalled();
-        },
-        { timeout: 200 },
-      );
-
-      // Should only save once (last state) due to debounce cleanup
-      expect(persister.save).toHaveBeenCalledTimes(1);
-      expect(persister.save).toHaveBeenCalledWith(
-        "test-flow-debounce",
-        expect.objectContaining({
-          stepId: "step3",
-        }),
-        expect.objectContaining({
-          instanceId: undefined,
-          version: undefined,
-        }),
-      );
     });
 
     it("should not save when saveMode is manual", async () => {
@@ -2025,7 +2047,7 @@ describe("FlowStep", () => {
           step1: { next: "step2" },
           step2: {},
         },
-      } as const satisfies FlowConfig<Record<string, never>>);
+      });
 
       const persister = {
         save: vi.fn().mockResolvedValue(undefined),
@@ -2079,7 +2101,7 @@ describe("FlowStep", () => {
           step1: { next: "step2" },
           step2: {},
         },
-      } as const satisfies FlowConfig<Record<string, never>>);
+      });
 
       const persister = {
         save: vi.fn().mockResolvedValue(undefined),
@@ -2150,7 +2172,7 @@ describe("FlowStep", () => {
         steps: {
           step1: {},
         },
-      } as const satisfies FlowConfig<Record<string, never>>);
+      });
 
       const saveError = new Error("Manual save failed");
       const persister = {
@@ -2203,7 +2225,7 @@ describe("FlowStep", () => {
         steps: {
           step1: {},
         },
-      } as const satisfies FlowConfig<Record<string, never>>);
+      });
 
       function TestContent() {
         const { save } = useFlow();
@@ -2244,7 +2266,7 @@ describe("FlowStep", () => {
         steps: {
           step1: {},
         },
-      } as const satisfies FlowConfig<Record<string, never>>);
+      });
 
       const persister = {
         save: vi
@@ -2303,7 +2325,7 @@ describe("FlowStep", () => {
           step1: { next: "step2" },
           step2: {},
         },
-      } as const satisfies FlowConfig<{ count: number }>);
+      });
 
       const persister = {
         save: vi.fn().mockResolvedValue(undefined),
@@ -2369,7 +2391,7 @@ describe("FlowStep", () => {
           step1: { next: "step2" },
           step2: {},
         },
-      } as const satisfies FlowConfig<{ count: number }>);
+      });
 
       const persister = {
         save: vi.fn().mockResolvedValue(undefined),
@@ -2435,7 +2457,7 @@ describe("FlowStep", () => {
             step1: { next: "step2" },
             step2: {},
           },
-        } as const satisfies FlowConfig<Record<string, never>>);
+        });
 
         const persister = {
           save: vi.fn().mockResolvedValue(undefined),
@@ -2496,7 +2518,7 @@ describe("FlowStep", () => {
             step2: { next: "step3" },
             step3: {},
           },
-        } as const satisfies FlowConfig<{ name: string }>);
+        });
 
         const savedState = {
           stepId: "step2",
@@ -2546,7 +2568,7 @@ describe("FlowStep", () => {
             step1: { next: "step2" },
             step2: {},
           },
-        } as const satisfies FlowConfig<Record<string, never>>);
+        });
 
         const persister1 = {
           save: vi.fn().mockResolvedValue(undefined),
@@ -2701,7 +2723,7 @@ describe("FlowStep", () => {
           second: { next: "third" },
           third: {},
         },
-      } as const satisfies FlowConfig<{ count: number }>);
+      });
 
       function TestComponent() {
         const { stepId, context, next, setContext, reset } = useFlow();
@@ -2772,7 +2794,7 @@ describe("FlowStep", () => {
           first: { next: "second" },
           second: {},
         },
-      } as const satisfies FlowConfig<{ value: number }>);
+      });
 
       function TestComponent() {
         const { stepId, next, reset } = useFlow();
@@ -2852,7 +2874,7 @@ describe("FlowStep", () => {
           step1: { next: "step2" },
           step2: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       function TestComponent() {
         const { reset } = useFlow();
@@ -2919,7 +2941,7 @@ describe("FlowStep", () => {
         steps: {
           first: {},
         },
-      } as const satisfies FlowConfig<object>);
+      });
 
       function TestComponent() {
         const { reset } = useFlow();
@@ -2975,7 +2997,7 @@ describe("FlowStep", () => {
           first: { next: "last" },
           last: {},
         },
-      } as const satisfies FlowConfig<{ value: string }>);
+      });
 
       function TestComponent() {
         const { stepId, status, next, reset } = useFlow();
@@ -3025,7 +3047,7 @@ describe("FlowStep", () => {
           stepC: {},
           stepD: {},
         },
-      } as const satisfies FlowConfig<{ value: string }>);
+      });
 
       function TestComponent() {
         const { steps } = useFlow();
@@ -3063,7 +3085,7 @@ describe("FlowStep", () => {
           stepA: { next: "stepB" },
           stepB: {},
         },
-      } as const satisfies FlowConfig<{ value: string }>);
+      });
 
       function TestComponent() {
         const { nextSteps } = useFlow();
@@ -3096,7 +3118,7 @@ describe("FlowStep", () => {
           stepB: {},
           stepC: {},
         },
-      } as const satisfies FlowConfig<{ value: string }>);
+      });
 
       function TestComponent() {
         const { nextSteps } = useFlow();
@@ -3129,7 +3151,7 @@ describe("FlowStep", () => {
           stepA: { next: "stepB" },
           stepB: {},
         },
-      } as const satisfies FlowConfig<{ value: string }>);
+      });
 
       function TestComponent() {
         const { nextSteps, stepId } = useFlow();
@@ -3178,7 +3200,7 @@ describe("FlowStep", () => {
           stepC: {},
           stepD: {},
         },
-      } as const satisfies FlowConfig<{ value: string }>);
+      });
 
       function TestComponent() {
         const { nextSteps, next, stepId } = useFlow();

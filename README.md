@@ -60,7 +60,7 @@ export const onboardingFlow = defineFlow({
       // No next = final step
     },
   },
-} as const satisfies FlowConfig<OnboardingContext>);
+});
 ```
 
 ### 2. Render Your Flow
@@ -139,33 +139,43 @@ function ProfileStep() {
 
 ### Context-Driven Branching
 
-Navigate to different steps based on context values using the `resolve` property:
+Navigate to different steps based on context values using resolver functions in `runtimeConfig`:
 
 ```tsx
-import { defineFlow, step } from "@useflow/react";
+import { defineFlow } from "@useflow/react";
 
-const flow = defineFlow({
-  id: "flow",
-  start: "userType",
-  steps: {
-    // ✨ Type-safe with step() helper
-    // TypeScript will catch errors at compile time if you return invalid step names
-    userType: step({
-      next: ["businessDetails", "preferences"],
-      resolve: (ctx) => ctx.accountType === "business" ? "businessDetails" : "preferences"
-    }),
-    businessDetails: {
-      next: "preferences",
+type Context = {
+  accountType: "business" | "personal";
+};
+
+const flow = defineFlow(
+  {
+    id: "flow",
+    start: "userType",
+    steps: {
+      userType: {
+        next: ["businessDetails", "preferences"],
+      },
+      businessDetails: {
+        next: "preferences",
+      },
+      preferences: {
+        next: "complete",
+      },
+      complete: {},
     },
-    preferences: {
-      next: "complete",
-    },
-    complete: {},
   },
-} as const satisfies FlowConfig<Context>);
+  (steps) => ({
+    resolve: {
+      // Type annotation on ctx parameter for type safety
+      userType: (ctx: Context) => 
+        ctx.accountType === "business" ? steps.businessDetails : steps.preferences,
+    },
+  })
+);
 ```
 
-**Type Safety:** Use `step()` helper to get compile-time type checking for your resolve functions. TypeScript will error if you try to return step names that aren't in the `next` array.
+**Type Safety:** By annotating the `ctx` parameter with your context type, you get full type safety. Resolvers return type-safe step references (`steps.businessDetails`) instead of string IDs.
 
 ### Component-Driven Branching (Array Navigation)
 
@@ -185,7 +195,7 @@ const flow = defineFlow({
     skip: { next: "complete" },
     complete: {},
   },
-} as const satisfies FlowConfig<Context>);
+});
 
 function SetupStep() {
   const { next } = useFlow();
@@ -289,7 +299,7 @@ export const onboardingFlow = defineFlow({
   id: "user-onboarding", // Unique ID for this flow
   start: "welcome",
   steps: { /* ... */ },
-} as const);
+});
 
 // Create store and persister (simplified!)
 const store = createLocalStorageStore(localStorage, { prefix: "myapp" });

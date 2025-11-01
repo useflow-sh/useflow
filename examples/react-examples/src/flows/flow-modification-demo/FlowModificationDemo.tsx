@@ -411,18 +411,17 @@ export function FlowModificationDemo() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Flow
-                key={flowKey}
-                flow={demoFlow}
-                components={{
-                  stepA: StepA,
-                  stepB: StepB,
-                  stepC: StepC,
-                  stepD: StepD,
-                  final: FinalStep,
-                }}
-                initialContext={{}}
-              />
+              <Flow key={flowKey} flow={demoFlow} initialContext={{}}>
+                {({ renderStep }) =>
+                  renderStep({
+                    stepA: <StepA />,
+                    stepB: <StepB />,
+                    stepC: <StepC />,
+                    stepD: <StepD />,
+                    final: <FinalStep />,
+                  })
+                }
+              </Flow>
             </CardContent>
           </Card>
         </div>

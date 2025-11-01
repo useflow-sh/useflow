@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { defineFlow, Flow, type FlowConfig, FlowStep } from "@useflow/react";
+import { defineFlow, Flow, type FlowConfig } from "@useflow/react";
 import { useMemo, useState } from "react";
 import { FlowInspector } from "@/components/FlowInspector";
 import { FlowVisualizer } from "@/components/FlowVisualizer";
@@ -122,16 +122,6 @@ export function RemoteFlowDemo() {
       {!loading && flowDefinition && (
         <Flow
           flow={flowDefinition}
-          components={{
-            welcome: WelcomeStep,
-            account: AccountStep,
-            verification: VerificationStep,
-            profile: ProfileStep,
-            survey: SurveyStep,
-            newsletter: NewsletterStep,
-            preferences: PreferencesStep,
-            complete: CompleteStep,
-          }}
           initialContext={{
             email: "",
             userType: "business",
@@ -139,34 +129,45 @@ export function RemoteFlowDemo() {
           persister={persister}
           saveMode="always"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Flow Visualizer */}
-            <div className="lg:col-span-1">
-              <FlowVisualizer />
-            </div>
+          {({ renderStep }) => (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Flow Visualizer */}
+              <div className="lg:col-span-1">
+                <FlowVisualizer />
+              </div>
 
-            {/* Flow Execution */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Flow Execution</CardTitle>
-                  <CardDescription>
-                    The flow below is loaded from a remote source based on your
-                    selection above
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FlowStep />
-                  <FlowInspector
-                    flowId={flowDefinition.id}
-                    variantId={selectedConfig}
-                    store={store}
-                    position="right"
-                  />
-                </CardContent>
-              </Card>
+              {/* Flow Execution */}
+              <div className="lg:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Flow Execution</CardTitle>
+                    <CardDescription>
+                      The flow below is loaded from a remote source based on
+                      your selection above
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {renderStep({
+                      welcome: <WelcomeStep />,
+                      account: <AccountStep />,
+                      verification: <VerificationStep />,
+                      profile: <ProfileStep />,
+                      survey: <SurveyStep />,
+                      newsletter: <NewsletterStep />,
+                      preferences: <PreferencesStep />,
+                      complete: <CompleteStep />,
+                    })}
+                    <FlowInspector
+                      flowId={flowDefinition.id}
+                      variantId={selectedConfig}
+                      store={store}
+                      position="right"
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-          </div>
+          )}
         </Flow>
       )}
     </div>

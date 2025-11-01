@@ -51,22 +51,12 @@ export const onboardingFlow = defineFlow({
 ### 2. Render Your Flow
 
 ```tsx
-import { Flow, FlowStep } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
+import { Flow } from "@useflow/react";
 
 function App() {
   return (
     <Flow
       flow={onboardingFlow}
-      components={{
-        welcome: WelcomeStep,
-        profile: ProfileStep,
-        preferences: PreferencesStep,
-        complete: () => {
-          const { context } = useFlow();
-          return <CompleteStep name={context.name} />;
-        },
-      }}
       initialContext={{
         name: "",
         email: "",
@@ -75,7 +65,19 @@ function App() {
       onComplete={() => {
         console.log("Flow completed!");
       }}
-    />
+    >
+      {({ renderStep }) =>
+        renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          preferences: <PreferencesStep />,
+          complete: () => {
+            const { context } = useFlow();
+            return <CompleteStep name={context.name} />;
+          },
+        })
+      }
+    </Flow>
   );
 }
 ```
@@ -151,14 +153,13 @@ export const myFlow = defineFlow({
 
 ### `<Flow />`
 
-Main component that runs your flow.
+Main component that runs your flow using a render props pattern.
 
 **Props:**
 
 ```tsx
 type FlowProps<TConfig> = {
   flow: FlowDefinition<TConfig>; // From defineFlow()
-  components: Record<StepNames, ComponentType>;
   initialContext: ExtractContext<TConfig>;
   instanceId?: string; // Optional unique identifier for reusable flows
   onComplete?: () => void;
@@ -192,57 +193,44 @@ type FlowProps<TConfig> = {
   onRestore?: (state: PersistedFlowState<TContext>) => void;
   onPersistenceError?: (error: Error) => void;
   loadingComponent?: ReactNode; // Show while restoring
-  children?: ReactNode; // Optional for custom layout
+  children: (state: UseFlowReturn<TContext>) => ReactNode; // Render props function
 };
 ```
 
 **Example:**
 
 ```tsx
-<Flow
-  flow={myFlow}
-  components={{
-    welcome: WelcomeStep,
-    profile: ProfileStep,
-    complete: () => {
-      const { context } = useFlow();
-      return <CompleteStep name={context.name} />;
-    },
-  }}
-  initialContext={{ name: "" }}
-  onComplete={() => console.log("Done!")}
-/>
-```
-
-**Auto-render vs Custom Layout:**
-
-```tsx
-// Auto-render (default) - step renders automatically
-<Flow flow={myFlow} components={...} initialContext={...} />
-
-// Custom layout - use <FlowStep /> to control placement
-<Flow flow={myFlow} components={...} initialContext={...}>
-  <Header />
-  <FlowStep />  {/* Current step renders here */}
-  <Footer />
+<Flow flow={myFlow} initialContext={{ name: "" }} onComplete={() => console.log("Done!")}>
+  {({ renderStep }) =>
+    renderStep({
+      welcome: <WelcomeStep />,
+      profile: <ProfileStep />,
+      complete: () => {
+        const { context } = useFlow();
+        return <CompleteStep name={context.name} />;
+      },
+    })
+  }
 </Flow>
 ```
 
-### `<FlowStep />`
-
-Renders the current step component. Use this for custom layouts.
-
-**Example:**
+**Custom Layout:**
 
 ```tsx
-<Flow flow={myFlow} components={...} initialContext={...}>
-  <div className="layout">
-    <Sidebar />
-    <main>
-      <ProgressBar />
-      <FlowStep />  {/* Current step renders here */}
-    </main>
-  </div>
+<Flow flow={myFlow} initialContext={...}>
+  {({ renderStep, stepId, context }) => (
+    <div className="layout">
+      <Sidebar />
+      <main>
+        <ProgressBar currentStep={stepId} />
+        {renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          complete: <CompleteStep />,
+        })}
+      </main>
+    </div>
+  )}
 </Flow>
 ```
 
@@ -472,29 +460,24 @@ function FormStep() {
 Use `useFlow()` in inline components for dynamic rendering:
 
 ```tsx
-<Flow
-  flow={myFlow}
-  components={{
-    welcome: WelcomeStep,
-    profile: ProfileStep,
-    // Pass context to component using useFlow()
-    complete: () => {
-      const { context } = useFlow();
-      return (
-        <CompleteStep
-          name={context.name}
-          theme={context.theme}
-        />
-      );
-    },
-    // Conditional component selection
-    dashboard: () => {
-      const { context } = useFlow();
-      return context.isPremium ? <PremiumDashboard /> : <FreeDashboard />;
-    },
-  }}
-  initialContext={...}
-/>
+<Flow flow={myFlow} initialContext={...}>
+  {({ renderStep, context }) =>
+    renderStep({
+      welcome: <WelcomeStep />,
+      profile: <ProfileStep />,
+      // Pass context to component using useFlow()
+      complete: () => {
+        const { context } = useFlow();
+        return <CompleteStep name={context.name} theme={context.theme} />;
+      },
+      // Conditional component selection
+      dashboard: () => {
+        const { context } = useFlow();
+        return context.isPremium ? <PremiumDashboard /> : <FreeDashboard />;
+      },
+    })
+  }
+</Flow>
 ```
 
 ### Custom Layouts
@@ -504,17 +487,23 @@ Full control over layout and step placement:
 ```tsx
 function MyFlowLayout() {
   return (
-    <Flow flow={myFlow} components={...} initialContext={...}>
-      <div className="app-layout">
-        <Sidebar />
+    <Flow flow={myFlow} initialContext={...}>
+      {({ renderStep }) => (
+        <div className="app-layout">
+          <Sidebar />
 
-        <main>
-          <ProgressIndicator />
-          <FlowStep />  {/* Current step renders here */}
-        </main>
+          <main>
+            <ProgressIndicator />
+            {renderStep({
+              welcome: <WelcomeStep />,
+              profile: <ProfileStep />,
+              complete: <CompleteStep />,
+            })}
+          </main>
 
-        <Footer />
-      </div>
+          <Footer />
+        </div>
+      )}
     </Flow>
   );
 }
@@ -527,7 +516,6 @@ React to flow navigation events:
 ```tsx
 <Flow
   flow={myFlow}
-  components={...}
   initialContext={...}
   onNext={({ from, to, oldContext, newContext }) => {
     console.log(`Navigated from ${from} to ${to}`);
@@ -549,7 +537,15 @@ React to flow navigation events:
   onComplete={() => {
     console.log("Flow completed!");
   }}
-/>
+>
+  {({ renderStep }) =>
+    renderStep({
+      welcome: <WelcomeStep />,
+      profile: <ProfileStep />,
+      complete: <CompleteStep />,
+    })
+  }
+</Flow>
 ```
 
 **Callback Types:**
@@ -574,49 +570,34 @@ When navigating, callbacks fire in this order:
 - **Data persistence** - Save context to localStorage with `onContextUpdate`
 - **External state sync** - Update Redux/Zustand stores
 
-**Example: Animations with `onTransition`**
-
-```tsx
-function App() {
-  const [direction, setDirection] = useState<"forward" | "backward">("forward");
-
-  return (
-    <Flow
-      flow={myFlow}
-      components={...}
-      initialContext={...}
-      onTransition={({ direction }) => {
-        setDirection(direction);
-      }}
-    >
-      <AnimatedFlowStep direction={direction} />
-    </Flow>
-  );
-}
-```
-
 ### Custom Step Rendering
 
-Access the current component directly for custom rendering:
+Build custom transitions and animations with `renderStep`:
 
 ```tsx
-function AnimatedFlowStep() {
-  const { component: CurrentComponent, stepId } = useFlow();
+function AnimatedFlowStep({ children }: { children: React.ReactNode }) {
+  const { stepId } = useFlow();
 
   return (
     <div className="animated-container">
-      {CurrentComponent && (
-        <div key={stepId} className="slide-in">
-          <CurrentComponent />
-        </div>
-      )}
+      <div key={stepId} className="slide-in">
+        {children}
+      </div>
     </div>
   );
 }
 
 // Use in Flow
-<Flow flow={myFlow} components={...} initialContext={...}>
-  <AnimatedFlowStep />
+<Flow flow={myFlow} initialContext={...}>
+  {({ renderStep }) => (
+    <AnimatedFlowStep>
+      {renderStep({
+        welcome: <WelcomeStep />,
+        profile: <ProfileStep />,
+        complete: <CompleteStep />,
+      })}
+    </AnimatedFlowStep>
+  )}
 </Flow>
 ```
 
@@ -656,7 +637,6 @@ function App() {
   return (
     <Flow
       flow={onboardingFlow}
-      components={...}
       initialContext={{ name: "", email: "" }}
       persister={persister}
       onSave={(state) => {
@@ -665,7 +645,15 @@ function App() {
       onRestore={(state) => {
         console.log("Welcome back! Resuming from step:", state.stepId);
       }}
-    />
+    >
+      {({ renderStep }) =>
+        renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          complete: <CompleteStep />,
+        })
+      }
+    </Flow>
   );
 }
 ```
@@ -709,7 +697,11 @@ const store3 = createLocalStorageStore(localStorage, {
 For advanced use cases (e.g., user-specific keys), use `kvStorageAdapter`:
 
 ```tsx
-import { kvStorageAdapter, JsonSerializer, createPersister } from "@useflow/react";
+import {
+  kvStorageAdapter,
+  JsonSerializer,
+  createPersister,
+} from "@useflow/react";
 
 // User-scoped storage keys
 const store = kvStorageAdapter({
@@ -849,10 +841,17 @@ const persister = createPersister({ store: remoteApiStore });
 // Use with Flow
 <Flow
   flow={myFlow} // Flow must have an ID defined
-  components={...}
   initialContext={...}
   persister={persister}
-/>
+>
+  {({ renderStep }) =>
+    renderStep({
+      welcome: <WelcomeStep />,
+      profile: <ProfileStep />,
+      complete: <CompleteStep />,
+    })
+  }
+</Flow>
 ```
 
 **Custom storage examples:**
@@ -914,11 +913,18 @@ function MyStep() {
 
 <Flow
   flow={myFlow}
-  components={...}
   initialContext={...}
   persister={persister}
   saveMode="manual"  // Disable auto-save
-/>
+>
+  {({ renderStep }) =>
+    renderStep({
+      welcome: <WelcomeStep />,
+      profile: <ProfileStep />,
+      complete: <CompleteStep />,
+    })
+  }
+</Flow>
 ```
 
 **Save Strategies:**
@@ -1030,13 +1036,17 @@ function App() {
   return (
     <Flow
       flow={myFlow}
-      components={...}
       initialContext={...}
       persister={persister}
-      persistenceKey="my-flow"
+      loadingComponent={<div>Loading your progress...</div>}
     >
-      {/* Loading shown while restoring from storage */}
-      <div>Loading your progress...</div>
+      {({ renderStep }) =>
+        renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          complete: <CompleteStep />,
+        })
+      }
     </Flow>
   );
 }
@@ -1061,7 +1071,6 @@ function App() {
 
       <Flow
         flow={myFlow}
-        components={...}
         initialContext={...}
         persister={persister}
 
@@ -1086,7 +1095,15 @@ function App() {
           console.error("Persistence error:", error);
           showErrorToast("Failed to save progress");
         }}
-      />
+      >
+        {({ renderStep }) =>
+          renderStep({
+            welcome: <WelcomeStep />,
+            profile: <ProfileStep />,
+            complete: <CompleteStep />,
+          })
+        }
+      </Flow>
     </>
   );
 }
@@ -1412,18 +1429,32 @@ function App() {
       {currentFlow === "onboarding" && (
         <Flow
           flow={onboardingFlow}
-          components={...}
           initialContext={...}
           onComplete={() => setCurrentFlow("settings")}
-        />
+        >
+          {({ renderStep }) =>
+            renderStep({
+              welcome: <WelcomeStep />,
+              profile: <ProfileStep />,
+              complete: <CompleteStep />,
+            })
+          }
+        </Flow>
       )}
 
       {currentFlow === "settings" && (
         <Flow
           flow={settingsFlow}
-          components={...}
           initialContext={...}
-        />
+        >
+          {({ renderStep }) =>
+            renderStep({
+              general: <GeneralSettingsStep />,
+              privacy: <PrivacySettingsStep />,
+              complete: <SettingsCompleteStep />,
+            })
+          }
+        </Flow>
       )}
     </>
   );
@@ -1513,19 +1544,18 @@ Write tests for your step components:
 ```tsx
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Flow } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
 
 test("ProfileStep collects user input", () => {
   render(
-    <Flow
-      flow={myFlow}
-      components={{
-        welcome: WelcomeStep,
-        profile: ProfileStep,
-        complete: CompleteStep,
-      }}
-      initialContext={{ name: "" }}
-    />
+    <Flow flow={myFlow} initialContext={{ name: "" }}>
+      {({ renderStep }) =>
+        renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          complete: <CompleteStep />,
+        })
+      }
+    </Flow>
   );
 
   // Start at welcome

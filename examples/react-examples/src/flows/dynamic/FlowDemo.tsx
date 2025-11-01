@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
+import { AnimateFlowStep } from "../../components/AnimateFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { FlowVisualizer } from "../../components/FlowVisualizer";
 import { LoadingView } from "../../components/LoadingView";
@@ -143,15 +143,6 @@ export function DynamicFlowDemo() {
       key={selectedFlow.id}
       // biome-ignore lint/suspicious/noExplicitAny: Union of different flow types requires type assertion for dynamic switching
       flow={selectedFlow as any}
-      // All components needed for both flows
-      components={{
-        welcome: WelcomeStep,
-        account: AccountStep,
-        verification: VerificationStep, // Required by standardFlow
-        profile: ProfileStep,
-        preferences: PreferencesStep, // Required by standardFlow
-        complete: CompleteStep,
-      }}
       initialContext={{
         email: "",
         username: "",
@@ -162,34 +153,51 @@ export function DynamicFlowDemo() {
       saveMode="always"
       loadingComponent={<LoadingView />}
     >
-      {/* Flow Type Indicator */}
-      <div className="fixed top-4 left-4 z-50">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-background/95 backdrop-blur shadow-sm">
-          {useExpressFlow ? (
-            <>
-              <Clock className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Express Flow</span>
-            </>
-          ) : (
-            <>
-              <Zap className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Standard Flow</span>
-            </>
-          )}
-        </div>
-      </div>
+      {({ renderStep }) => (
+        <>
+          {/* Flow Type Indicator */}
+          <div className="fixed top-4 left-4 z-50">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-background/95 backdrop-blur shadow-sm">
+              {useExpressFlow ? (
+                <>
+                  <Clock className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Express Flow</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Standard Flow</span>
+                </>
+              )}
+            </div>
+          </div>
 
-      {/* Flow Visualizer - Fixed on bottom left */}
-      <div className="hidden xl:block fixed left-4 bottom-4 w-80">
-        <FlowVisualizer />
-      </div>
+          {/* Flow Visualizer - Fixed on bottom left */}
+          <div className="hidden xl:block fixed left-4 bottom-4 w-80">
+            <FlowVisualizer />
+          </div>
 
-      <FlowInspector flowId={selectedFlow.id} store={store} position="right" />
+          <FlowInspector
+            flowId={selectedFlow.id}
+            store={store}
+            position="right"
+          />
 
-      {/* Main content - centered in viewport */}
-      <div className="flex items-center justify-center min-h-screen">
-        <AnimatedFlowStep />
-      </div>
+          {/* Main content - centered in viewport */}
+          <div className="flex items-center justify-center min-h-screen">
+            <AnimateFlowStep>
+              {renderStep({
+                welcome: <WelcomeStep />,
+                account: <AccountStep />,
+                verification: <VerificationStep />,
+                profile: <ProfileStep />,
+                preferences: <PreferencesStep />,
+                complete: <CompleteStep />,
+              })}
+            </AnimateFlowStep>
+          </div>
+        </>
+      )}
     </Flow>
   );
 }

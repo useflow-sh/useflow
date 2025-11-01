@@ -65,24 +65,15 @@ export const onboardingFlow = defineFlow({
 
 ### 2. Render Your Flow
 
-Use the `<Flow>` component to render your flow:
+Use the `<Flow>` component with render props to render your flow:
 
 ```tsx
-import { Flow, FlowStep } from "@useflow/react";
+import { Flow } from "@useflow/react";
 
 function App() {
   return (
     <Flow
       flow={onboardingFlow}
-      components={{
-        welcome: WelcomeStep,
-        profile: ProfileStep,
-        preferences: PreferencesStep,
-        complete: () => {
-          const { context } = useFlow();
-          return <CompleteStep name={context.name} />;
-        },
-      }}
       initialContext={{
         name: "",
         email: "",
@@ -92,10 +83,21 @@ function App() {
         console.log("Flow completed!");
       }}
     >
-      {/* Optional: Custom layout */}
-      <Header />
-      <FlowStep /> {/* Renders the current step */}
-      <Footer />
+      {({ renderStep }) => (
+        <>
+          <Header />
+          {renderStep({
+            welcome: <WelcomeStep />,
+            profile: <ProfileStep />,
+            preferences: <PreferencesStep />,
+            complete: () => {
+              const { context } = useFlow();
+              return <CompleteStep name={context.name} />;
+            },
+          })}
+          <Footer />
+        </>
+      )}
     </Flow>
   );
 }
@@ -253,7 +255,6 @@ React to navigation and context changes:
 ```tsx
 <Flow
   flow={myFlow}
-  components={...}
   initialContext={...}
   onNext={({ from, to, oldContext, newContext }) => {
     console.log(`Navigated from ${from} to ${to}`);
@@ -274,7 +275,15 @@ React to navigation and context changes:
   onComplete={() => {
     console.log("Flow completed!");
   }}
-/>
+>
+  {({ renderStep }) =>
+    renderStep({
+      welcome: <WelcomeStep />,
+      profile: <ProfileStep />,
+      complete: <CompleteStep />,
+    })
+  }
+</Flow>
 ```
 
 **Callback Types:**
@@ -465,14 +474,20 @@ Perfect for:
 Control where the current step renders:
 
 ```tsx
-<Flow flow={myFlow} components={...} initialContext={...}>
-  <div className="layout">
-    <Sidebar />
-    <main>
-      <ProgressBar />
-      <FlowStep /> {/* Current step renders here */}
-    </main>
-  </div>
+<Flow flow={myFlow} initialContext={...}>
+  {({ renderStep }) => (
+    <div className="layout">
+      <Sidebar />
+      <main>
+        <ProgressBar />
+        {renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          complete: <CompleteStep />,
+        })}
+      </main>
+    </div>
+  )}
 </Flow>
 ```
 
@@ -518,14 +533,13 @@ This separation means:
 import { defineFlow, type FlowConfig } from "@useflow/react";
 
 // Render flows
-import { Flow, FlowStep, useFlow } from "@useflow/react";
+import { Flow, useFlow } from "@useflow/react";
 ```
 
 ### Main Components
 
 - **`defineFlow(config)`** - Create a type-safe flow definition
-- **`<Flow />`** - Main component that runs your flow
-- **`<FlowStep />`** - Renders the current step (optional for custom layouts)
+- **`<Flow />`** - Main component that runs your flow with render props
 - **`useFlow()`** - Hook to access flow state and navigation
 
 ## Development

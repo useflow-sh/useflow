@@ -211,7 +211,7 @@ src/
 │   │   ├── input.tsx
 │   │   ├── label.tsx
 │   │   └── switch.tsx
-│   ├── AnimatedFlowStep.tsx     # Step transition animations
+│   ├── AnimateFlowStep.tsx     # Step transition animations
 │   ├── FlowGallery.tsx          # Home page gallery
 │   ├── FlowInspector.tsx        # Debug panel (bottom-right)
 │   ├── FlowVisualizer.tsx       # Flow structure diagram (bottom-left)
@@ -357,7 +357,7 @@ Smooth slide-up animations defined in `index.css`:
    ```tsx
    // src/flows/my-flow/FlowDemo.tsx
    import { Flow } from "@useflow/react";
-   import { persister, storage } from "../../lib/storage";
+   import { persister, store } from "../../lib/storage";
    import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
    import { FlowInspector } from "../../components/FlowInspector";
    import { LoadingView } from "../../components/LoadingView";
@@ -367,18 +367,25 @@ Smooth slide-up animations defined in `index.css`:
      return (
        <Flow
          flow={myFlow}
-         components={{
-           step1: Step1Component,
-           step2: Step2Component,
-           complete: CompleteComponent,
-         }}
          initialContext={{}}
          persister={persister}
          saveMode="always"
          loadingComponent={<LoadingView />}
        >
-         <FlowInspector flowId={myFlow.id} storage={storage} position="right" />
-         <AnimatedFlowStep />
+         {({ renderStep }) => (
+           <>
+             <FlowInspector flowId={myFlow.id} store={store} position="right" />
+             <div className="flex items-center justify-center min-h-screen">
+               <AnimatedFlowStep>
+                 {renderStep({
+                   step1: <Step1Component />,
+                   step2: <Step2Component />,
+                   complete: <CompleteComponent />,
+                 })}
+               </AnimatedFlowStep>
+             </div>
+           </>
+         )}
        </Flow>
      );
    }

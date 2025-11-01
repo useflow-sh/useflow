@@ -119,8 +119,6 @@ export type PersistedFlowInstance<TContext extends FlowContext = FlowContext> =
  * Flow definition - purely declarative, JSON-serializable structure
  * No runtime functions (migrate, resolve) - those are defined separately
  * in the runtime configuration to enable remote configs
- *
- * Use 'as const' to preserve literal types for type-safe step references
  */
 export type FlowDefinition<
   _TContext extends FlowContext = FlowContext,

@@ -1,4 +1,4 @@
-import { Flow, useFlow } from "@useflow/react";
+import { Flow } from "@useflow/react";
 import { ArrowLeft, ChevronDown, ListTodo, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
+import { AnimateFlowStep } from "../../components/AnimateFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { LoadingView } from "../../components/LoadingView";
 import { persister, store } from "../../lib/storage";
@@ -359,25 +359,6 @@ export function TaskFlowDemo() {
       key={activeTaskId}
       flow={taskFlow}
       instanceId={activeTaskId}
-      components={{
-        taskType: TaskTypeStep,
-        details: DetailsStep,
-        assign: AssignStep,
-        review: ReviewStep,
-        complete: () => {
-          const { context } = useFlow();
-          return (
-            <TaskCompleteStep
-              title={context.title}
-              taskType={context.taskType}
-              onCreateAnother={() =>
-                handleCreateAnother(context as TaskFlowContext)
-              }
-              onViewAll={() => handleViewAll(context as TaskFlowContext)}
-            />
-          );
-        },
-      }}
       initialContext={{
         title: "",
         description: "",
@@ -387,30 +368,51 @@ export function TaskFlowDemo() {
       saveMode="always"
       loadingComponent={<LoadingView />}
     >
-      {/* Back to Task Manager Button */}
-      <div className="fixed top-4 left-4 z-50">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleCancelTask}
-          className="gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Task Manager
-        </Button>
-      </div>
+      {({ renderStep, context }) => (
+        <>
+          {/* Back to Task Manager Button */}
+          <div className="fixed top-4 left-4 z-50">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCancelTask}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Task Manager
+            </Button>
+          </div>
 
-      <FlowInspector
-        flowId={taskFlow.id}
-        store={store}
-        instanceId={activeTaskId}
-        position="right"
-      />
+          <FlowInspector
+            flowId={taskFlow.id}
+            store={store}
+            instanceId={activeTaskId}
+            position="right"
+          />
 
-      {/* Main content - centered in viewport */}
-      <div className="flex items-center justify-center min-h-screen">
-        <AnimatedFlowStep />
-      </div>
+          {/* Main content - centered in viewport */}
+          <div className="flex items-center justify-center min-h-screen">
+            <AnimateFlowStep>
+              {renderStep({
+                taskType: <TaskTypeStep />,
+                details: <DetailsStep />,
+                assign: <AssignStep />,
+                review: <ReviewStep />,
+                complete: (
+                  <TaskCompleteStep
+                    title={context.title}
+                    taskType={context.taskType}
+                    onCreateAnother={() =>
+                      handleCreateAnother(context as TaskFlowContext)
+                    }
+                    onViewAll={() => handleViewAll(context as TaskFlowContext)}
+                  />
+                ),
+              })}
+            </AnimateFlowStep>
+          </div>
+        </>
+      )}
     </Flow>
   );
 }

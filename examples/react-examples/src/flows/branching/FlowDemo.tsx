@@ -1,5 +1,5 @@
-import { Flow, useFlow } from "@useflow/react";
-import { AnimatedFlowStep } from "../../components/AnimatedFlowStep";
+import { Flow } from "@useflow/react";
+import { AnimateFlowStep } from "../../components/AnimateFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { FlowVisualizer } from "../../components/FlowVisualizer";
 import { LoadingView } from "../../components/LoadingView";
@@ -17,29 +17,6 @@ export function BranchingFlowDemo() {
   return (
     <Flow
       flow={branchingFlow}
-      components={{
-        welcome: WelcomeStep,
-        profile: ProfileStep,
-        userType: UserTypeStep,
-        businessDetails: BusinessDetailsStep,
-        setupPreference: SetupPreferenceStep,
-        preferences: PreferencesStep,
-        complete: () => {
-          const { context, reset } = useFlow();
-          return (
-            <CompleteStep
-              name={context.name}
-              theme={context.theme}
-              notifications={context.notifications}
-              userType={context.userType || undefined}
-              businessIndustry={context.businessIndustry}
-              companyName={context.companyName}
-              startedAt={context.startedAt}
-              onRestart={reset}
-            />
-          );
-        },
-      }}
       initialContext={{
         name: "",
         userType: undefined,
@@ -53,17 +30,46 @@ export function BranchingFlowDemo() {
       saveMode="always"
       loadingComponent={<LoadingView />}
     >
-      {/* Flow Visualizer - Fixed on bottom left */}
-      <div className="hidden xl:block fixed left-4 bottom-4 w-80">
-        <FlowVisualizer />
-      </div>
+      {({ renderStep, context, reset }) => (
+        <>
+          {/* Flow Visualizer - Fixed on bottom left */}
+          <div className="hidden xl:block fixed left-4 bottom-4 w-80">
+            <FlowVisualizer />
+          </div>
 
-      <FlowInspector flowId={branchingFlow.id} store={store} position="right" />
+          <FlowInspector
+            flowId={branchingFlow.id}
+            store={store}
+            position="right"
+          />
 
-      {/* Main content - centered in viewport */}
-      <div className="flex items-center justify-center min-h-screen">
-        <AnimatedFlowStep />
-      </div>
+          {/* Main content - centered in viewport */}
+          <div className="flex items-center justify-center min-h-screen">
+            <AnimateFlowStep>
+              {renderStep({
+                welcome: <WelcomeStep />,
+                profile: <ProfileStep />,
+                userType: <UserTypeStep />,
+                businessDetails: <BusinessDetailsStep />,
+                setupPreference: <SetupPreferenceStep />,
+                preferences: <PreferencesStep />,
+                complete: (
+                  <CompleteStep
+                    name={context.name}
+                    theme={context.theme}
+                    notifications={context.notifications}
+                    userType={context.userType || undefined}
+                    businessIndustry={context.businessIndustry}
+                    companyName={context.companyName}
+                    startedAt={context.startedAt}
+                    onRestart={reset}
+                  />
+                ),
+              })}
+            </AnimateFlowStep>
+          </div>
+        </>
+      )}
     </Flow>
   );
 }

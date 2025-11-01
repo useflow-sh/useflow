@@ -1,5 +1,5 @@
 import type { FlowContext } from "@useflow/core";
-import type { ComponentType } from "react";
+import type { ReactElement } from "react";
 import type { UseFlowReducerReturn } from "./use-flow-reducer";
 
 /**
@@ -12,6 +12,26 @@ export type StepInfo<TStepNames extends string = string> = {
 };
 
 /**
+ * Step element - a ReactElement (JSX) to display for this step
+ *
+ * Examples:
+ * - <WelcomeStep /> - a component
+ * - <ProfileStep name={userName} /> - a component with props
+ * - <div>Hello world</div> - plain JSX
+ *
+ * To access flow state, use the useFlow() hook inside your component
+ */
+export type StepElement = ReactElement;
+
+/**
+ * Record mapping step names to React elements to display
+ */
+export type StepElements<TStepNames extends string = string> = Record<
+  TStepNames,
+  StepElement
+>;
+
+/**
  * Return type for the public useFlow() hook
  * This is what users get when they call useFlow() from context
  *
@@ -22,8 +42,6 @@ export type UseFlowReturn<
   TValidNextSteps extends string = string,
   TStepNames extends string = string,
 > = UseFlowReducerReturn<TContext, TValidNextSteps> & {
-  // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
-  component: ComponentType<any> | undefined;
   isRestoring: boolean;
   /**
    * Manually trigger a save when saveMode="manual"
@@ -44,4 +62,21 @@ export type UseFlowReturn<
    * Narrowed to ValidNextSteps when using typed hook from defineFlow
    */
   nextSteps: readonly TValidNextSteps[] | undefined;
+
+  /**
+   * Helper function to render the current step
+   * Pass a record mapping step names to React elements
+   *
+   * @example
+   * ```tsx
+   * <Flow flow={myFlow}>
+   *   {({ renderStep, context }) => renderStep({
+   *     welcome: <WelcomeStep />,
+   *     profile: <ProfileStep />,
+   *     complete: <CompleteStep name={context.name} />
+   *   })}
+   * </Flow>
+   * ```
+   */
+  renderStep: (elements: StepElements<TStepNames>) => ReactElement;
 };

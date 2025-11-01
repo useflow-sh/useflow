@@ -12,11 +12,6 @@ describe("Public API", () => {
     expect(typeof api.Flow).toBe("function");
   });
 
-  it("should export FlowStep component", () => {
-    expect(api.FlowStep).toBeDefined();
-    expect(typeof api.FlowStep).toBe("function");
-  });
-
   it("should export useFlow hook", () => {
     expect(api.useFlow).toBeDefined();
     expect(typeof api.useFlow).toBe("function");

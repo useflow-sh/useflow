@@ -4,12 +4,11 @@ import type {
   FlowPersister,
   MigrateFunction,
   PersistedFlowState,
-  RuntimeResolverMap,
 } from "@useflow/core";
 import { validatePersistedState } from "@useflow/core";
 import {
-  type ComponentType,
   createContext,
+  type ReactElement,
   type ReactNode,
   useCallback,
   useContext,
@@ -20,7 +19,7 @@ import {
 } from "react";
 import type { FlowDefinition } from "./define-flow";
 import type { ExtractContext, FlowConfig, StepNames } from "./type-helpers";
-import type { UseFlowReturn } from "./types";
+import type { StepElements, StepInfo, UseFlowReturn } from "./types";
 import { useFlowReducer } from "./use-flow-reducer";
 
 // biome-ignore lint/suspicious/noExplicitAny: React Context requires concrete type at creation, type safety enforced at usage via generics
@@ -62,16 +61,11 @@ export function useFlow<TContext extends FlowContext = FlowContext>(_options?: {
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-type ComponentsProp<TConfig extends FlowConfig<any>> = Record<
-  StepNames<TConfig>,
-  // biome-ignore lint/suspicious/noExplicitAny: Components can accept arbitrary props defined by users
-  ComponentType<any>
->;
-
-// biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
 type FlowProps<TConfig extends FlowConfig<any>> = {
   flow: FlowDefinition<TConfig>;
-  components: ComponentsProp<TConfig>;
+  children: (
+    state: UseFlowReturn<ExtractContext<TConfig>, string, StepNames<TConfig>>,
+  ) => ReactNode;
   initialContext: ExtractContext<TConfig>;
   instanceId?: string;
   onComplete?: () => void;
@@ -111,7 +105,6 @@ type FlowProps<TConfig extends FlowConfig<any>> = {
   onSave?: (state: PersistedFlowState<ExtractContext<TConfig>>) => void;
   onRestore?: (state: PersistedFlowState<ExtractContext<TConfig>>) => void;
   loadingComponent?: ReactNode;
-  children?: ReactNode;
 };
 
 type LastActionType =
@@ -123,83 +116,71 @@ type LastActionType =
   | "RESET"
   | null;
 /**
- * Flow - main component for running a flow
+ * Flow - main component for running a flow using render props pattern
  *
- * By default, renders the current step automatically if no children provided.
- * Use FlowStep component for custom layout control.
+ * Uses children as a function that receives flow state and methods,
+ * including a renderStep helper to display the current step with typesafety for static flows.
  *
  * @param flow - FlowDefinition returned by defineFlow() (not raw config)
+ * @param initialContext - Initial context state for the flow
+ * @param children - Render function that receives flow state
  * @param instanceId - Optional unique identifier for reusable flows with separate persistence
  * @param persister - Optional persister for saving/restoring flow state
  * @param loadingComponent - Optional component to show while restoring state (default: null)
  *
  * @example
  * ```tsx
- * // First, define your flow
- * const myFlow = defineFlow({
- *   start: 'welcome',
- *   steps: { ... }
- * });
+ * // Basic usage with renderStep helper
+ * <Flow flow={myFlow} initialContext={{ name: '' }}>
+ *   {({ renderStep }) => renderStep({
+ *     welcome: <WelcomeStep />,
+ *     profile: <ProfileStep />,
+ *     complete: <CompleteStep />,
+ *   })}
+ * </Flow>
  *
- * // Auto-render (default) - step renders automatically
+ * // Passing context via render props to components
+ * <Flow flow={myFlow} initialContext={{ name: '' }}>
+ *   {({ renderStep, context, reset }) => renderStep({
+ *     welcome: <WelcomeStep />,
+ *     profile: <ProfileStep name={context.name} />,
+ *     complete: <CompleteStep name={context.name} onReset={reset} />,
+ *   })}
+ * </Flow>
+ *
+ * // With custom layout
+ * <Flow flow={myFlow} initialContext={{ name: '' }}>
+ *   {({ renderStep, stepId, context }) => (
+ *     <>
+ *       <Header stepId={stepId} />
+ *       <div className="content">
+ *         {renderStep({
+ *           welcome: <WelcomeStep />,
+ *           profile: <ProfileStep />,
+ *         })}
+ *       </div>
+ *       <Footer context={context} />
+ *     </>
+ *   )}
+ * </Flow>
+ *
+ * // With persistence
  * <Flow
  *   flow={myFlow}
- *   components={{
- *     welcome: WelcomeStep,
- *     complete: () => {
- *       const { context } = useFlow();
- *       return <CompleteStep name={context.name} />;
- *     },
- *   }}
- *   initialContext={{ name: '' }}
- * />
- *
- * // Reusable flow with instanceId (separate state per task)
- * <Flow
- *   flow={feedbackFlow}
- *   instanceId={task.id}
- *   components={{
- *     welcome: WelcomeStep,
- *     feedback: FeedbackStep,
- *   }}
- *   initialContext={{ taskName: task.name }}
- *   persister={persister}
- * />
- *
- * // With persistence and loading state
- * <Flow
- *   flow={myFlow}
- *   components={{
- *     welcome: WelcomeStep,
- *     profile: ProfileStep,
- *   }}
  *   initialContext={{ name: '' }}
  *   persister={persister}
  *   loadingComponent={<Spinner />}
- * />
- *
- * // Custom layout - use FlowStep for control
- * <Flow
- *   flow={myFlow}
- *   components={{
- *     welcome: WelcomeStep,
- *     complete: () => {
- *       const { context } = useFlow();
- *       return <CompleteStep name={context.name} />;
- *     },
- *   }}
- *   initialContext={{ name: '' }}
  * >
- *   <Header />
- *   <FlowStep />
- *   <Footer />
+ *   {({ renderStep }) => renderStep({
+ *     welcome: <WelcomeStep />,
+ *     profile: <ProfileStep />,
+ *   })}
  * </Flow>
  * ```
  */
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
 export function Flow<TConfig extends FlowConfig<any>>({
   flow,
-  components,
   initialContext,
   instanceId,
   onComplete,
@@ -238,9 +219,8 @@ export function Flow<TConfig extends FlowConfig<any>>({
     initialContext,
     undefined, // initialState - restoration happens in useEffect
     // Safe cast: ResolverMap is a stricter compile-time type, runtime shape matches RuntimeResolverMap
-    flow.runtimeConfig?.resolvers as RuntimeResolverMap<
-      ExtractContext<TConfig>
-    >,
+    // biome-ignore lint/suspicious/noExplicitAny: Runtime resolver map is compatible
+    flow.runtimeConfig?.resolvers as any,
   );
 
   // Extract all steps (stripped down to only next property)
@@ -250,7 +230,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
         id,
         { next: step.next },
       ]),
-    );
+    ) as Record<StepNames<TConfig>, StepInfo<StepNames<TConfig>>>;
   }, [config.steps]);
 
   // Extract possible next steps from current step
@@ -557,65 +537,52 @@ export function Flow<TConfig extends FlowConfig<any>>({
     save();
   }, [saveMode, saveDebounce, save]);
 
+  // Create renderStep helper function
+  const renderStep = useCallback(
+    (elements: StepElements<StepNames<TConfig>>): ReactElement => {
+      return elements[flowState.stepId as StepNames<TConfig>];
+    },
+    [flowState.stepId],
+  );
+
   // Show loading component while restoring to prevent flash of wrong content
   if (isRestoring) {
     return <>{loadingComponent ?? null}</>;
   }
 
+  // Create the flow state object to pass to children
+  const flowRenderState: UseFlowReturn<
+    ExtractContext<TConfig>,
+    string,
+    StepNames<TConfig>
+  > = {
+    // From flowState
+    stepId: flowState.stepId,
+    step: flowState.step,
+    context: flowState.context,
+    path: flowState.path,
+    history: flowState.history,
+    status: flowState.status,
+    startedAt: flowState.startedAt,
+    completedAt: flowState.completedAt,
+    restore: flowState.restore,
+    // Methods (stable via useCallback)
+    next,
+    skip,
+    back,
+    setContext,
+    reset,
+    save,
+    // Additional properties
+    isRestoring,
+    steps,
+    nextSteps,
+    renderStep,
+  };
+
   return (
-    <ReactFlowContext.Provider
-      value={{
-        // From flowState
-        stepId: flowState.stepId,
-        step: flowState.step,
-        context: flowState.context,
-        path: flowState.path,
-        history: flowState.history,
-        status: flowState.status,
-        startedAt: flowState.startedAt,
-        completedAt: flowState.completedAt,
-        restore: flowState.restore,
-        // Methods (stable via useCallback)
-        next,
-        skip,
-        back,
-        setContext,
-        reset,
-        save,
-        // Additional properties
-        component: components[flowState.stepId as StepNames<TConfig>],
-        isRestoring,
-        steps,
-        nextSteps,
-      }}
-    >
-      {children ?? <FlowStep />}
+    <ReactFlowContext.Provider value={flowRenderState}>
+      {children(flowRenderState)}
     </ReactFlowContext.Provider>
   );
-}
-
-/**
- * FlowStep - renders the current step component
- *
- * Use this component to control where the current step is rendered.
- * If not provided, Flow will render the step automatically.
- *
- * @example
- * ```tsx
- * <Flow flow={myFlow} components={...} initialContext={...}>
- *   <Header />
- *   <FlowStep />
- *   <Footer />
- * </Flow>
- * ```
- */
-export function FlowStep() {
-  const { component: Component, stepId } = useFlow();
-
-  if (!Component) {
-    console.warn(`[FlowStep] No component found for step: ${stepId}`);
-    return null;
-  }
-
-  return <Component />;
 }

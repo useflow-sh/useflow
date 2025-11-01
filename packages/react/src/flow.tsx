@@ -4,6 +4,7 @@ import type {
   FlowPersister,
   MigrateFunction,
   PersistedFlowState,
+  RuntimeResolverMap,
 } from "@useflow/core";
 import { validatePersistedState } from "@useflow/core";
 import {
@@ -236,7 +237,10 @@ export function Flow<TConfig extends FlowConfig<any>>({
     flowDefinitionWithoutComponents,
     initialContext,
     undefined, // initialState - restoration happens in useEffect
-    flow.runtimeConfig?.resolvers, // resolvers from enhanced definition
+    // Safe cast: ResolverMap is a stricter compile-time type, runtime shape matches RuntimeResolverMap
+    flow.runtimeConfig?.resolvers as RuntimeResolverMap<
+      ExtractContext<TConfig>
+    >,
   );
 
   // Extract all steps (stripped down to only next property)

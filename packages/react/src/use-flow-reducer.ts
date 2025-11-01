@@ -8,7 +8,7 @@ import {
   flowReducer,
   type HistoryEntry,
   type PathEntry,
-  type ResolverMap,
+  type RuntimeResolverMap,
 } from "@useflow/core";
 import { useCallback, useReducer, useRef } from "react";
 
@@ -66,7 +66,7 @@ export function useFlowReducer<TContext extends FlowContext>(
   definition: FlowDefinition<TContext>,
   initialContext: TContext,
   initialState?: FlowState<TContext>,
-  resolvers?: ResolverMap<TContext>,
+  resolvers?: RuntimeResolverMap<TContext>,
 ): UseFlowReducerReturn<TContext> {
   // Store initial context in a ref so it's stable across re-renders
   const initialContextRef = useRef(initialContext);

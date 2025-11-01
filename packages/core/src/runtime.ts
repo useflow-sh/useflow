@@ -119,21 +119,51 @@ export type ResolveFunction<
 > = (context: TContext) => TNextSteps | undefined;
 
 /**
- * Map of step IDs to their resolver functions
+ * Runtime resolver map - looser type used internally by the reducer
+ * This allows runtime operations without strict step type constraints
+ */
+export type RuntimeResolverMap<TContext extends FlowContext = FlowContext> =
+  Record<string, ResolveFunction<TContext, string>>;
+
+/**
+ * Type-safe resolver map for flow definitions
  * Only steps with array-based next transitions need resolvers
+ *
+ * Each resolver is constrained to return only the valid next steps defined
+ * for that specific step in the flow configuration.
+ *
+ * The resolver functions can accept any context type (allowing for more specific
+ * context types in individual resolvers), but must return one of the valid next steps.
  *
  * @example
  * ```ts
- * const resolvers: ResolverMap = {
- *   userType: (ctx) => ctx.type === 'business' ? 'business' : 'personal',
- *   setupPreference: (ctx) => ctx.setup === 'advanced' ? 'advanced' : 'complete'
- * };
+ * const flow = defineFlow(
+ *   {
+ *     steps: {
+ *       userType: { next: ['business', 'personal'] },
+ *       setupPreference: { next: ['advanced', 'complete'] }
+ *     }
+ *   },
+ *   (steps) => ({
+ *     resolve: {
+ *       userType: (ctx) => ctx.type === 'business' ? steps.business : steps.personal,
+ *       setupPreference: (ctx) => ctx.setup === 'advanced' ? steps.advanced : steps.complete
+ *     }
+ *   })
+ * );
  * ```
  */
-export type ResolverMap<TContext extends FlowContext = FlowContext> = Record<
-  string,
-  ResolveFunction<TContext, string>
->;
+export type ResolverMap<
+  // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any step definition shape
+  TSteps extends Record<string, any> = Record<string, any>,
+> = {
+  [K in keyof TSteps]?: TSteps[K] extends { next: infer N }
+    ? N extends readonly (infer E)[]
+      ? // biome-ignore lint/suspicious/noExplicitAny: Allow any context type, enforce return type only
+        (context: any) => (E & string) | undefined
+      : never
+    : never;
+};
 
 /**
  * Step references object - provides type-safe references to step names
@@ -211,7 +241,7 @@ export type FlowRuntimeConfig<
   TContext extends FlowContext = FlowContext,
 > = (steps: StepRefs<TDefinition["steps"]>) => {
   migrate?: MigrateFunction<TContext>;
-  resolve?: ResolverMap<TContext>;
+  resolve?: ResolverMap<TDefinition["steps"]>;
 };
 
 /**
@@ -232,6 +262,6 @@ export type RuntimeFlowDefinition<
   config: TDefinition;
   runtimeConfig?: {
     migrate?: MigrateFunction<TContext>;
-    resolvers?: ResolverMap<TContext>;
+    resolvers?: ResolverMap<TDefinition["steps"]>;
   };
 };

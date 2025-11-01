@@ -1,4 +1,4 @@
-import type { ResolverMap } from "./runtime";
+import type { RuntimeResolverMap } from "./runtime";
 import type {
   ContextUpdate,
   FlowAction,
@@ -116,7 +116,7 @@ export function flowReducer<TContext extends FlowContext>(
   action: FlowAction<TContext>,
   definition: FlowDefinition<TContext>,
   options?: {
-    resolvers?: ResolverMap<TContext>;
+    resolvers?: RuntimeResolverMap<TContext>;
   },
 ): FlowState<TContext> {
   switch (action.type) {

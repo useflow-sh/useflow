@@ -36,6 +36,7 @@ export type {
   ResolveFunction,
   ResolverMap,
   RuntimeFlowDefinition,
+  RuntimeResolverMap,
   StepRefs,
 } from "./runtime";
 // Core types

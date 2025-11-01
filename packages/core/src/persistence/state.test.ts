@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FlowDefinition, PersistedFlowState } from "../types";
-import { JsonSerializer } from "./serializer";
 import { validatePersistedState } from "./state";
-
-// Use the JsonSerializer's methods for testing
-const serializeFlowState = JsonSerializer.serialize.bind(JsonSerializer);
-const deserializeFlowState = JsonSerializer.deserialize.bind(JsonSerializer);
 
 describe("validatePersistedState", () => {
   const definition: FlowDefinition<{ name: string }> = {
@@ -149,94 +144,5 @@ describe("validatePersistedState", () => {
     const result = validatePersistedState(persisted, definition);
 
     expect(result.valid).toBe(true);
-  });
-});
-
-describe("serializeFlowState", () => {
-  it("should serialize state to JSON string", () => {
-    const state: PersistedFlowState<{ name: string }> = {
-      stepId: "profile",
-      context: { name: "John" },
-      history: ["welcome", "profile"],
-      status: "active",
-    };
-
-    const json = serializeFlowState(state);
-
-    expect(json).toBe(
-      '{"stepId":"profile","context":{"name":"John"},"history":["welcome","profile"],"status":"active"}',
-    );
-  });
-
-  it("should serialize state with metadata", () => {
-    const state: PersistedFlowState<{ name: string }> = {
-      stepId: "profile",
-      context: { name: "John" },
-      history: ["welcome", "profile"],
-      status: "active",
-      __meta: { version: "1.0" },
-    };
-
-    const json = serializeFlowState(state);
-    const parsed = JSON.parse(json);
-
-    expect(parsed.__meta).toEqual({ version: "1.0" });
-  });
-});
-
-describe("deserializeFlowState", () => {
-  it("should deserialize valid JSON string", () => {
-    const json =
-      '{"stepId":"profile","context":{"name":"John"},"history":["welcome","profile"],"status":"active"}';
-
-    const state = deserializeFlowState(json);
-
-    expect(state).toEqual({
-      stepId: "profile",
-      context: { name: "John" },
-      history: ["welcome", "profile"],
-      status: "active",
-    });
-  });
-
-  it("should return null for invalid JSON", () => {
-    const result = deserializeFlowState("invalid json");
-
-    expect(result).toBeNull();
-  });
-
-  it("should return null for JSON with missing fields", () => {
-    const json = '{"stepId":"profile","context":{"name":"John"}}';
-
-    const result = deserializeFlowState(json);
-
-    expect(result).toBeNull();
-  });
-
-  it("should return null for JSON with wrong types", () => {
-    const json =
-      '{"stepId":123,"context":{"name":"John"},"history":["welcome"],"status":"active"}';
-
-    const result = deserializeFlowState(json);
-
-    expect(result).toBeNull();
-  });
-
-  it("should return null for JSON with invalid status", () => {
-    const json =
-      '{"stepId":"profile","context":{"name":"John"},"history":["welcome"],"status":"invalid"}';
-
-    const result = deserializeFlowState(json);
-
-    expect(result).toBeNull();
-  });
-
-  it("should deserialize state with metadata", () => {
-    const json =
-      '{"stepId":"profile","context":{"name":"John"},"history":["welcome","profile"],"status":"active","__meta":{"version":"1.0"}}';
-
-    const state = deserializeFlowState(json);
-
-    expect(state?.__meta).toEqual({ version: "1.0" });
   });
 });

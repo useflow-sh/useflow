@@ -2825,10 +2825,10 @@ describe("FlowStep", () => {
       fireEvent.click(screen.getByText("Reset"));
 
       await waitFor(() => {
-        expect(persister.remove).toHaveBeenCalledWith(
-          "test-reset-persist",
-          undefined,
-        );
+        expect(persister.remove).toHaveBeenCalledWith("test-reset-persist", {
+          instanceId: undefined,
+          variantId: undefined,
+        });
         expect(screen.getByTestId("stepId")).toHaveTextContent("first");
       });
     });
@@ -2891,10 +2891,10 @@ describe("FlowStep", () => {
       fireEvent.click(screen.getByText("Reset"));
 
       await waitFor(() => {
-        expect(persister.remove).toHaveBeenCalledWith(
-          "test-reset-instance",
-          "instance-123",
-        );
+        expect(persister.remove).toHaveBeenCalledWith("test-reset-instance", {
+          instanceId: "instance-123",
+          variantId: undefined,
+        });
       });
     });
 

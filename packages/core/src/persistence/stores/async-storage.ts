@@ -96,8 +96,14 @@ export function createAsyncStorageStore(
   return kvStorageAdapter({
     storage: asyncStorage,
     serializer,
-    formatKey: (flowId, instanceId) =>
-      instanceId ? `${prefix}:${flowId}:${instanceId}` : `${prefix}:${flowId}`,
+    formatKey: (flowId, instanceId, variantId) => {
+      // Apply defaults
+      const vid = variantId || "default";
+      const iid = instanceId || "default";
+
+      // Always 4 segments: prefix:flowId:variantId:instanceId
+      return `${prefix}:${flowId}:${vid}:${iid}`;
+    },
     listKeys: async (flowId) => {
       // AsyncStorage typically has getAllKeys() method on the object itself
       // Cast to any to access the getAllKeys method which isn't on KVStore interface
@@ -119,10 +125,8 @@ export function createAsyncStorageStore(
         return allKeys.filter((k) => k.startsWith(`${prefix}:`)) as string[];
 
       // Filter keys for this specific flow
-      const baseKey = `${prefix}:${flowId}`;
-      return allKeys.filter(
-        (key) => key === baseKey || key.startsWith(`${baseKey}:`),
-      ) as string[];
+      const baseKey = `${prefix}:${flowId}:`;
+      return allKeys.filter((key) => key.startsWith(baseKey)) as string[];
     },
   });
 }

@@ -64,20 +64,22 @@ export const JsonSerializer: StringSerializer = {
     try {
       const parsed = JSON.parse(data);
 
-      // Basic structure validation
+      // Validate PersistedFlowInstance structure
       if (
         typeof parsed !== "object" ||
         parsed === null ||
-        typeof parsed.stepId !== "string" ||
-        typeof parsed.context !== "object" ||
-        parsed.context === null ||
-        !Array.isArray(parsed.history) ||
-        (parsed.status !== "active" && parsed.status !== "complete")
+        typeof parsed.flowId !== "string" ||
+        typeof parsed.instanceId !== "string" ||
+        typeof parsed.variantId !== "string" ||
+        typeof parsed.state !== "object" ||
+        parsed.state === null
       ) {
         return null;
       }
 
-      return parsed as PersistedFlowState;
+      // Cast to PersistedFlowState to satisfy the interface
+      // The adapter will unwrap it to get the actual state
+      return parsed as unknown as PersistedFlowState;
     } catch {
       return null;
     }

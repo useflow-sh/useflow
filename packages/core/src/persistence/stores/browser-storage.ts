@@ -92,8 +92,14 @@ export function createLocalStorageStore(
   return kvStorageAdapter({
     storage,
     serializer,
-    formatKey: (flowId, instanceId) =>
-      instanceId ? `${prefix}:${flowId}:${instanceId}` : `${prefix}:${flowId}`,
+    formatKey: (flowId, instanceId, variantId) => {
+      // Apply defaults
+      const vid = variantId || "default";
+      const iid = instanceId || "default";
+
+      // Always 4 segments: prefix:flowId:variantId:instanceId
+      return `${prefix}:${flowId}:${vid}:${iid}`;
+    },
     listKeys: (flowId) => {
       // Web Storage API requires length and key() method
       const webStorage = storage as KVStore<string> & {
@@ -112,10 +118,8 @@ export function createLocalStorageStore(
       if (!flowId) return allKeys.filter((k) => k.startsWith(`${prefix}:`));
 
       // Filter keys for this specific flow
-      const baseKey = `${prefix}:${flowId}`;
-      return allKeys.filter(
-        (key) => key === baseKey || key.startsWith(`${baseKey}:`),
-      );
+      const baseKey = `${prefix}:${flowId}:`;
+      return allKeys.filter((key) => key.startsWith(baseKey));
     },
   });
 }
@@ -157,8 +161,14 @@ export function createSessionStorageStore(
   return kvStorageAdapter({
     storage,
     serializer,
-    formatKey: (flowId, instanceId) =>
-      instanceId ? `${prefix}:${flowId}:${instanceId}` : `${prefix}:${flowId}`,
+    formatKey: (flowId, instanceId, variantId) => {
+      // Apply defaults
+      const vid = variantId || "default";
+      const iid = instanceId || "default";
+
+      // Always 4 segments: prefix:flowId:variantId:instanceId
+      return `${prefix}:${flowId}:${vid}:${iid}`;
+    },
     listKeys: (flowId) => {
       // Web Storage API requires length and key() method
       const webStorage = storage as KVStore<string> & {
@@ -177,10 +187,8 @@ export function createSessionStorageStore(
       if (!flowId) return allKeys.filter((k) => k.startsWith(`${prefix}:`));
 
       // Filter keys for this specific flow
-      const baseKey = `${prefix}:${flowId}`;
-      return allKeys.filter(
-        (key) => key === baseKey || key.startsWith(`${baseKey}:`),
-      );
+      const baseKey = `${prefix}:${flowId}:`;
+      return allKeys.filter((key) => key.startsWith(baseKey));
     },
   });
 }

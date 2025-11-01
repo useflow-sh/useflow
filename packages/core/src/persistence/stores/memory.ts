@@ -11,8 +11,8 @@
  * ```
  */
 
-import type { PersistedFlowState } from "../../types";
-import type { FlowStore } from "../store";
+import type { PersistedFlowInstance, PersistedFlowState } from "../../types";
+import type { FlowStore, FlowStoreOptions } from "../store";
 
 /**
  * Creates a FlowStore using in-memory Map
@@ -24,36 +24,51 @@ import type { FlowStore } from "../store";
  * const store = createMemoryStore();
  *
  * // Use with persister
- * import { createPersister } from '@useflow/core';
+ * import { createPersister} from '@useflow/core';
  * const persister = createPersister({ store });
  * ```
  */
 export function createMemoryStore() {
-  const storage = new Map<string, PersistedFlowState>();
+  const storage = new Map<string, PersistedFlowInstance>();
 
-  // Internal key generation
-  const makeKey = (flowId: string, instanceId?: string) =>
-    instanceId ? `${flowId}:${instanceId}` : flowId;
+  // Internal key generation - always includes all 3 segments
+  const makeKey = (flowId: string, options?: FlowStoreOptions) => {
+    const vid = options?.variantId || "default";
+    const iid = options?.instanceId || "default";
+    return `${flowId}:${vid}:${iid}`;
+  };
 
   return {
-    get(flowId: string, instanceId?: string): PersistedFlowState | null {
-      return storage.get(makeKey(flowId, instanceId)) ?? null;
+    get(flowId: string, options?: FlowStoreOptions): PersistedFlowState | null {
+      const instance = storage.get(makeKey(flowId, options));
+      // Unwrap: return just the state from the stored instance
+      return instance ? instance.state : null;
     },
 
-    set(flowId: string, state: PersistedFlowState, instanceId?: string): void {
-      storage.set(makeKey(flowId, instanceId), state);
+    set(
+      flowId: string,
+      state: PersistedFlowState,
+      options?: FlowStoreOptions,
+    ): void {
+      // Wrap: store the complete instance with all identifiers
+      const instance: PersistedFlowInstance = {
+        flowId,
+        instanceId: options?.instanceId || "default",
+        variantId: options?.variantId || "default",
+        state,
+      };
+      storage.set(makeKey(flowId, options), instance);
     },
 
-    remove(flowId: string, instanceId?: string): void {
-      storage.delete(makeKey(flowId, instanceId));
+    remove(flowId: string, options?: FlowStoreOptions): void {
+      storage.delete(makeKey(flowId, options));
     },
 
     removeFlow(flowId: string): void {
-      const baseKey = flowId;
-      const pattern = `${baseKey}:`;
+      const baseKey = `${flowId}:`;
 
       Array.from(storage.keys()).forEach((key) => {
-        if (key === baseKey || key.startsWith(pattern)) {
+        if (key.startsWith(baseKey)) {
           storage.delete(key);
         }
       });
@@ -63,24 +78,14 @@ export function createMemoryStore() {
       storage.clear();
     },
 
-    list(
-      flowId: string,
-    ): Array<{ instanceId: string | undefined; state: PersistedFlowState }> {
-      const baseKey = flowId;
-      const pattern = `${baseKey}:`;
-      const instances: Array<{
-        instanceId: string | undefined;
-        state: PersistedFlowState;
-      }> = [];
+    list(flowId: string): PersistedFlowInstance[] {
+      const baseKey = `${flowId}:`;
+      const instances: PersistedFlowInstance[] = [];
 
-      Array.from(storage.entries()).forEach(([key, state]) => {
-        // Check if this key is the base flow or an instance
-        if (key === baseKey || key.startsWith(pattern)) {
-          // Extract instance ID from key (everything after the pattern)
-          // For base key, use undefined as instanceId
-          const instanceId =
-            key === baseKey ? undefined : key.substring(pattern.length);
-          instances.push({ instanceId, state });
+      Array.from(storage.entries()).forEach(([key, instance]) => {
+        if (key.startsWith(baseKey)) {
+          // Instance is already stored with all identifiers - just return it
+          instances.push(instance);
         }
       });
 

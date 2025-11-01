@@ -198,7 +198,7 @@ export function SurveyFlowDemo() {
    * Restart the survey with a new instance
    */
   const handleRestart = () => {
-    persister.remove?.(surveyFlow.id, "survey-instance");
+    persister.remove?.(surveyFlow.id, { instanceId: "survey-instance" });
     setSurveyKey((prev) => prev + 1);
     setLastContext(null);
     setEventLogs([]);

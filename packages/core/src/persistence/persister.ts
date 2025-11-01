@@ -14,7 +14,7 @@ export interface FlowPersister {
    *
    * @param flowId - Unique identifier for the flow
    * @param state - The flow state to persist
-   * @param options - Optional save options (version and instanceId)
+   * @param options - Optional save options (version, instanceId, and variantId)
    */
   save(
     flowId: string,
@@ -22,6 +22,7 @@ export interface FlowPersister {
     options?: {
       version?: string;
       instanceId?: string;
+      variantId?: string;
     },
   ): PersistedFlowState | Promise<PersistedFlowState | null> | null;
 
@@ -30,13 +31,14 @@ export interface FlowPersister {
    * Returns null if no saved state exists
    *
    * @param flowId - Unique identifier for the flow
-   * @param options - Optional restore options (version, instanceId, and migration)
+   * @param options - Optional restore options (version, instanceId, variantId, and migration)
    */
   restore(
     flowId: string,
     options?: {
       version?: string;
       instanceId?: string;
+      variantId?: string;
       migrate?: (
         state: PersistedFlowState,
         fromVersion: string | undefined,
@@ -49,9 +51,15 @@ export interface FlowPersister {
    * Optional - if not provided, users can't remove programmatically
    *
    * @param flowId - Unique identifier for the flow
-   * @param instanceId - Optional instance identifier
+   * @param options - Optional options (instanceId and variantId)
    */
-  remove?(flowId: string, instanceId?: string): void | Promise<void>;
+  remove?(
+    flowId: string,
+    options?: {
+      instanceId?: string;
+      variantId?: string;
+    },
+  ): void | Promise<void>;
 
   /**
    * Remove all instances of a specific flow (base + all instances)
@@ -143,10 +151,12 @@ export function createPersister(options: PersisterOptions): FlowPersister {
           __meta: {
             savedAt: Date.now(),
             version: saveOptions?.version,
-            instanceId: saveOptions?.instanceId,
           },
         };
-        await store.set(flowId, withMeta, saveOptions?.instanceId);
+        await store.set(flowId, withMeta, {
+          instanceId: saveOptions?.instanceId,
+          variantId: saveOptions?.variantId,
+        });
         onSave?.(flowId, withMeta);
         return withMeta;
       } catch (error) {
@@ -157,14 +167,20 @@ export function createPersister(options: PersisterOptions): FlowPersister {
 
     restore: async (flowId, restoreOptions) => {
       try {
-        const state = await store.get(flowId, restoreOptions?.instanceId);
+        const state = await store.get(flowId, {
+          instanceId: restoreOptions?.instanceId,
+          variantId: restoreOptions?.variantId,
+        });
         if (!state) return null;
 
         // TTL check
         if (ttl && state.__meta?.savedAt) {
           const age = Date.now() - state.__meta.savedAt;
           if (age > ttl) {
-            await store.remove(flowId, restoreOptions?.instanceId);
+            await store.remove(flowId, {
+              instanceId: restoreOptions?.instanceId,
+              variantId: restoreOptions?.variantId,
+            });
             return null;
           }
         }
@@ -204,9 +220,9 @@ export function createPersister(options: PersisterOptions): FlowPersister {
       }
     },
 
-    remove: async (flowId, instanceId) => {
+    remove: async (flowId, options) => {
       try {
-        await store.remove(flowId, instanceId);
+        await store.remove(flowId, options);
       } catch (error) {
         onError?.(error as Error);
       }

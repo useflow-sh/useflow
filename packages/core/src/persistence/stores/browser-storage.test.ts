@@ -55,7 +55,7 @@ describe("createLocalStorageStore", () => {
       await store.set("test-flow", state);
 
       expect(mockStorage.setItem).toHaveBeenCalledWith(
-        "useflow:test-flow",
+        "useflow:test-flow:default:default",
         expect.any(String),
       );
     });
@@ -76,7 +76,7 @@ describe("createLocalStorageStore", () => {
       await store.set("test-flow", state);
 
       expect(mockStorage.setItem).toHaveBeenCalledWith(
-        "myapp:test-flow",
+        "myapp:test-flow:default:default",
         expect.any(String),
       );
     });
@@ -138,10 +138,10 @@ describe("createLocalStorageStore", () => {
         __meta: { version: "v1", savedAt: Date.now() },
       };
 
-      await store.set("feedback", state, "task-123");
+      await store.set("feedback", state, { instanceId: "task-123" });
 
       expect(mockStorage.setItem).toHaveBeenCalledWith(
-        "myapp:feedback:task-123",
+        "myapp:feedback:default:task-123",
         expect.any(String),
       );
     });
@@ -157,10 +157,38 @@ describe("createLocalStorageStore", () => {
         __meta: { version: "v1", savedAt: Date.now() },
       };
 
-      await store.set("feedback", state, "task-123");
-      const result = await store.get("feedback", "task-123");
+      await store.set("feedback", state, { instanceId: "task-123" });
+      const result = await store.get("feedback", { instanceId: "task-123" });
 
       expect(result).toEqual(state);
+    });
+
+    it("should handle explicit undefined variantId and instanceId", async () => {
+      const store = createLocalStorageStore(mockStorage);
+
+      const state: PersistedFlowState = {
+        stepId: "step1",
+        context: {},
+        history: ["step1"],
+        status: "active",
+        __meta: { version: "v1", savedAt: Date.now() },
+      };
+
+      // Explicitly pass undefined to trigger default value assignment
+      await store.set("test-flow", state, {
+        instanceId: undefined,
+        variantId: undefined,
+      });
+      const result = await store.get("test-flow", {
+        instanceId: undefined,
+        variantId: undefined,
+      });
+
+      expect(result).toEqual(state);
+      // Should use default values for key
+      expect(mockStorage.getItem).toHaveBeenCalledWith(
+        "useflow:test-flow:default:default",
+      );
     });
 
     it("should remove state with instance ID", async () => {
@@ -174,10 +202,10 @@ describe("createLocalStorageStore", () => {
         __meta: { version: "v1", savedAt: Date.now() },
       };
 
-      await store.set("feedback", state, "task-123");
-      await store.remove("feedback", "task-123");
+      await store.set("feedback", state, { instanceId: "task-123" });
+      await store.remove("feedback", { instanceId: "task-123" });
 
-      const result = await store.get("feedback", "task-123");
+      const result = await store.get("feedback", { instanceId: "task-123" });
       expect(result).toBeNull();
     });
   });
@@ -204,8 +232,8 @@ describe("createLocalStorageStore", () => {
 
       // Set base flow and instances
       await store.set("feedback", state1);
-      await store.set("feedback", state1, "task-1");
-      await store.set("feedback", state2, "task-2");
+      await store.set("feedback", state1, { instanceId: "task-1" });
+      await store.set("feedback", state2, { instanceId: "task-2" });
       await store.set("onboarding", state1); // Different flow
 
       // Remove all feedback flows
@@ -213,8 +241,8 @@ describe("createLocalStorageStore", () => {
 
       // Feedback flows should be gone
       expect(await store.get("feedback")).toBeNull();
-      expect(await store.get("feedback", "task-1")).toBeNull();
-      expect(await store.get("feedback", "task-2")).toBeNull();
+      expect(await store.get("feedback", { instanceId: "task-1" })).toBeNull();
+      expect(await store.get("feedback", { instanceId: "task-2" })).toBeNull();
 
       // Other flows should remain
       expect(await store.get("onboarding")).toEqual(state1);
@@ -237,7 +265,7 @@ describe("createLocalStorageStore", () => {
 
       await store.set("flow1", state);
       await store.set("flow2", state);
-      await store.set("flow3", state, "instance-1");
+      await store.set("flow3", state, { instanceId: "instance-1" });
 
       // Add some non-prefixed keys
       mockStorage.setItem("other:key", "value");
@@ -247,7 +275,7 @@ describe("createLocalStorageStore", () => {
       // All prefixed flows should be gone
       expect(await store.get("flow1")).toBeNull();
       expect(await store.get("flow2")).toBeNull();
-      expect(await store.get("flow3", "instance-1")).toBeNull();
+      expect(await store.get("flow3", { instanceId: "instance-1" })).toBeNull();
 
       // Non-prefixed keys should remain
       expect(mockStorage.getItem("other:key")).toBe("value");
@@ -280,21 +308,32 @@ describe("createLocalStorageStore", () => {
       };
 
       await store.set("feedback", state1);
-      await store.set("feedback", state1WithInstance1, "task-1");
-      await store.set("feedback", state2, "task-2");
+      await store.set("feedback", state1WithInstance1, {
+        instanceId: "task-1",
+      });
+      await store.set("feedback", state2, { instanceId: "task-2" });
 
       const instances = await store.list?.("feedback");
 
       expect(instances).toHaveLength(3);
       expect(instances).toContainEqual({
-        instanceId: undefined,
+        flowId: "feedback",
+        instanceId: "default",
+        variantId: "default",
         state: state1,
       });
       expect(instances).toContainEqual({
+        flowId: "feedback",
         instanceId: "task-1",
+        variantId: "default",
         state: state1WithInstance1,
       });
-      expect(instances).toContainEqual({ instanceId: "task-2", state: state2 });
+      expect(instances).toContainEqual({
+        flowId: "feedback",
+        instanceId: "task-2",
+        variantId: "default",
+        state: state2,
+      });
     });
   });
 
@@ -325,7 +364,12 @@ describe("createLocalStorageStore", () => {
 
       await store.set("test-flow", state);
 
-      expect(customSerializer.serialize).toHaveBeenCalledWith(state);
+      expect(customSerializer.serialize).toHaveBeenCalledWith({
+        flowId: "test-flow",
+        instanceId: "default",
+        variantId: "default",
+        state,
+      });
 
       const result = await store.get("test-flow");
 
@@ -358,7 +402,7 @@ describe("createSessionStorageStore", () => {
     await store.set("test-flow", state);
 
     expect(mockStorage.setItem).toHaveBeenCalledWith(
-      "session:test-flow",
+      "session:test-flow:default:default",
       expect.any(String),
     );
 
@@ -382,8 +426,20 @@ describe("createSessionStorageStore", () => {
     expect(await store.get("flow1")).toEqual(state);
 
     // Instance IDs
-    await store.set("flow2", state, "inst-1");
-    expect(await store.get("flow2", "inst-1")).toEqual(state);
+    await store.set("flow2", state, { instanceId: "inst-1" });
+    expect(await store.get("flow2", { instanceId: "inst-1" })).toEqual(state);
+
+    // Explicit undefined should use defaults
+    await store.set("flow4", state, {
+      instanceId: undefined,
+      variantId: undefined,
+    });
+    expect(
+      await store.get("flow4", {
+        instanceId: undefined,
+        variantId: undefined,
+      }),
+    ).toEqual(state);
 
     // Remove
     await store.remove("flow1");
@@ -391,10 +447,10 @@ describe("createSessionStorageStore", () => {
 
     // RemoveFlow
     await store.set("flow3", state);
-    await store.set("flow3", state, "inst-1");
+    await store.set("flow3", state, { instanceId: "inst-1" });
     await store.removeFlow?.("flow3");
     expect(await store.get("flow3")).toBeNull();
-    expect(await store.get("flow3", "inst-1")).toBeNull();
+    expect(await store.get("flow3", { instanceId: "inst-1" })).toBeNull();
   });
 
   it("should use default prefix when not specified", async () => {
@@ -411,7 +467,7 @@ describe("createSessionStorageStore", () => {
     await store.set("test-flow", state);
 
     expect(mockStorage.setItem).toHaveBeenCalledWith(
-      "useflow:test-flow",
+      "useflow:test-flow:default:default",
       expect.any(String),
     );
   });

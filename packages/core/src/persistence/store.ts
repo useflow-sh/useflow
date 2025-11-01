@@ -1,4 +1,12 @@
-import type { PersistedFlowState } from "../types";
+import type { PersistedFlowInstance, PersistedFlowState } from "../types";
+
+/**
+ * Options for flow store operations
+ */
+export type FlowStoreOptions = {
+  instanceId?: string;
+  variantId?: string;
+};
 
 /**
  * Flow store interface
@@ -15,34 +23,34 @@ import type { PersistedFlowState } from "../types";
  */
 export interface FlowStore {
   /**
-   * Get flow state by flow ID and optional instance ID
+   * Get flow state by flow ID with optional instance ID and variant ID
    * @param flowId - Flow identifier
-   * @param instanceId - Optional instance identifier for reusable flows
+   * @param options - Optional instance and variant identifiers
    * @returns Flow state or null if not found
    */
   get(
     flowId: string,
-    instanceId?: string,
+    options?: FlowStoreOptions,
   ): Promise<PersistedFlowState | null> | PersistedFlowState | null;
 
   /**
    * Save flow state
    * @param flowId - Flow identifier
    * @param state - Flow state to persist
-   * @param instanceId - Optional instance identifier for reusable flows
+   * @param options - Optional instance and variant identifiers
    */
   set(
     flowId: string,
     state: PersistedFlowState,
-    instanceId?: string,
+    options?: FlowStoreOptions,
   ): Promise<void> | void;
 
   /**
    * Remove specific flow instance
    * @param flowId - Flow identifier
-   * @param instanceId - Optional instance identifier
+   * @param options - Optional instance and variant identifiers
    */
-  remove(flowId: string, instanceId?: string): Promise<void> | void;
+  remove(flowId: string, options?: FlowStoreOptions): Promise<void> | void;
 
   /**
    * Remove all instances of a flow (base + all instances)
@@ -58,25 +66,21 @@ export interface FlowStore {
   /**
    * List all instances of a flow
    * @param flowId - Flow identifier
-   * @returns Array of instance IDs and their states
+   * @returns Array of flow instances with their identifiers and states
    *
    * @example
    * ```ts
-   * const instances = await store.list("task-flow");
+   * const instances = await store.list("onboarding");
    * // [
-   * //   { instanceId: undefined, state: {...} },  // Base flow without instanceId
-   * //   { instanceId: "task-123", state: {...} },
-   * //   { instanceId: "task-456", state: {...} }
+   * //   { instanceId: "default", variantId: "default", state: {...} },
+   * //   { instanceId: "default", variantId: "standard", state: {...} },
+   * //   { instanceId: "session-1", variantId: "express", state: {...} }
    * // ]
    * ```
    */
   list?(
     flowId: string,
-  ):
-    | Promise<
-        Array<{ instanceId: string | undefined; state: PersistedFlowState }>
-      >
-    | Array<{ instanceId: string | undefined; state: PersistedFlowState }>;
+  ): Promise<PersistedFlowInstance[]> | PersistedFlowInstance[];
 }
 
 /**
@@ -100,17 +104,17 @@ export interface FlowStore {
  * const key = store.formatKey("onboarding");
  * console.log(key); // Implementation-dependent format
  *
- * // With instance ID
- * const instanceKey = store.formatKey("onboarding", "user-123");
+ * // With instance ID and variant ID
+ * const instanceKey = store.formatKey("onboarding", "user-123", "standard");
  * console.log(instanceKey); // Implementation-dependent format
  * ```
  */
 export interface KVFlowStore extends FlowStore {
   /**
-   * Format a store key for a flow ID and optional instance ID
+   * Format a store key for a flow ID with optional instance ID and variant ID
    * @param flowId - Flow identifier
-   * @param instanceId - Optional instance identifier for reusable flows
+   * @param options - Optional instance and variant identifiers
    * @returns The store key to use for this flow
    */
-  formatKey(flowId: string, instanceId?: string): string;
+  formatKey(flowId: string, options?: FlowStoreOptions): string;
 }

@@ -17,8 +17,15 @@ function createStorageMock(overrides: Partial<Storage> = {}): Storage {
 }
 
 // Default formatKey function for tests
-const defaultFormatKey = (flowId: string, instanceId?: string) =>
-  instanceId ? `useflow:${flowId}:${instanceId}` : `useflow:${flowId}`;
+const defaultFormatKey = (
+  flowId: string,
+  instanceId?: string,
+  variantId?: string,
+) => {
+  const vid = variantId || "default";
+  const iid = instanceId || "default";
+  return `useflow:${flowId}:${vid}:${iid}`;
+};
 
 // Default serializer for tests
 const defaultSerializer = JsonSerializer;
@@ -29,10 +36,9 @@ const createListKeys =
     const allKeys = Object.keys(mockData);
     if (!flowId) return allKeys;
 
-    const baseKey = defaultFormatKey(flowId);
-    return allKeys.filter(
-      (key) => key === baseKey || key.startsWith(`${baseKey}:`),
-    );
+    // Match keys that start with "useflow:flowId:"
+    const prefix = `useflow:${flowId}:`;
+    return allKeys.filter((key) => key.startsWith(prefix));
   };
 
 describe("kvStorageAdapter", () => {
@@ -44,8 +50,15 @@ describe("kvStorageAdapter", () => {
       status: "active",
     };
 
+    const instance = {
+      flowId: "test-flow",
+      instanceId: "default",
+      variantId: "default",
+      state,
+    };
+
     const storage = createStorageMock({
-      getItem: vi.fn().mockResolvedValue(JSON.stringify(state)),
+      getItem: vi.fn().mockResolvedValue(JSON.stringify(instance)),
     });
 
     const store = kvStorageAdapter({
@@ -57,7 +70,9 @@ describe("kvStorageAdapter", () => {
     const result = await store.get("test-flow");
 
     expect(result).toEqual(state);
-    expect(storage.getItem).toHaveBeenCalledWith("useflow:test-flow");
+    expect(storage.getItem).toHaveBeenCalledWith(
+      "useflow:test-flow:default:default",
+    );
   });
 
   it("should return null when no state exists", async () => {
@@ -127,9 +142,16 @@ describe("kvStorageAdapter", () => {
 
     await store.set("test-flow", state);
 
+    const instance = {
+      flowId: "test-flow",
+      instanceId: "default",
+      variantId: "default",
+      state,
+    };
+
     expect(setItem).toHaveBeenCalledWith(
-      "useflow:test-flow",
-      JSON.stringify(state),
+      "useflow:test-flow:default:default",
+      JSON.stringify(instance),
     );
   });
 
@@ -145,7 +167,9 @@ describe("kvStorageAdapter", () => {
 
     await store.remove("test-flow");
 
-    expect(removeItem).toHaveBeenCalledWith("useflow:test-flow");
+    expect(removeItem).toHaveBeenCalledWith(
+      "useflow:test-flow:default:default",
+    );
   });
 
   it("should use custom formatKey function", async () => {
@@ -156,15 +180,24 @@ describe("kvStorageAdapter", () => {
       status: "active",
     };
 
-    const getItem = vi.fn().mockResolvedValue(JSON.stringify(state));
+    const instance = {
+      flowId: "test-flow",
+      instanceId: "default",
+      variantId: "default",
+      state,
+    };
+
+    const getItem = vi.fn().mockResolvedValue(JSON.stringify(instance));
     const setItem = vi.fn().mockResolvedValue(undefined);
     const removeItem = vi.fn().mockResolvedValue(undefined);
     const storage = createStorageMock({ getItem, setItem, removeItem });
 
-    const formatKey = vi.fn((flowId: string, instanceId?: string) =>
-      instanceId
-        ? `myapp:user:${flowId}:${instanceId}`
-        : `myapp:user:${flowId}`,
+    const formatKey = vi.fn(
+      (flowId: string, instanceId?: string, variantId?: string) => {
+        const vid = variantId || "default";
+        const iid = instanceId || "default";
+        return `myapp:user:${flowId}:${vid}:${iid}`;
+      },
     );
 
     const store = kvStorageAdapter({
@@ -178,13 +211,17 @@ describe("kvStorageAdapter", () => {
     await store.remove("test-flow");
 
     expect(formatKey).toHaveBeenCalledTimes(3);
-    expect(formatKey).toHaveBeenCalledWith("test-flow", undefined);
-    expect(getItem).toHaveBeenCalledWith("myapp:user:test-flow");
-    expect(setItem).toHaveBeenCalledWith(
-      "myapp:user:test-flow",
-      JSON.stringify(state),
+    expect(formatKey).toHaveBeenCalledWith("test-flow", "default", "default");
+    expect(getItem).toHaveBeenCalledWith(
+      "myapp:user:test-flow:default:default",
     );
-    expect(removeItem).toHaveBeenCalledWith("myapp:user:test-flow");
+    expect(setItem).toHaveBeenCalledWith(
+      "myapp:user:test-flow:default:default",
+      JSON.stringify(instance),
+    );
+    expect(removeItem).toHaveBeenCalledWith(
+      "myapp:user:test-flow:default:default",
+    );
   });
 
   it("should work with synchronous storage", async () => {
@@ -195,8 +232,15 @@ describe("kvStorageAdapter", () => {
       status: "active",
     };
 
+    const instance = {
+      flowId: "test-flow",
+      instanceId: "default",
+      variantId: "default",
+      state,
+    };
+
     const storage = createStorageMock({
-      getItem: vi.fn().mockReturnValue(JSON.stringify(state)),
+      getItem: vi.fn().mockReturnValue(JSON.stringify(instance)),
     });
 
     const store = kvStorageAdapter({
@@ -222,8 +266,15 @@ describe("kvStorageAdapter", () => {
       },
     };
 
+    const instance = {
+      flowId: "test-flow",
+      instanceId: "default",
+      variantId: "default",
+      state,
+    };
+
     const storage = createStorageMock({
-      getItem: vi.fn().mockResolvedValue(JSON.stringify(state)),
+      getItem: vi.fn().mockResolvedValue(JSON.stringify(instance)),
     });
 
     const store = kvStorageAdapter({
@@ -250,8 +301,15 @@ describe("kvStorageAdapter", () => {
         status: "active",
       };
 
+      const instance = {
+        flowId: "test-flow",
+        instanceId: "instance-123",
+        variantId: "default",
+        state,
+      };
+
       const storage = createStorageMock({
-        getItem: vi.fn().mockResolvedValue(JSON.stringify(state)),
+        getItem: vi.fn().mockResolvedValue(JSON.stringify(instance)),
       });
 
       const store = kvStorageAdapter({
@@ -260,11 +318,13 @@ describe("kvStorageAdapter", () => {
         serializer: defaultSerializer,
       });
 
-      const result = await store.get("test-flow", "instance-123");
+      const result = await store.get("test-flow", {
+        instanceId: "instance-123",
+      });
 
       expect(result).toEqual(state);
       expect(storage.getItem).toHaveBeenCalledWith(
-        "useflow:test-flow:instance-123",
+        "useflow:test-flow:default:instance-123",
       );
     });
 
@@ -285,11 +345,18 @@ describe("kvStorageAdapter", () => {
         serializer: defaultSerializer,
       });
 
-      await store.set("test-flow", state, "instance-123");
+      await store.set("test-flow", state, { instanceId: "instance-123" });
+
+      const instance = {
+        flowId: "test-flow",
+        instanceId: "instance-123",
+        variantId: "default",
+        state,
+      };
 
       expect(setItem).toHaveBeenCalledWith(
-        "useflow:test-flow:instance-123",
-        JSON.stringify(state),
+        "useflow:test-flow:default:instance-123",
+        JSON.stringify(instance),
       );
     });
 
@@ -303,9 +370,11 @@ describe("kvStorageAdapter", () => {
         serializer: defaultSerializer,
       });
 
-      await store.remove("test-flow", "instance-123");
+      await store.remove("test-flow", { instanceId: "instance-123" });
 
-      expect(removeItem).toHaveBeenCalledWith("useflow:test-flow:instance-123");
+      expect(removeItem).toHaveBeenCalledWith(
+        "useflow:test-flow:default:instance-123",
+      );
     });
 
     it("should use custom getKey with instanceId", async () => {
@@ -316,11 +385,22 @@ describe("kvStorageAdapter", () => {
         status: "active",
       };
 
-      const getItem = vi.fn().mockResolvedValue(JSON.stringify(state));
+      const instance = {
+        flowId: "test-flow",
+        instanceId: "task-456",
+        variantId: "default",
+        state,
+      };
+
+      const getItem = vi.fn().mockResolvedValue(JSON.stringify(instance));
       const storage = createStorageMock({ getItem });
 
-      const formatKey = vi.fn((flowId: string, instanceId?: string) =>
-        instanceId ? `custom:${flowId}:${instanceId}` : `custom:${flowId}`,
+      const formatKey = vi.fn(
+        (flowId: string, instanceId?: string, variantId?: string) => {
+          const vid = variantId || "default";
+          const iid = instanceId || "default";
+          return `custom:${flowId}:${vid}:${iid}`;
+        },
       );
 
       const store = kvStorageAdapter({
@@ -329,10 +409,14 @@ describe("kvStorageAdapter", () => {
         serializer: defaultSerializer,
       });
 
-      await store.get("test-flow", "task-456");
+      await store.get("test-flow", { instanceId: "task-456" });
 
-      expect(formatKey).toHaveBeenCalledWith("test-flow", "task-456");
-      expect(getItem).toHaveBeenCalledWith("custom:test-flow:task-456");
+      expect(formatKey).toHaveBeenCalledWith(
+        "test-flow",
+        "task-456",
+        "default",
+      );
+      expect(getItem).toHaveBeenCalledWith("custom:test-flow:default:task-456");
     });
   });
 
@@ -340,8 +424,8 @@ describe("kvStorageAdapter", () => {
     it("should remove flow without instanceId", async () => {
       // Create a real object that acts as storage
       const mockData: Record<string, string> = {
-        "useflow:test-flow": "{}",
-        "useflow:other-flow": "{}",
+        "useflow:test-flow:default:default": "{}",
+        "useflow:other-flow:default:default": "{}",
       };
 
       const removeItem = vi.fn((key: string) => {
@@ -365,18 +449,22 @@ describe("kvStorageAdapter", () => {
 
       await store.removeFlow!("test-flow");
 
-      expect(removeItem).toHaveBeenCalledWith("useflow:test-flow");
-      expect(removeItem).not.toHaveBeenCalledWith("useflow:other-flow");
-      expect(mockData).not.toHaveProperty("useflow:test-flow");
-      expect(mockData).toHaveProperty("useflow:other-flow");
+      expect(removeItem).toHaveBeenCalledWith(
+        "useflow:test-flow:default:default",
+      );
+      expect(removeItem).not.toHaveBeenCalledWith(
+        "useflow:other-flow:default:default",
+      );
+      expect(mockData).not.toHaveProperty("useflow:test-flow:default:default");
+      expect(mockData).toHaveProperty("useflow:other-flow:default:default");
     });
 
     it("should remove flow with all instances", async () => {
       const mockData: Record<string, string> = {
-        "useflow:test-flow": "{}",
-        "useflow:test-flow:instance-1": "{}",
-        "useflow:test-flow:instance-2": "{}",
-        "useflow:other-flow": "{}",
+        "useflow:test-flow:default:default": "{}",
+        "useflow:test-flow:default:instance-1": "{}",
+        "useflow:test-flow:default:instance-2": "{}",
+        "useflow:other-flow:default:default": "{}",
       };
 
       const removeItem = vi.fn((key: string) => {
@@ -399,26 +487,38 @@ describe("kvStorageAdapter", () => {
 
       await store.removeFlow!("test-flow");
 
-      expect(removeItem).toHaveBeenCalledWith("useflow:test-flow");
-      expect(removeItem).toHaveBeenCalledWith("useflow:test-flow:instance-1");
-      expect(removeItem).toHaveBeenCalledWith("useflow:test-flow:instance-2");
-      expect(removeItem).not.toHaveBeenCalledWith("useflow:other-flow");
+      expect(removeItem).toHaveBeenCalledWith(
+        "useflow:test-flow:default:default",
+      );
+      expect(removeItem).toHaveBeenCalledWith(
+        "useflow:test-flow:default:instance-1",
+      );
+      expect(removeItem).toHaveBeenCalledWith(
+        "useflow:test-flow:default:instance-2",
+      );
+      expect(removeItem).not.toHaveBeenCalledWith(
+        "useflow:other-flow:default:default",
+      );
       expect(removeItem).toHaveBeenCalledTimes(3);
     });
 
     it("should work with custom formatKey in removeFlow", async () => {
       const mockData: Record<string, string> = {
-        "user123:test-flow": "{}",
-        "user123:test-flow:instance-1": "{}",
-        "user456:test-flow": "{}",
+        "user123:test-flow:default:default": "{}",
+        "user123:test-flow:default:instance-1": "{}",
+        "user456:test-flow:default:default": "{}",
       };
 
       const removeItem = vi.fn((key: string) => {
         delete mockData[key];
       });
 
-      const formatKey = vi.fn((flowId: string, instanceId?: string) =>
-        instanceId ? `user123:${flowId}:${instanceId}` : `user123:${flowId}`,
+      const formatKey = vi.fn(
+        (flowId: string, instanceId?: string, variantId?: string) => {
+          const vid = variantId || "default";
+          const iid = instanceId || "default";
+          return `user123:${flowId}:${vid}:${iid}`;
+        },
       );
 
       const store = kvStorageAdapter({
@@ -435,18 +535,22 @@ describe("kvStorageAdapter", () => {
         listKeys: (flowId) => {
           const allKeys = Object.keys(mockData);
           if (!flowId) return allKeys;
-          const baseKey = formatKey(flowId);
-          return allKeys.filter(
-            (key) => key === baseKey || key.startsWith(`${baseKey}:`),
-          );
+          const prefix = `user123:${flowId}:`;
+          return allKeys.filter((key) => key.startsWith(prefix));
         },
       });
 
       await store.removeFlow!("test-flow");
 
-      expect(removeItem).toHaveBeenCalledWith("user123:test-flow");
-      expect(removeItem).toHaveBeenCalledWith("user123:test-flow:instance-1");
-      expect(removeItem).not.toHaveBeenCalledWith("user456:test-flow");
+      expect(removeItem).toHaveBeenCalledWith(
+        "user123:test-flow:default:default",
+      );
+      expect(removeItem).toHaveBeenCalledWith(
+        "user123:test-flow:default:instance-1",
+      );
+      expect(removeItem).not.toHaveBeenCalledWith(
+        "user456:test-flow:default:default",
+      );
     });
   });
 
@@ -469,11 +573,26 @@ describe("kvStorageAdapter", () => {
       };
 
       const mockData: Record<string, string> = {
-        "useflow:test-flow:instance-1": JSON.stringify(state1),
-        "useflow:test-flow:instance-2": JSON.stringify(state2),
-        "useflow:other-flow:instance-1": JSON.stringify({
-          ...state1,
-          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+        "useflow:test-flow:default:instance-1": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "instance-1",
+          variantId: "default",
+          state: state1,
+        }),
+        "useflow:test-flow:default:instance-2": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "instance-2",
+          variantId: "default",
+          state: state2,
+        }),
+        "useflow:other-flow:default:instance-1": JSON.stringify({
+          flowId: "other-flow",
+          instanceId: "instance-1",
+          variantId: "default",
+          state: {
+            ...state1,
+            __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+          },
         }),
       };
 
@@ -500,14 +619,24 @@ describe("kvStorageAdapter", () => {
 
       expect(instances).toHaveLength(2);
       expect(instances).toEqual([
-        { instanceId: "instance-1", state: state1 },
-        { instanceId: "instance-2", state: state2 },
+        {
+          flowId: "test-flow",
+          instanceId: "instance-1",
+          variantId: "default",
+          state: state1,
+        },
+        {
+          flowId: "test-flow",
+          instanceId: "instance-2",
+          variantId: "default",
+          state: state2,
+        },
       ]);
     });
 
     it("should return empty array when no instances exist", async () => {
       const mockData: Record<string, string> = {
-        "useflow:other-flow:instance-1": "{}",
+        "useflow:other-flow:default:instance-1": "{}",
       };
 
       const getItem = vi.fn((key: string) => mockData[key] || null);
@@ -543,14 +672,24 @@ describe("kvStorageAdapter", () => {
       };
 
       const mockData: Record<string, string> = {
-        "useflow:test-flow:instance-1": JSON.stringify({
-          ...state,
-          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+        "useflow:test-flow:default:instance-1": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "instance-1",
+          variantId: "default",
+          state: {
+            ...state,
+            __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+          },
         }),
-        "useflow:test-flow:instance-2": "invalid json",
-        "useflow:test-flow:instance-3": JSON.stringify({
-          ...state,
-          __meta: { savedAt: Date.now(), instanceId: "instance-3" },
+        "useflow:test-flow:default:instance-2": "invalid json",
+        "useflow:test-flow:default:instance-3": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "instance-3",
+          variantId: "default",
+          state: {
+            ...state,
+            __meta: { savedAt: Date.now(), instanceId: "instance-3" },
+          },
         }),
       };
 
@@ -578,14 +717,18 @@ describe("kvStorageAdapter", () => {
       expect(instances).toHaveLength(2);
       expect(instances).toEqual([
         {
+          flowId: "test-flow",
           instanceId: "instance-1",
+          variantId: "default",
           state: expect.objectContaining({
             ...state,
             __meta: expect.objectContaining({ instanceId: "instance-1" }),
           }),
         },
         {
+          flowId: "test-flow",
           instanceId: "instance-3",
+          variantId: "default",
           state: expect.objectContaining({
             ...state,
             __meta: expect.objectContaining({ instanceId: "instance-3" }),
@@ -603,16 +746,26 @@ describe("kvStorageAdapter", () => {
       };
 
       const mockData: Record<string, string> = {
-        "useflow:test-flow:instance-1": JSON.stringify({
-          ...state,
-          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+        "useflow:test-flow:default:instance-1": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "instance-1",
+          variantId: "default",
+          state: {
+            ...state,
+            __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+          },
         }),
-        "useflow:test-flow:instance-2": JSON.stringify({
+        "useflow:test-flow:default:instance-2": JSON.stringify({
           invalid: "structure",
         }), // Valid JSON but invalid state structure
-        "useflow:test-flow:instance-3": JSON.stringify({
-          ...state,
-          __meta: { savedAt: Date.now(), instanceId: "instance-3" },
+        "useflow:test-flow:default:instance-3": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "instance-3",
+          variantId: "default",
+          state: {
+            ...state,
+            __meta: { savedAt: Date.now(), instanceId: "instance-3" },
+          },
         }),
       };
 
@@ -640,14 +793,18 @@ describe("kvStorageAdapter", () => {
       expect(instances).toHaveLength(2);
       expect(instances).toEqual([
         {
+          flowId: "test-flow",
           instanceId: "instance-1",
+          variantId: "default",
           state: expect.objectContaining({
             ...state,
             __meta: expect.objectContaining({ instanceId: "instance-1" }),
           }),
         },
         {
+          flowId: "test-flow",
           instanceId: "instance-3",
+          variantId: "default",
           state: expect.objectContaining({
             ...state,
             __meta: expect.objectContaining({ instanceId: "instance-3" }),
@@ -665,23 +822,38 @@ describe("kvStorageAdapter", () => {
       };
 
       const mockData: Record<string, string> = {
-        "useflow:test-flow:instance-1": JSON.stringify({
-          ...state,
-          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+        "useflow:test-flow:default:instance-1": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "instance-1",
+          variantId: "default",
+          state: {
+            ...state,
+            __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+          },
         }),
-        "useflow:test-flow:instance-2": JSON.stringify({
-          ...state,
-          __meta: { savedAt: Date.now(), instanceId: "instance-2" },
+        "useflow:test-flow:default:instance-2": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "instance-2",
+          variantId: "default",
+          state: {
+            ...state,
+            __meta: { savedAt: Date.now(), instanceId: "instance-2" },
+          },
         }),
-        "useflow:test-flow:instance-3": JSON.stringify({
-          ...state,
-          __meta: { savedAt: Date.now(), instanceId: "instance-3" },
+        "useflow:test-flow:default:instance-3": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "instance-3",
+          variantId: "default",
+          state: {
+            ...state,
+            __meta: { savedAt: Date.now(), instanceId: "instance-3" },
+          },
         }),
       };
 
       const getItem = vi.fn((key: string) => {
         // Throw error for instance-2 to trigger the catch block
-        if (key === "useflow:test-flow:instance-2") {
+        if (key === "useflow:test-flow:default:instance-2") {
           throw new Error("Storage read error");
         }
         return mockData[key] || null;
@@ -711,14 +883,18 @@ describe("kvStorageAdapter", () => {
       expect(instances).toHaveLength(2);
       expect(instances).toEqual([
         {
+          flowId: "test-flow",
           instanceId: "instance-1",
+          variantId: "default",
           state: expect.objectContaining({
             ...state,
             __meta: expect.objectContaining({ instanceId: "instance-1" }),
           }),
         },
         {
+          flowId: "test-flow",
           instanceId: "instance-3",
+          variantId: "default",
           state: expect.objectContaining({
             ...state,
             __meta: expect.objectContaining({ instanceId: "instance-3" }),
@@ -737,16 +913,31 @@ describe("kvStorageAdapter", () => {
 
       const mockData: Record<string, string> = {
         "myapp:user123:test-flow:instance-1": JSON.stringify({
-          ...state,
-          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+          flowId: "test-flow",
+          instanceId: "instance-1",
+          variantId: "default",
+          state: {
+            ...state,
+            __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+          },
         }),
         "myapp:user123:test-flow:instance-2": JSON.stringify({
-          ...state,
-          __meta: { savedAt: Date.now(), instanceId: "instance-2" },
+          flowId: "test-flow",
+          instanceId: "instance-2",
+          variantId: "default",
+          state: {
+            ...state,
+            __meta: { savedAt: Date.now(), instanceId: "instance-2" },
+          },
         }),
         "myapp:user456:test-flow:instance-1": JSON.stringify({
-          ...state,
-          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+          flowId: "test-flow",
+          instanceId: "instance-1",
+          variantId: "default",
+          state: {
+            ...state,
+            __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+          },
         }),
       };
 
@@ -799,14 +990,29 @@ describe("kvStorageAdapter", () => {
       };
 
       const mockData: Record<string, string> = {
-        "useflow:test-flow": JSON.stringify(state), // Base key - should be included
-        "useflow:test-flow:instance-1": JSON.stringify({
-          ...state,
-          __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+        "useflow:test-flow:default:default": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "default",
+          variantId: "default",
+          state,
+        }), // Base key - should be included
+        "useflow:test-flow:default:instance-1": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "instance-1",
+          variantId: "default",
+          state: {
+            ...state,
+            __meta: { savedAt: Date.now(), instanceId: "instance-1" },
+          },
         }),
-        "useflow:test-flow:instance-2": JSON.stringify({
-          ...state,
-          __meta: { savedAt: Date.now(), instanceId: "instance-2" },
+        "useflow:test-flow:default:instance-2": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "instance-2",
+          variantId: "default",
+          state: {
+            ...state,
+            __meta: { savedAt: Date.now(), instanceId: "instance-2" },
+          },
         }),
       };
 
@@ -833,16 +1039,25 @@ describe("kvStorageAdapter", () => {
 
       expect(instances).toHaveLength(3);
       expect(instances).toEqual([
-        { instanceId: undefined, state }, // Base instance with undefined
         {
+          flowId: "test-flow",
+          instanceId: "default",
+          variantId: "default",
+          state,
+        }, // Base instance with default
+        {
+          flowId: "test-flow",
           instanceId: "instance-1",
+          variantId: "default",
           state: expect.objectContaining({
             ...state,
             __meta: expect.objectContaining({ instanceId: "instance-1" }),
           }),
         },
         {
+          flowId: "test-flow",
           instanceId: "instance-2",
+          variantId: "default",
           state: expect.objectContaining({
             ...state,
             __meta: expect.objectContaining({ instanceId: "instance-2" }),
@@ -855,9 +1070,9 @@ describe("kvStorageAdapter", () => {
   describe("removeAll", () => {
     it("should remove all flows returned by listKeys", async () => {
       const mockData: Record<string, string> = {
-        "useflow:flow1": "{}",
-        "useflow:flow2": "{}",
-        "useflow:flow2:instance-1": "{}",
+        "useflow:flow1:default:default": "{}",
+        "useflow:flow2:default:default": "{}",
+        "useflow:flow2:default:instance-1": "{}",
         "other:key": "{}",
       };
 
@@ -882,9 +1097,11 @@ describe("kvStorageAdapter", () => {
 
       await store.removeAll!();
 
-      expect(removeItem).toHaveBeenCalledWith("useflow:flow1");
-      expect(removeItem).toHaveBeenCalledWith("useflow:flow2");
-      expect(removeItem).toHaveBeenCalledWith("useflow:flow2:instance-1");
+      expect(removeItem).toHaveBeenCalledWith("useflow:flow1:default:default");
+      expect(removeItem).toHaveBeenCalledWith("useflow:flow2:default:default");
+      expect(removeItem).toHaveBeenCalledWith(
+        "useflow:flow2:default:instance-1",
+      );
       expect(removeItem).not.toHaveBeenCalledWith("other:key");
       expect(removeItem).toHaveBeenCalledTimes(3);
     });
@@ -925,7 +1142,7 @@ describe("kvStorageAdapter", () => {
 
     it("should only remove keys returned by listKeys", async () => {
       const mockData: Record<string, string> = {
-        "useflow:flow1": "{}",
+        "useflow:flow1:default:default": "{}",
         "useflow2:flow1": "{}",
         "myuseflow:flow1": "{}",
       };
@@ -951,7 +1168,7 @@ describe("kvStorageAdapter", () => {
 
       await store.removeAll!();
 
-      expect(removeItem).toHaveBeenCalledWith("useflow:flow1");
+      expect(removeItem).toHaveBeenCalledWith("useflow:flow1:default:default");
       expect(removeItem).not.toHaveBeenCalledWith("useflow2:flow1");
       expect(removeItem).not.toHaveBeenCalledWith("myuseflow:flow1");
       expect(removeItem).toHaveBeenCalledTimes(1);
@@ -1035,13 +1252,18 @@ describe("kvStorageAdapter", () => {
       };
 
       const mockData: Record<string, string> = {
-        "useflow:test-flow:instance-1": JSON.stringify(state),
-        "useflow:test-flow:instance-2": "", // Will result in getItem returning null
+        "useflow:test-flow:default:instance-1": JSON.stringify({
+          flowId: "test-flow",
+          instanceId: "instance-1",
+          variantId: "default",
+          state,
+        }),
+        "useflow:test-flow:default:instance-2": "", // Will result in getItem returning null
       };
 
       const getItem = vi.fn((key: string) => {
         // Return null for instance-2
-        if (key === "useflow:test-flow:instance-2") {
+        if (key === "useflow:test-flow:default:instance-2") {
           return null;
         }
         return mockData[key] || null;
@@ -1065,6 +1287,40 @@ describe("kvStorageAdapter", () => {
 
       expect(instances).toHaveLength(1);
       expect(instances[0]?.instanceId).toBe("instance-1");
+    });
+  });
+
+  describe("formatKey method", () => {
+    it("should expose formatKey for custom key generation", () => {
+      const mockStorage: Storage = {
+        length: 0,
+        clear: vi.fn(),
+        key: vi.fn(() => null),
+        getItem: vi.fn(() => null),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+      };
+
+      const store = kvStorageAdapter({
+        storage: mockStorage,
+        formatKey: defaultFormatKey,
+        serializer: defaultSerializer,
+      });
+
+      // Test formatKey with options
+      const key1 = store.formatKey("my-flow", {
+        instanceId: "task-123",
+        variantId: "premium",
+      });
+      expect(key1).toBe("useflow:my-flow:premium:task-123");
+
+      // Test formatKey with defaults
+      const key2 = store.formatKey("my-flow", {});
+      expect(key2).toBe("useflow:my-flow:default:default");
+
+      // Test formatKey with undefined options
+      const key3 = store.formatKey("my-flow");
+      expect(key3).toBe("useflow:my-flow:default:default");
     });
   });
 });

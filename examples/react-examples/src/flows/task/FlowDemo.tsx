@@ -107,7 +107,7 @@ export function TaskFlowDemo() {
   const handleCreateAnother = (context: TaskFlowContext) => {
     saveTask(context);
     if (activeTaskId) {
-      persister.remove?.(taskFlow.id, activeTaskId);
+      persister.remove?.(taskFlow.id, { instanceId: activeTaskId });
       // Remove from draft tasks
       setDraftTasks((prev) => prev.filter((t) => t.id !== activeTaskId));
     }
@@ -118,7 +118,7 @@ export function TaskFlowDemo() {
   const handleViewAll = (context: TaskFlowContext) => {
     saveTask(context);
     if (activeTaskId) {
-      persister.remove?.(taskFlow.id, activeTaskId);
+      persister.remove?.(taskFlow.id, { instanceId: activeTaskId });
       // Remove from draft tasks
       setDraftTasks((prev) => prev.filter((t) => t.id !== activeTaskId));
     }
@@ -130,7 +130,7 @@ export function TaskFlowDemo() {
   };
 
   const handleDeleteDraft = async (taskId: string | undefined) => {
-    await persister.remove?.(taskFlow.id, taskId);
+    await persister.remove?.(taskFlow.id, { instanceId: taskId });
     setDraftTasks((prev) => prev.filter((t) => t.id !== taskId));
   };
 
@@ -140,8 +140,13 @@ export function TaskFlowDemo() {
   };
 
   const handleCancelTask = () => {
-    // Keep the draft in store so user can resume later
+    if (activeTaskId) {
+      persister.remove?.(taskFlow.id, { instanceId: activeTaskId });
+      // Remove from draft tasks
+      setDraftTasks((prev) => prev.filter((t) => t.id !== activeTaskId));
+    }
     setActiveTaskId(null);
+    handleStartNewTask();
   };
 
   const handleTransition = ({

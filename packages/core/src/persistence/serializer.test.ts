@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { PersistedFlowState } from "../types";
+import type { PersistedFlowInstance, PersistedFlowState } from "../types";
 import { JsonSerializer } from "./serializer";
 
 describe("JsonSerializer", () => {
   describe("serialize", () => {
-    it("should serialize a minimal flow state to JSON string", () => {
+    it("should serialize a flow instance to JSON string", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {},
@@ -12,14 +12,23 @@ describe("JsonSerializer", () => {
         status: "active",
       };
 
-      const result = JsonSerializer.serialize(state);
+      const instance: PersistedFlowInstance = {
+        flowId: "test-flow",
+        instanceId: "default",
+        variantId: "default",
+        state,
+      };
+
+      const result = JsonSerializer.serialize(
+        instance as unknown as PersistedFlowState,
+      );
 
       expect(result).toBe(
-        '{"stepId":"step1","context":{},"history":["step1"],"status":"active"}',
+        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}',
       );
     });
 
-    it("should serialize flow state with context data", () => {
+    it("should serialize flow instance with context data", () => {
       const state: PersistedFlowState = {
         stepId: "profile",
         context: { name: "John", email: "john@example.com" },
@@ -27,19 +36,31 @@ describe("JsonSerializer", () => {
         status: "active",
       };
 
-      const result = JsonSerializer.serialize(state);
+      const instance: PersistedFlowInstance = {
+        flowId: "onboarding",
+        instanceId: "user-123",
+        variantId: "default",
+        state,
+      };
+
+      const result = JsonSerializer.serialize(
+        instance as unknown as PersistedFlowState,
+      );
       const parsed = JSON.parse(result);
 
-      expect(parsed.stepId).toBe("profile");
-      expect(parsed.context).toEqual({
+      expect(parsed.flowId).toBe("onboarding");
+      expect(parsed.instanceId).toBe("user-123");
+      expect(parsed.variantId).toBe("default");
+      expect(parsed.state.stepId).toBe("profile");
+      expect(parsed.state.context).toEqual({
         name: "John",
         email: "john@example.com",
       });
-      expect(parsed.history).toEqual(["welcome", "profile"]);
-      expect(parsed.status).toBe("active");
+      expect(parsed.state.history).toEqual(["welcome", "profile"]);
+      expect(parsed.state.status).toBe("active");
     });
 
-    it("should serialize flow state with metadata", () => {
+    it("should serialize flow instance with metadata", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {},
@@ -48,21 +69,28 @@ describe("JsonSerializer", () => {
         __meta: {
           savedAt: 1234567890,
           version: "1.0.0",
-          instanceId: "task-123",
         },
       };
 
-      const result = JsonSerializer.serialize(state);
+      const instance: PersistedFlowInstance = {
+        flowId: "test-flow",
+        instanceId: "default",
+        variantId: "default",
+        state,
+      };
+
+      const result = JsonSerializer.serialize(
+        instance as unknown as PersistedFlowState,
+      );
       const parsed = JSON.parse(result);
 
-      expect(parsed.__meta).toEqual({
+      expect(parsed.state.__meta).toEqual({
         savedAt: 1234567890,
         version: "1.0.0",
-        instanceId: "task-123",
       });
     });
 
-    it("should serialize flow state with complete status", () => {
+    it("should serialize flow instance with complete status", () => {
       const state: PersistedFlowState = {
         stepId: "complete",
         context: { result: "success" },
@@ -70,13 +98,22 @@ describe("JsonSerializer", () => {
         status: "complete",
       };
 
-      const result = JsonSerializer.serialize(state);
+      const instance: PersistedFlowInstance = {
+        flowId: "survey",
+        instanceId: "default",
+        variantId: "default",
+        state,
+      };
+
+      const result = JsonSerializer.serialize(
+        instance as unknown as PersistedFlowState,
+      );
       const parsed = JSON.parse(result);
 
-      expect(parsed.status).toBe("complete");
+      expect(parsed.state.status).toBe("complete");
     });
 
-    it("should serialize flow state with nested context", () => {
+    it("should serialize flow instance with nested context", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {
@@ -92,10 +129,19 @@ describe("JsonSerializer", () => {
         status: "active",
       };
 
-      const result = JsonSerializer.serialize(state);
+      const instance: PersistedFlowInstance = {
+        flowId: "test-flow",
+        instanceId: "default",
+        variantId: "default",
+        state,
+      };
+
+      const result = JsonSerializer.serialize(
+        instance as unknown as PersistedFlowState,
+      );
       const parsed = JSON.parse(result);
 
-      expect(parsed.context).toEqual({
+      expect(parsed.state.context).toEqual({
         user: {
           name: "John",
           preferences: {
@@ -106,7 +152,7 @@ describe("JsonSerializer", () => {
       });
     });
 
-    it("should serialize flow state with array in context", () => {
+    it("should serialize flow instance with array in context", () => {
       const state: PersistedFlowState = {
         stepId: "step1",
         context: {
@@ -116,21 +162,35 @@ describe("JsonSerializer", () => {
         status: "active",
       };
 
-      const result = JsonSerializer.serialize(state);
+      const instance: PersistedFlowInstance = {
+        flowId: "test-flow",
+        instanceId: "default",
+        variantId: "default",
+        state,
+      };
+
+      const result = JsonSerializer.serialize(
+        instance as unknown as PersistedFlowState,
+      );
       const parsed = JSON.parse(result);
 
-      expect(parsed.context.items).toEqual(["item1", "item2", "item3"]);
+      expect(parsed.state.context.items).toEqual(["item1", "item2", "item3"]);
     });
   });
 
   describe("deserialize", () => {
-    it("should deserialize a valid JSON string to flow state", () => {
+    it("should deserialize a valid flow instance", () => {
       const json =
-        '{"stepId":"step1","context":{},"history":["step1"],"status":"active"}';
+        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
-      expect(result).toEqual({
+      // Cast back to instance to verify structure
+      const instance = result as unknown as PersistedFlowInstance;
+      expect(instance.flowId).toBe("test-flow");
+      expect(instance.instanceId).toBe("default");
+      expect(instance.variantId).toBe("default");
+      expect(instance.state).toEqual({
         stepId: "step1",
         context: {},
         history: ["step1"],
@@ -138,39 +198,43 @@ describe("JsonSerializer", () => {
       });
     });
 
-    it("should deserialize flow state with context data", () => {
+    it("should deserialize flow instance with context data", () => {
       const json =
-        '{"stepId":"profile","context":{"name":"John","email":"john@example.com"},"history":["welcome","profile"],"status":"active"}';
+        '{"flowId":"onboarding","instanceId":"user-123","variantId":"premium","state":{"stepId":"profile","context":{"name":"John","email":"john@example.com"},"history":["welcome","profile"],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
-      expect(result).toEqual({
-        stepId: "profile",
-        context: { name: "John", email: "john@example.com" },
-        history: ["welcome", "profile"],
-        status: "active",
+      const instance = result as unknown as PersistedFlowInstance;
+      expect(instance.flowId).toBe("onboarding");
+      expect(instance.instanceId).toBe("user-123");
+      expect(instance.variantId).toBe("premium");
+      expect(instance.state.context).toEqual({
+        name: "John",
+        email: "john@example.com",
       });
     });
 
-    it("should deserialize flow state with metadata", () => {
+    it("should deserialize flow instance with metadata", () => {
       const json =
-        '{"stepId":"step1","context":{},"history":["step1"],"status":"active","__meta":{"savedAt":1234567890,"version":"1.0.0"}}';
+        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active","__meta":{"savedAt":1234567890,"version":"1.0.0"}}}';
 
       const result = JsonSerializer.deserialize(json);
 
-      expect(result?.__meta).toEqual({
+      const instance = result as unknown as PersistedFlowInstance;
+      expect(instance.state.__meta).toEqual({
         savedAt: 1234567890,
         version: "1.0.0",
       });
     });
 
-    it("should deserialize flow state with complete status", () => {
+    it("should deserialize flow instance with complete status", () => {
       const json =
-        '{"stepId":"complete","context":{"result":"success"},"history":["step1","step2","complete"],"status":"complete"}';
+        '{"flowId":"survey","instanceId":"default","variantId":"default","state":{"stepId":"complete","context":{"result":"success"},"history":["step1","step2","complete"],"status":"complete"}}';
 
       const result = JsonSerializer.deserialize(json);
 
-      expect(result?.status).toBe("complete");
+      const instance = result as unknown as PersistedFlowInstance;
+      expect(instance.state.status).toBe("complete");
     });
 
     it("should return null for invalid JSON", () => {
@@ -203,86 +267,81 @@ describe("JsonSerializer", () => {
       expect(result).toBeNull();
     });
 
-    it("should return null when stepId is missing", () => {
-      const json = '{"context":{},"history":["step1"],"status":"active"}';
-
-      const result = JsonSerializer.deserialize(json);
-
-      expect(result).toBeNull();
-    });
-
-    it("should return null when stepId is not a string", () => {
+    it("should return null when flowId is missing", () => {
       const json =
-        '{"stepId":123,"context":{},"history":["step1"],"status":"active"}';
+        '{"instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
       expect(result).toBeNull();
     });
 
-    it("should return null when context is missing", () => {
-      const json = '{"stepId":"step1","history":["step1"],"status":"active"}';
-
-      const result = JsonSerializer.deserialize(json);
-
-      expect(result).toBeNull();
-    });
-
-    it("should return null when context is not an object", () => {
+    it("should return null when flowId is not a string", () => {
       const json =
-        '{"stepId":"step1","context":"not an object","history":["step1"],"status":"active"}';
+        '{"flowId":123,"instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
       expect(result).toBeNull();
     });
 
-    it("should return null when context is null", () => {
+    it("should return null when instanceId is missing", () => {
       const json =
-        '{"stepId":"step1","context":null,"history":["step1"],"status":"active"}';
+        '{"flowId":"test-flow","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
       expect(result).toBeNull();
     });
 
-    it("should return null when history is missing", () => {
-      const json = '{"stepId":"step1","context":{},"status":"active"}';
-
-      const result = JsonSerializer.deserialize(json);
-
-      expect(result).toBeNull();
-    });
-
-    it("should return null when history is not an array", () => {
+    it("should return null when instanceId is not a string", () => {
       const json =
-        '{"stepId":"step1","context":{},"history":"not an array","status":"active"}';
+        '{"flowId":"test-flow","instanceId":123,"variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
       expect(result).toBeNull();
     });
 
-    it("should return null when status is missing", () => {
-      const json = '{"stepId":"step1","context":{},"history":["step1"]}';
-
-      const result = JsonSerializer.deserialize(json);
-
-      expect(result).toBeNull();
-    });
-
-    it("should return null when status is invalid", () => {
+    it("should return null when variantId is missing", () => {
       const json =
-        '{"stepId":"step1","context":{},"history":["step1"],"status":"invalid"}';
+        '{"flowId":"test-flow","instanceId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
 
       const result = JsonSerializer.deserialize(json);
 
       expect(result).toBeNull();
     });
 
-    it("should return null when status is not a string", () => {
+    it("should return null when variantId is not a string", () => {
       const json =
-        '{"stepId":"step1","context":{},"history":["step1"],"status":123}';
+        '{"flowId":"test-flow","instanceId":"default","variantId":123,"state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"}}';
+
+      const result = JsonSerializer.deserialize(json);
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null when state is missing", () => {
+      const json =
+        '{"flowId":"test-flow","instanceId":"default","variantId":"default"}';
+
+      const result = JsonSerializer.deserialize(json);
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null when state is not an object", () => {
+      const json =
+        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":"not an object"}';
+
+      const result = JsonSerializer.deserialize(json);
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null when state is null", () => {
+      const json =
+        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":null}';
 
       const result = JsonSerializer.deserialize(json);
 
@@ -291,23 +350,19 @@ describe("JsonSerializer", () => {
 
     it("should handle extra fields gracefully", () => {
       const json =
-        '{"stepId":"step1","context":{},"history":["step1"],"status":"active","extraField":"ignored"}';
+        '{"flowId":"test-flow","instanceId":"default","variantId":"default","state":{"stepId":"step1","context":{},"history":["step1"],"status":"active"},"extraField":"ignored"}';
 
       const result = JsonSerializer.deserialize(json);
 
-      expect(result).toEqual({
-        stepId: "step1",
-        context: {},
-        history: ["step1"],
-        status: "active",
-        extraField: "ignored",
-      });
+      expect(result).not.toBeNull();
+      const instance = result as unknown as PersistedFlowInstance;
+      expect(instance.flowId).toBe("test-flow");
     });
   });
 
   describe("round-trip", () => {
     it("should serialize and deserialize without data loss", () => {
-      const original: PersistedFlowState = {
+      const state: PersistedFlowState = {
         stepId: "profile",
         context: {
           name: "John Doe",
@@ -319,39 +374,65 @@ describe("JsonSerializer", () => {
         __meta: {
           savedAt: Date.now(),
           version: "1.0.0",
-          instanceId: "user-123",
         },
       };
 
-      const serialized = JsonSerializer.serialize(original);
+      const original: PersistedFlowInstance = {
+        flowId: "onboarding",
+        instanceId: "user-123",
+        variantId: "premium",
+        state,
+      };
+
+      const serialized = JsonSerializer.serialize(
+        original as unknown as PersistedFlowState,
+      );
       const deserialized = JsonSerializer.deserialize(serialized);
 
       expect(deserialized).toEqual(original);
     });
 
-    it("should handle minimal state round-trip", () => {
-      const original: PersistedFlowState = {
+    it("should handle minimal instance round-trip", () => {
+      const state: PersistedFlowState = {
         stepId: "step1",
         context: {},
         history: ["step1"],
         status: "active",
       };
 
-      const serialized = JsonSerializer.serialize(original);
+      const original: PersistedFlowInstance = {
+        flowId: "test-flow",
+        instanceId: "default",
+        variantId: "default",
+        state,
+      };
+
+      const serialized = JsonSerializer.serialize(
+        original as unknown as PersistedFlowState,
+      );
       const deserialized = JsonSerializer.deserialize(serialized);
 
       expect(deserialized).toEqual(original);
     });
 
     it("should handle complete status round-trip", () => {
-      const original: PersistedFlowState = {
+      const state: PersistedFlowState = {
         stepId: "complete",
         context: { result: "success" },
         history: ["step1", "step2", "complete"],
         status: "complete",
       };
 
-      const serialized = JsonSerializer.serialize(original);
+      const original: PersistedFlowInstance = {
+        flowId: "survey",
+        instanceId: "default",
+        variantId: "default",
+        state,
+      };
+
+      const serialized = JsonSerializer.serialize(
+        original as unknown as PersistedFlowState,
+      );
       const deserialized = JsonSerializer.deserialize(serialized);
 
       expect(deserialized).toEqual(original);

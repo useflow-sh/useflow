@@ -169,7 +169,10 @@ describe("createPersister", () => {
 
       expect(onRestore).not.toHaveBeenCalled();
       expect(restored).toBeNull();
-      expect(store.remove).toHaveBeenCalledWith("test-flow", undefined);
+      expect(store.remove).toHaveBeenCalledWith("test-flow", {
+        instanceId: undefined,
+        variantId: undefined,
+      });
     });
 
     it("should call onError on save failure", async () => {
@@ -318,7 +321,7 @@ describe("createPersister", () => {
             version: "v2",
           }),
         }),
-        undefined, // instanceId
+        {},
       );
     });
 
@@ -352,7 +355,7 @@ describe("createPersister", () => {
             version: undefined,
           }),
         }),
-        undefined, // instanceId
+        {},
       );
     });
 
@@ -397,8 +400,11 @@ describe("createPersister", () => {
         expect.objectContaining({
           stepId: "profile",
           context: { name: "John" },
+          __meta: expect.objectContaining({
+            savedAt: expect.any(Number),
+          }),
         }),
-        "task-123",
+        { instanceId: "task-123", variantId: undefined },
       );
     });
 
@@ -422,7 +428,10 @@ describe("createPersister", () => {
         instanceId: "task-123",
       });
 
-      expect(store.get).toHaveBeenCalledWith("test-flow", "task-123");
+      expect(store.get).toHaveBeenCalledWith("test-flow", {
+        instanceId: "task-123",
+        variantId: undefined,
+      });
       expect(restored).toEqual(savedState);
     });
 
@@ -435,9 +444,12 @@ describe("createPersister", () => {
 
       const persister = createPersister({ store });
 
-      await persister.remove?.("test-flow", "task-123");
+      await persister.remove?.("test-flow", { instanceId: "task-123" });
 
-      expect(store.remove).toHaveBeenCalledWith("test-flow", "task-123");
+      expect(store.remove).toHaveBeenCalledWith("test-flow", {
+        instanceId: "task-123",
+        variantId: undefined,
+      });
     });
 
     it("should save with both instanceId and version", async () => {
@@ -466,9 +478,10 @@ describe("createPersister", () => {
         expect.objectContaining({
           __meta: expect.objectContaining({
             version: "v2",
+            savedAt: expect.any(Number),
           }),
         }),
-        "task-123",
+        { instanceId: "task-123", variantId: undefined },
       );
     });
 
@@ -497,7 +510,10 @@ describe("createPersister", () => {
       });
 
       expect(restored).toBeNull();
-      expect(store.remove).toHaveBeenCalledWith("test-flow", "task-123");
+      expect(store.remove).toHaveBeenCalledWith("test-flow", {
+        instanceId: "task-123",
+        variantId: undefined,
+      });
     });
   });
 

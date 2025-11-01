@@ -72,6 +72,7 @@ type FlowProps<TConfig extends FlowConfig<any>> = {
   components: ComponentsProp<TConfig>;
   initialContext: ExtractContext<TConfig>;
   instanceId?: string;
+  variantId?: string;
   onComplete?: () => void;
   onNext?: (event: {
     from: StepNames<TConfig>;
@@ -193,6 +194,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
   components,
   initialContext,
   instanceId,
+  variantId,
   onComplete,
   onNext,
   onBack,
@@ -287,7 +289,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
     // Clear persisted state if persister is available
     if (persister) {
       try {
-        await persister.remove?.(flow.id, instanceId);
+        await persister.remove?.(flow.id, { instanceId, variantId });
       } catch (error) {
         console.error(
           "[Flow] Failed to remove persisted state on reset:",
@@ -297,7 +299,14 @@ export function Flow<TConfig extends FlowConfig<any>>({
       }
     }
     flowState.reset();
-  }, [flowState.reset, persister, flow.id, instanceId, onPersistenceError]);
+  }, [
+    flowState.reset,
+    persister,
+    flow.id,
+    instanceId,
+    variantId,
+    onPersistenceError,
+  ]);
 
   const save = useCallback(async () => {
     if (!persister) return;
@@ -318,6 +327,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
       const persistedState = await persister.save(flow.id, stateToSave, {
         version,
         instanceId,
+        variantId,
       });
 
       if (persistedState) {
@@ -335,6 +345,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
     flowState.status,
     config,
     instanceId,
+    variantId,
     persister,
     onSave,
     onPersistenceError,
@@ -409,6 +420,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
           version: config.version,
           migrate: config.migrate,
           instanceId,
+          variantId,
         });
 
         if (state) {
@@ -455,6 +467,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
     persister,
     flow.id,
     instanceId,
+    variantId,
     config,
     onPersistenceError,
     onRestore,

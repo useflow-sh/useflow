@@ -149,8 +149,8 @@ describe("createMemoryStore", () => {
         status: "active",
       };
 
-      store.set("test-flow", state, "instance-123");
-      const result = store.get("test-flow", "instance-123");
+      store.set("test-flow", state, { instanceId: "instance-123" });
+      const result = store.get("test-flow", { instanceId: "instance-123" });
 
       expect(result).toEqual(state);
     });
@@ -172,11 +172,15 @@ describe("createMemoryStore", () => {
         status: "active",
       };
 
-      store.set("test-flow", state1, "instance-1");
-      store.set("test-flow", state2, "instance-2");
+      store.set("test-flow", state1, { instanceId: "instance-1" });
+      store.set("test-flow", state2, { instanceId: "instance-2" });
 
-      expect(store.get("test-flow", "instance-1")).toEqual(state1);
-      expect(store.get("test-flow", "instance-2")).toEqual(state2);
+      expect(store.get("test-flow", { instanceId: "instance-1" })).toEqual(
+        state1,
+      );
+      expect(store.get("test-flow", { instanceId: "instance-2" })).toEqual(
+        state2,
+      );
     });
 
     it("should remove state with instanceId", () => {
@@ -189,11 +193,13 @@ describe("createMemoryStore", () => {
         status: "active",
       };
 
-      store.set("test-flow", state, "instance-123");
-      expect(store.get("test-flow", "instance-123")).toEqual(state);
+      store.set("test-flow", state, { instanceId: "instance-123" });
+      expect(store.get("test-flow", { instanceId: "instance-123" })).toEqual(
+        state,
+      );
 
-      store.remove("test-flow", "instance-123");
-      expect(store.get("test-flow", "instance-123")).toBeNull();
+      store.remove("test-flow", { instanceId: "instance-123" });
+      expect(store.get("test-flow", { instanceId: "instance-123" })).toBeNull();
     });
 
     it("should keep flow without instanceId separate from instances", () => {
@@ -214,10 +220,12 @@ describe("createMemoryStore", () => {
       };
 
       store.set("test-flow", state1);
-      store.set("test-flow", state2, "instance-1");
+      store.set("test-flow", state2, { instanceId: "instance-1" });
 
       expect(store.get("test-flow")).toEqual(state1);
-      expect(store.get("test-flow", "instance-1")).toEqual(state2);
+      expect(store.get("test-flow", { instanceId: "instance-1" })).toEqual(
+        state2,
+      );
     });
   });
 
@@ -252,15 +260,15 @@ describe("createMemoryStore", () => {
       };
 
       store.set("test-flow", state);
-      store.set("test-flow", state, "instance-1");
-      store.set("test-flow", state, "instance-2");
+      store.set("test-flow", state, { instanceId: "instance-1" });
+      store.set("test-flow", state, { instanceId: "instance-2" });
       store.set("other-flow", state);
 
       store.removeFlow!("test-flow");
 
       expect(store.get("test-flow")).toBeNull();
-      expect(store.get("test-flow", "instance-1")).toBeNull();
-      expect(store.get("test-flow", "instance-2")).toBeNull();
+      expect(store.get("test-flow", { instanceId: "instance-1" })).toBeNull();
+      expect(store.get("test-flow", { instanceId: "instance-2" })).toBeNull();
       expect(store.get("other-flow")).toEqual(state);
     });
   });
@@ -278,13 +286,13 @@ describe("createMemoryStore", () => {
 
       store.set("flow1", state);
       store.set("flow2", state);
-      store.set("flow2", state, "instance-1");
+      store.set("flow2", state, { instanceId: "instance-1" });
 
       store.removeAll!();
 
       expect(store.get("flow1")).toBeNull();
       expect(store.get("flow2")).toBeNull();
-      expect(store.get("flow2", "instance-1")).toBeNull();
+      expect(store.get("flow2", { instanceId: "instance-1" })).toBeNull();
     });
   });
 
@@ -306,16 +314,26 @@ describe("createMemoryStore", () => {
         status: "active",
       };
 
-      store.set("test-flow", state1, "instance-1");
-      store.set("test-flow", state2, "instance-2");
-      store.set("other-flow", state1, "instance-1");
+      store.set("test-flow", state1, { instanceId: "instance-1" });
+      store.set("test-flow", state2, { instanceId: "instance-2" });
+      store.set("other-flow", state1, { instanceId: "instance-1" });
 
       const instances = store.list("test-flow");
 
       expect(instances).toHaveLength(2);
       expect(instances).toEqual([
-        { instanceId: "instance-1", state: state1 },
-        { instanceId: "instance-2", state: state2 },
+        {
+          flowId: "test-flow",
+          instanceId: "instance-1",
+          variantId: "default",
+          state: state1,
+        },
+        {
+          flowId: "test-flow",
+          instanceId: "instance-2",
+          variantId: "default",
+          state: state2,
+        },
       ]);
     });
 
@@ -329,7 +347,7 @@ describe("createMemoryStore", () => {
         status: "active",
       };
 
-      store.set("other-flow", state, "instance-1");
+      store.set("other-flow", state, { instanceId: "instance-1" });
 
       const instances = store.list("test-flow");
 
@@ -361,17 +379,32 @@ describe("createMemoryStore", () => {
       };
 
       store.set("test-flow", baseState); // Base flow without instanceId
-      store.set("test-flow", instance1State, "instance-1");
-      store.set("test-flow", instance2State, "instance-2");
+      store.set("test-flow", instance1State, { instanceId: "instance-1" });
+      store.set("test-flow", instance2State, { instanceId: "instance-2" });
 
       const instances = store.list("test-flow");
 
       expect(instances).toHaveLength(3);
       expect(instances).toEqual(
         expect.arrayContaining([
-          { instanceId: undefined, state: baseState }, // Base instance with undefined
-          { instanceId: "instance-1", state: instance1State },
-          { instanceId: "instance-2", state: instance2State },
+          {
+            flowId: "test-flow",
+            instanceId: "default",
+            variantId: "default",
+            state: baseState,
+          }, // Base instance defaults to "default"
+          {
+            flowId: "test-flow",
+            instanceId: "instance-1",
+            variantId: "default",
+            state: instance1State,
+          },
+          {
+            flowId: "test-flow",
+            instanceId: "instance-2",
+            variantId: "default",
+            state: instance2State,
+          },
         ]),
       );
     });
@@ -387,19 +420,20 @@ describe("createMemoryStore", () => {
       };
 
       store.set("flow1", state);
-      store.set("flow1", state, "instance-1");
+      store.set("flow1", state, { instanceId: "instance-1" });
       store.set("flow2", state);
-      store.set("flow2", state, "instance-1");
+      store.set("flow2", state, { instanceId: "instance-1" });
 
       const instances = store.list("flow1") as Array<{
-        instanceId: string | undefined;
+        instanceId: string;
+        variantId: string;
         state: PersistedFlowState;
       }>;
 
       expect(instances).toHaveLength(2);
       const hasCorrectIds = instances.every(
         (i) =>
-          i.instanceId === undefined || i.instanceId.startsWith("instance-"),
+          i.instanceId === "default" || i.instanceId.startsWith("instance-"),
       );
       expect(hasCorrectIds).toBe(true);
     });

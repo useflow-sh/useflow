@@ -82,10 +82,22 @@ export type PersistedFlowState<TContext extends FlowContext = FlowContext> = {
   __meta?: {
     savedAt?: number;
     version?: string;
-    instanceId?: string;
     [key: string]: unknown;
   };
 };
+
+/**
+ * A specific instance of a persisted flow with its identifiers
+ * Stores the complete flow instance with all identifying information
+ * This is what gets physically stored - the data is self-describing
+ */
+export type PersistedFlowInstance<TContext extends FlowContext = FlowContext> =
+  {
+    flowId: string;
+    instanceId: string;
+    variantId: string;
+    state: PersistedFlowState<TContext>;
+  };
 
 /**
  * Flow definition
@@ -114,6 +126,15 @@ export type FlowDefinition<
    * @optional
    */
   version?: string;
+
+  /**
+   * Variant identifier for this flow
+   * Used to distinguish between structural variations of the same flow
+   * (e.g., "standard", "express", "extended" variants of an onboarding flow)
+   *
+   * @optional
+   */
+  variantId?: string;
 
   /**
    * Migration function to transform persisted state from old versions

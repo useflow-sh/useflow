@@ -48,9 +48,9 @@
  * ```
  */
 
-import type { PersistedFlowState } from "../../types";
+import type { PersistedFlowInstance, PersistedFlowState } from "../../types";
 import type { Serializer } from "../serializer";
-import type { KVFlowStore } from "../store";
+import type { FlowStoreOptions, KVFlowStore } from "../store";
 
 /**
  * Generic key-value storage interface
@@ -79,26 +79,33 @@ export type KVStorageAdapterOptions<T = string> = {
 
   /**
    * Key formatting function (required).
-   * Constructs storage keys from flowId and optional instanceId.
+   * Constructs storage keys from flowId with optional instanceId and variantId.
    * You have full control over the key format.
    *
    * @example
    * ```ts
-   * // Simple format
-   * formatKey: (flowId, instanceId) => {
-   *   return instanceId ? `useflow:${flowId}:${instanceId}` : `useflow:${flowId}`;
+   * // Simple format with defaults
+   * formatKey: (flowId, instanceId, variantId) => {
+   *   const vid = variantId || "default";
+   *   const iid = instanceId || "default";
+   *   return `useflow:${flowId}:${vid}:${iid}`;
    * }
    *
    * // User-scoped keys
-   * formatKey: (flowId, instanceId) => {
+   * formatKey: (flowId, instanceId, variantId) => {
    *   const userId = getCurrentUserId();
-   *   const base = `myapp:${userId}:${flowId}`;
-   *   return instanceId ? `${base}:${instanceId}` : base;
+   *   const vid = variantId || "default";
+   *   const iid = instanceId || "default";
+   *   return `myapp:${userId}:${flowId}:${vid}:${iid}`;
    * }
-   * // Results in: "myapp:alice:feedback:task-123"
+   * // Results in: "myapp:alice:onboarding:standard:session-1"
    * ```
    */
-  formatKey: (flowId: string, instanceId?: string) => string;
+  formatKey: (
+    flowId: string,
+    instanceId?: string,
+    variantId?: string,
+  ) => string;
 
   /**
    * Optional function to enumerate storage keys.
@@ -220,12 +227,24 @@ export function kvStorageAdapter<T>(options: KVStorageAdapterOptions<T>) {
   return {
     async get(
       flowId: string,
-      instanceId?: string,
+      options?: FlowStoreOptions,
     ): Promise<PersistedFlowState | null> {
       try {
-        const key = formatKey(flowId, instanceId);
+        // Apply defaults
+        const vid = options?.variantId || "default";
+        const iid = options?.instanceId || "default";
+
+        const key = formatKey(flowId, iid, vid);
         const data = await storage.getItem(key);
-        return data ? serializer.deserialize(data) : null;
+        if (!data) return null;
+
+        // Deserialize the stored instance and unwrap to return just the state
+        const deserialized = serializer.deserialize(data);
+        if (!deserialized) return null;
+
+        // The stored data is actually a PersistedFlowInstance
+        const instance = deserialized as unknown as PersistedFlowInstance;
+        return instance.state;
       } catch {
         return null;
       }
@@ -234,15 +253,34 @@ export function kvStorageAdapter<T>(options: KVStorageAdapterOptions<T>) {
     async set(
       flowId: string,
       state: PersistedFlowState,
-      instanceId?: string,
+      options?: FlowStoreOptions,
     ): Promise<void> {
-      const key = formatKey(flowId, instanceId);
-      const serialized = serializer.serialize(state);
+      // Apply defaults
+      const vid = options?.variantId || "default";
+      const iid = options?.instanceId || "default";
+
+      // Wrap state in a PersistedFlowInstance with all identifiers
+      const instance: PersistedFlowInstance = {
+        flowId,
+        instanceId: iid,
+        variantId: vid,
+        state,
+      };
+
+      const key = formatKey(flowId, iid, vid);
+      // Serialize the instance (cast needed since serializer expects PersistedFlowState)
+      const serialized = serializer.serialize(
+        instance as unknown as PersistedFlowState,
+      );
       await storage.setItem(key, serialized);
     },
 
-    async remove(flowId: string, instanceId?: string): Promise<void> {
-      const key = formatKey(flowId, instanceId);
+    async remove(flowId: string, options?: FlowStoreOptions): Promise<void> {
+      // Apply defaults
+      const vid = options?.variantId || "default";
+      const iid = options?.instanceId || "default";
+
+      const key = formatKey(flowId, iid, vid);
       await storage.removeItem(key);
     },
 
@@ -267,31 +305,26 @@ export function kvStorageAdapter<T>(options: KVStorageAdapterOptions<T>) {
       }
     },
 
-    async list(
-      flowId: string,
-    ): Promise<
-      { instanceId: string | undefined; state: PersistedFlowState }[]
-    > {
+    async list(flowId: string): Promise<PersistedFlowInstance[]> {
       if (!listKeys) return []; // Return empty array if listKeys() not provided
 
-      const instances: {
-        instanceId: string | undefined;
-        state: PersistedFlowState;
-      }[] = [];
+      const instances: PersistedFlowInstance[] = [];
 
       // Get all keys for this flow (base + instances)
       const keys = await listKeys(flowId);
 
-      // Load each key and get instanceId from the state itself
+      // Load each key - the stored data is already a complete PersistedFlowInstance
       for (const key of keys) {
         try {
           const data = await storage.getItem(key);
           if (!data) continue;
 
-          const state = serializer.deserialize(data);
-          if (!state) continue;
+          const deserialized = serializer.deserialize(data);
+          if (!deserialized) continue;
 
-          instances.push({ instanceId: state.__meta?.instanceId, state });
+          // The stored data is a PersistedFlowInstance with all identifiers
+          const instance = deserialized as unknown as PersistedFlowInstance;
+          instances.push(instance);
         } catch {
           // Skip invalid entries
           // biome-ignore lint/complexity/noUselessContinue: defensive programming
@@ -302,6 +335,10 @@ export function kvStorageAdapter<T>(options: KVStorageAdapterOptions<T>) {
       return instances;
     },
 
-    formatKey,
+    formatKey: (flowId: string, options?: FlowStoreOptions) => {
+      const iid = options?.instanceId;
+      const vid = options?.variantId;
+      return formatKey(flowId, iid, vid);
+    },
   } satisfies KVFlowStore;
 }

@@ -80,6 +80,12 @@ type FlowProps<TConfig extends FlowConfig<any>> = {
     oldContext: ExtractContext<TConfig>;
     newContext: ExtractContext<TConfig>;
   }) => void;
+  onSkip?: (event: {
+    from: StepNames<TConfig>;
+    to: StepNames<TConfig>;
+    oldContext: ExtractContext<TConfig>;
+    newContext: ExtractContext<TConfig>;
+  }) => void;
   onBack?: (event: {
     from: StepNames<TConfig>;
     to: StepNames<TConfig>;
@@ -109,6 +115,7 @@ type FlowProps<TConfig extends FlowConfig<any>> = {
 
 type LastActionType =
   | "NEXT"
+  | "SKIP"
   | "BACK"
   | "SET_CONTEXT"
   | "RESTORE"
@@ -196,6 +203,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
   instanceId,
   onComplete,
   onNext,
+  onSkip,
   onBack,
   onTransition,
   onContextUpdate,
@@ -256,7 +264,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
   // Track what type of action caused the state change
   const lastActionRef = useRef<LastActionType>(null);
 
-  // Wrap next/back/setContext to track action type
+  // Wrap next/skip/back/setContext to track action type
   const next = useCallback(
     (
       targetOrUpdate?: string | ContextUpdate<ExtractContext<TConfig>>,
@@ -270,6 +278,21 @@ export function Flow<TConfig extends FlowConfig<any>>({
       }
     },
     [flowState],
+  );
+
+  const skip = useCallback(
+    (
+      targetOrUpdate?: string | ContextUpdate<ExtractContext<TConfig>>,
+      update?: ContextUpdate<ExtractContext<TConfig>>,
+    ) => {
+      lastActionRef.current = "SKIP";
+      if (typeof targetOrUpdate === "string") {
+        flowState.skip(targetOrUpdate, update);
+      } else {
+        flowState.skip(targetOrUpdate);
+      }
+    },
+    [flowState.skip],
   );
 
   const back = useCallback(() => {
@@ -378,6 +401,20 @@ export function Flow<TConfig extends FlowConfig<any>>({
         oldContext: prevState.context,
         newContext: flowState.context,
       });
+    } else if (action === "SKIP" && prevState.stepId !== flowState.stepId) {
+      onSkip?.({
+        from: prevState.stepId as StepNames<TConfig>,
+        to: flowState.stepId as StepNames<TConfig>,
+        oldContext: prevState.context,
+        newContext: flowState.context,
+      });
+      onTransition?.({
+        from: prevState.stepId as StepNames<TConfig>,
+        to: flowState.stepId as StepNames<TConfig>,
+        direction: "forward",
+        oldContext: prevState.context,
+        newContext: flowState.context,
+      });
     } else if (action === "BACK" && prevState.stepId !== flowState.stepId) {
       onBack?.({
         from: prevState.stepId as StepNames<TConfig>,
@@ -395,7 +432,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
     }
 
     // Handle context updates
-    if (action === "SET_CONTEXT" || action === "NEXT") {
+    if (action === "SET_CONTEXT" || action === "NEXT" || action === "SKIP") {
       if (prevState.context !== flowState.context) {
         onContextUpdate?.({
           oldContext: prevState.context,
@@ -410,7 +447,15 @@ export function Flow<TConfig extends FlowConfig<any>>({
     }
 
     previousStateRef.current = flowState;
-  }, [flowState, onNext, onBack, onTransition, onContextUpdate, onComplete]);
+  }, [
+    flowState,
+    onNext,
+    onSkip,
+    onBack,
+    onTransition,
+    onContextUpdate,
+    onComplete,
+  ]);
 
   // Handle async restoration from persister after mount
   useEffect(() => {
@@ -486,7 +531,12 @@ export function Flow<TConfig extends FlowConfig<any>>({
     if (saveMode === "manual") return;
 
     const action = lastActionRef.current;
-    if (saveMode === "navigation" && action !== "NEXT" && action !== "BACK")
+    if (
+      saveMode === "navigation" &&
+      action !== "NEXT" &&
+      action !== "SKIP" &&
+      action !== "BACK"
+    )
       return;
 
     if (saveDebounce && saveDebounce > 0) {
@@ -517,6 +567,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
         restore: flowState.restore,
         // Methods (stable via useCallback)
         next,
+        skip,
         back,
         setContext,
         reset,

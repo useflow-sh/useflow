@@ -248,6 +248,130 @@ export function flowReducer<TContext extends FlowContext>(
       };
     }
 
+    case "SKIP": {
+      // Skip works like next but marks the action as "skip" in history
+      // First apply context update if provided
+      const updatedContext = action.update
+        ? applyContextUpdate(state.context, action.update)
+        : state.context;
+
+      const updatedState =
+        action.update !== undefined
+          ? { ...state, context: updatedContext }
+          : state;
+
+      const step = definition.steps[updatedState.stepId];
+
+      // No next step = final state
+      if (!step?.next) {
+        return { ...updatedState, status: "complete" };
+      }
+
+      let nextStepId: string | undefined;
+
+      // If target is explicitly specified, use it
+      if (action.target) {
+        // Validate target is in the allowed next destinations
+        if (typeof step.next === "string") {
+          nextStepId = step.next === action.target ? action.target : undefined;
+        } else if (Array.isArray(step.next)) {
+          nextStepId = step.next.includes(action.target)
+            ? action.target
+            : undefined;
+        }
+
+        // Validation: target not in allowed destinations
+        if (nextStepId === undefined) {
+          const allowed =
+            typeof step.next === "string" ? step.next : step.next.join(", ");
+          console.warn(
+            `Invalid target "${action.target}" from step "${updatedState.stepId}". Allowed: ${allowed}`,
+          );
+          return updatedState;
+        }
+      } else {
+        // No target specified - determine next step automatically
+        if (typeof step.next === "string") {
+          // String: simple static navigation
+          nextStepId = step.next;
+        } else if (Array.isArray(step.next)) {
+          // Array: check for resolver function
+          const resolver = options?.resolvers?.[updatedState.stepId];
+          if (resolver) {
+            // Context-driven: use resolver to determine next step
+            const resolved = resolver(updatedContext);
+
+            // Validate resolved value is in next array
+            if (resolved && !step.next.includes(resolved)) {
+              throw new Error(
+                `resolver() returned "${resolved}" which is not in next array: [${step.next.join(", ")}] ` +
+                  `for step "${updatedState.stepId}"`,
+              );
+            }
+
+            nextStepId = resolved;
+          } else {
+            // Component-driven but no explicit target - ERROR
+            throw new Error(
+              `Step "${updatedState.stepId}" has multiple next steps [${step.next.join(", ")}] but no resolver function. ` +
+                `Component must call skip() with explicit target: ${step.next.map((s) => `skip('${s}')`).join(" or ")}`,
+            );
+          }
+        }
+      }
+
+      // Guard: undefined means stay on current step
+      if (nextStepId === undefined) {
+        return updatedState;
+      }
+
+      // Check if the next step is final (has no next)
+      const nextStep = definition.steps[nextStepId];
+      const isFinalStep = !nextStep?.next;
+
+      const now = Date.now();
+
+      // Complete the current step by marking it as skipped
+      const completedHistory = updatedState.history.map((entry, index) => {
+        // Update the last entry (current step) with completion info
+        if (index === updatedState.history.length - 1) {
+          return {
+            ...entry,
+            completedAt: now,
+            action: "skip" as const,
+          };
+        }
+        return entry;
+      });
+
+      // Also update the path entry for the current step
+      const completedPath = updatedState.path.map((entry, index) => {
+        if (index === updatedState.path.length - 1) {
+          return {
+            ...entry,
+            completedAt: now,
+            action: "skip" as const,
+          };
+        }
+        return entry;
+      });
+
+      // Create entry for the new step (started but not completed yet)
+      const nextEntry = {
+        stepId: nextStepId,
+        startedAt: now,
+        // No completedAt or action yet - user just arrived
+      };
+
+      return {
+        ...updatedState,
+        stepId: nextStepId,
+        path: [...completedPath, nextEntry],
+        history: [...completedHistory, nextEntry],
+        status: isFinalStep ? "complete" : "active",
+      };
+    }
+
     case "BACK": {
       if (state.path.length <= 1) {
         return state;

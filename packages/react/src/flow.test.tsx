@@ -764,6 +764,178 @@ describe("FlowStep", () => {
       });
     });
 
+    it("should call onSkip callback when skipping a step", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      });
+
+      const onSkip = vi.fn();
+
+      function TestComponent() {
+        const { skip } = useFlow();
+        return <button onClick={() => skip()}>Skip</button>;
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={{
+            first: TestComponent,
+            second: () => <div>Second</div>,
+          }}
+          initialContext={{}}
+          onSkip={onSkip}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Skip"));
+
+      expect(onSkip).toHaveBeenCalledTimes(1);
+      expect(onSkip).toHaveBeenCalledWith({
+        from: "first",
+        to: "second",
+        oldContext: {},
+        newContext: {},
+      });
+    });
+
+    it("should call onSkip callback with context update", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "preferences",
+        steps: {
+          preferences: { next: "complete" },
+          complete: {},
+        },
+      });
+
+      const onSkip = vi.fn();
+
+      function TestComponent() {
+        const { skip, context } = useFlow<{ skipped: boolean }>();
+        return (
+          <div>
+            <div data-testid="skipped">{String(context.skipped)}</div>
+            <button onClick={() => skip({ skipped: true })}>Skip</button>
+          </div>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={{
+            preferences: TestComponent,
+            complete: () => <div>Complete</div>,
+          }}
+          initialContext={{ skipped: false }}
+          onSkip={onSkip}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Skip"));
+
+      expect(onSkip).toHaveBeenCalledTimes(1);
+      expect(onSkip).toHaveBeenCalledWith({
+        from: "preferences",
+        to: "complete",
+        oldContext: { skipped: false },
+        newContext: { skipped: true },
+      });
+    });
+
+    it("should call onTransition callback when skipping", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "first",
+        steps: {
+          first: { next: "second" },
+          second: {},
+        },
+      });
+
+      const onTransition = vi.fn();
+
+      function TestComponent() {
+        const { skip } = useFlow();
+        return <button onClick={() => skip()}>Skip</button>;
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={{
+            first: TestComponent,
+            second: () => <div>Second</div>,
+          }}
+          initialContext={{}}
+          onTransition={onTransition}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Skip"));
+
+      expect(onTransition).toHaveBeenCalledTimes(1);
+      expect(onTransition).toHaveBeenCalledWith({
+        from: "first",
+        to: "second",
+        direction: "forward",
+        oldContext: {},
+        newContext: {},
+      });
+    });
+
+    it("should skip with explicit target and context update", () => {
+      const flow = defineFlow({
+        id: "test",
+        start: "menu",
+        steps: {
+          menu: { next: ["option1", "option2"] },
+          option1: {},
+          option2: {},
+        },
+      });
+
+      const onSkip = vi.fn();
+
+      function TestComponent() {
+        const { skip } = useFlow<{ choice: string }>();
+        return (
+          <button onClick={() => skip("option2", { choice: "skipped" })}>
+            Skip to Option 2
+          </button>
+        );
+      }
+
+      render(
+        <Flow
+          flow={flow}
+          components={{
+            menu: TestComponent,
+            option1: () => <div>Option 1</div>,
+            option2: () => <div>Option 2</div>,
+          }}
+          initialContext={{ choice: "" }}
+          onSkip={onSkip}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Skip to Option 2"));
+
+      expect(onSkip).toHaveBeenCalledTimes(1);
+      expect(onSkip).toHaveBeenCalledWith({
+        from: "menu",
+        to: "option2",
+        oldContext: { choice: "" },
+        newContext: { choice: "skipped" },
+      });
+    });
+
     it("should call onBack callback when navigating backward", () => {
       const flow = defineFlow({
         id: "test",

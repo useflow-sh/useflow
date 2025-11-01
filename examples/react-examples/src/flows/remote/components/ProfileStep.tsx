@@ -22,22 +22,12 @@ import type { RemoteOnboardingContext } from "../types";
  * This step adds personalization and optional profile enhancements.
  */
 export function ProfileStep() {
-  const { context, next, back } = useFlow<RemoteOnboardingContext>();
+  const { context, next, back, skip } = useFlow<RemoteOnboardingContext>();
 
   // Profile fields not covered in AccountStep
   const [jobTitle, setJobTitle] = useState("");
   const [company, setCompany] = useState("");
   const [bio, setBio] = useState("");
-
-  const handleContinue = () => {
-    // For demo purposes, we'll just show that profile was customized
-    // In a real app, this would save additional profile fields
-    next();
-  };
-
-  const handleSkip = () => {
-    next();
-  };
 
   return (
     <Card className="w-full max-w-2xl border-0">
@@ -109,10 +99,10 @@ export function ProfileStep() {
         <Button variant="outline" onClick={() => back()} className="flex-1">
           Back
         </Button>
-        <Button variant="ghost" onClick={handleSkip} className="flex-1">
+        <Button variant="ghost" onClick={() => skip()} className="flex-1">
           Skip for Now
         </Button>
-        <Button onClick={handleContinue} className="flex-1">
+        <Button onClick={() => next()} className="flex-1">
           Continue
         </Button>
       </CardFooter>

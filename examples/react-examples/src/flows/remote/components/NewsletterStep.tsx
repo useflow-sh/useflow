@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import type { RemoteOnboardingContext } from "../types";
 
 export function NewsletterStep() {
-  const { next, context } = useFlow<RemoteOnboardingContext>();
+  const { next, context, skip } = useFlow<RemoteOnboardingContext>();
   const [subscribeUpdates, setSubscribeUpdates] = useState(true);
   const [subscribeTips, setSubscribeTips] = useState(false);
   const [subscribeEvents, setSubscribeEvents] = useState(false);
@@ -91,7 +91,7 @@ export function NewsletterStep() {
         </div>
 
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => next()} className="flex-1">
+          <Button variant="outline" onClick={() => skip()} className="flex-1">
             Skip Newsletter
           </Button>
           <Button

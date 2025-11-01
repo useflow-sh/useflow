@@ -34,6 +34,11 @@ export type UseFlowReducerReturn<
     (target: TValidNextSteps, update?: ContextUpdate<TContext>): void;
     (update?: ContextUpdate<TContext>): void;
   };
+  // Overloaded skip function signatures
+  skip: {
+    (target: TValidNextSteps, update?: ContextUpdate<TContext>): void;
+    (update?: ContextUpdate<TContext>): void;
+  };
   back: () => void;
   setContext: (update: ContextUpdate<TContext>) => void;
   restore: (state: FlowState<TContext>) => void;
@@ -83,6 +88,21 @@ export function useFlowReducer<TContext extends FlowContext>(
     [],
   );
 
+  const skip = useCallback(
+    (
+      targetOrUpdate?: string | ContextUpdate<TContext>,
+      update?: ContextUpdate<TContext>,
+    ) => {
+      // Determine if first arg is target (string) or update (object/function)
+      if (typeof targetOrUpdate === "string") {
+        dispatch({ type: "SKIP", target: targetOrUpdate, update });
+      } else {
+        dispatch({ type: "SKIP", update: targetOrUpdate });
+      }
+    },
+    [],
+  );
+
   const back = useCallback(() => {
     dispatch({ type: "BACK" });
   }, []);
@@ -109,6 +129,7 @@ export function useFlowReducer<TContext extends FlowContext>(
     path: state.path,
     history: state.history,
     next,
+    skip,
     back,
     setContext,
     restore,

@@ -134,6 +134,84 @@ describe("useFlowReducer", () => {
     expect(result.current.stepId).toBe("first");
   });
 
+  it("should skip with skip()", () => {
+    const definition: FlowDefinition<{ skipped: boolean }> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: {},
+      },
+    };
+
+    const { result } = renderHook(() =>
+      useFlowReducer(definition, { skipped: false }),
+    );
+
+    act(() => {
+      result.current.skip();
+    });
+
+    expect(result.current.stepId).toBe("second");
+    expect(result.current.history[0]).toMatchObject({
+      stepId: "first",
+      action: "skip",
+    });
+  });
+
+  it("should skip with skip(update)", () => {
+    const definition: FlowDefinition<{ skipped: boolean }> = {
+      id: "test",
+      start: "preferences",
+      steps: {
+        preferences: { next: "complete" },
+        complete: {},
+      },
+    };
+
+    const { result } = renderHook(() =>
+      useFlowReducer(definition, { skipped: false }),
+    );
+
+    act(() => {
+      result.current.skip({ skipped: true });
+    });
+
+    expect(result.current.stepId).toBe("complete");
+    expect(result.current.context.skipped).toBe(true);
+    expect(result.current.history[0]).toMatchObject({
+      stepId: "preferences",
+      action: "skip",
+    });
+  });
+
+  it("should skip with skip(target, update)", () => {
+    const definition: FlowDefinition<{ choice: string }> = {
+      id: "test",
+      start: "menu",
+      steps: {
+        menu: { next: ["option1", "option2"] },
+        option1: {},
+        option2: {},
+      },
+    };
+
+    const { result } = renderHook(() =>
+      useFlowReducer(definition, { choice: "" }),
+    );
+
+    act(() => {
+      result.current.skip("option1", { choice: "skipped-to-option1" });
+    });
+
+    expect(result.current.stepId).toBe("option1");
+    expect(result.current.context.choice).toBe("skipped-to-option1");
+    expect(result.current.history[0]).toMatchObject({
+      stepId: "menu",
+      action: "skip",
+    });
+  });
+
   it("should update context with setContext()", () => {
     const definition: FlowDefinition<{ count: number }> = {
       id: "test",

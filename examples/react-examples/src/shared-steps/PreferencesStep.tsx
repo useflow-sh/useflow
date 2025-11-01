@@ -26,15 +26,15 @@ const themeOptions = [
 ] as const;
 
 export function PreferencesStep() {
-  const { context, next, back, setContext } = useFlow<{
+  const { context, next, back, skip, setContext } = useFlow<{
     theme?: "light" | "dark";
     notifications: boolean;
     skippedPreferences?: boolean;
   }>();
 
   const handleSkip = () => {
-    // Use updater function to mark as skipped and proceed
-    next((ctx) => ({ ...ctx, skippedPreferences: true }));
+    // Use skip() to mark this step as skipped in history
+    skip((ctx) => ({ ...ctx, skippedPreferences: true }));
   };
 
   return (

@@ -24,8 +24,7 @@ import type { RemoteOnboardingContext } from "../types";
  * it just handles the verification logic when present.
  */
 export function VerificationStep() {
-  const { context, next, back, setContext } =
-    useFlow<RemoteOnboardingContext>();
+  const { context, next, back, skip } = useFlow<RemoteOnboardingContext>();
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
@@ -45,8 +44,7 @@ export function VerificationStep() {
     const isValid = code === "123456"; // Demo code
 
     if (isValid) {
-      setContext({ verified: true });
-      next(); // Remote config determines next step
+      next({ verified: true }); // Remote config determines next step
     } else {
       setCodeError("Invalid verification code. Try 123456");
     }
@@ -60,8 +58,7 @@ export function VerificationStep() {
   };
 
   const handleSkip = () => {
-    setContext({ verified: false });
-    next();
+    skip({ verified: false });
   };
 
   return (

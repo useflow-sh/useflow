@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { RemoteOnboardingContext } from "../types";
 
 export function SurveyStep() {
-  const { next } = useFlow<RemoteOnboardingContext>();
+  const { next, skip } = useFlow<RemoteOnboardingContext>();
   const [hearAbout, setHearAbout] = useState("");
   const [primaryUse, setPrimaryUse] = useState("");
 
@@ -75,7 +75,7 @@ export function SurveyStep() {
         </div>
 
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => next()} className="flex-1">
+          <Button variant="outline" onClick={() => skip()} className="flex-1">
             Skip Survey
           </Button>
           <Button onClick={() => next()} className="flex-1">

@@ -135,6 +135,354 @@ describe("flowReducer", () => {
     ]);
   });
 
+  it("should skip to next step and mark action as skip", () => {
+    type TestContext = { skipped: boolean };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: { next: "third" },
+        third: {},
+      },
+    };
+
+    let state = createInitialState(definition, { skipped: false });
+    expect(state.stepId).toBe("first");
+
+    // Skip first step
+    state = flowReducer(state, { type: "SKIP" }, definition);
+    expect(state.stepId).toBe("second");
+    expect(state.path).toEqual([
+      {
+        stepId: "first",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "skip",
+      },
+      { stepId: "second", startedAt: expect.any(Number) },
+    ]);
+    expect(state.history).toEqual([
+      {
+        stepId: "first",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "skip",
+      },
+      { stepId: "second", startedAt: expect.any(Number) },
+    ]);
+
+    // Navigate normally to third
+    state = flowReducer(state, { type: "NEXT" }, definition);
+    expect(state.stepId).toBe("third");
+    expect(state.path).toEqual([
+      {
+        stepId: "first",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "skip",
+      },
+      {
+        stepId: "second",
+        startedAt: expect.any(Number),
+        completedAt: expect.any(Number),
+        action: "next",
+      },
+      { stepId: "third", startedAt: expect.any(Number) },
+    ]);
+  });
+
+  it("should update context and skip with SKIP action", () => {
+    type TestContext = { name: string; skippedPreferences: boolean };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "profile",
+      steps: {
+        profile: { next: "preferences" },
+        preferences: { next: "complete" },
+        complete: {},
+      },
+    };
+
+    let state = createInitialState(definition, {
+      name: "",
+      skippedPreferences: false,
+    });
+
+    // Navigate to preferences
+    state = flowReducer(
+      state,
+      { type: "NEXT", update: { name: "Alice" } },
+      definition,
+    );
+    expect(state.stepId).toBe("preferences");
+
+    // Skip preferences with context update
+    state = flowReducer(
+      state,
+      { type: "SKIP", update: { skippedPreferences: true } },
+      definition,
+    );
+
+    expect(state.stepId).toBe("complete");
+    expect(state.context).toEqual({ name: "Alice", skippedPreferences: true });
+    expect(state.history[1]).toEqual({
+      stepId: "preferences",
+      startedAt: expect.any(Number),
+      completedAt: expect.any(Number),
+      action: "skip",
+    });
+  });
+
+  it("should skip with explicit target step", () => {
+    type TestContext = { choice: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "intro",
+      steps: {
+        intro: { next: ["path-a", "path-b"] },
+        "path-a": { next: "complete" },
+        "path-b": { next: "complete" },
+        complete: {},
+      },
+    };
+
+    let state = createInitialState(definition, { choice: "" });
+
+    // Skip intro and explicitly go to path-b
+    state = flowReducer(
+      state,
+      { type: "SKIP", target: "path-b", update: { choice: "b" } },
+      definition,
+    );
+
+    expect(state.stepId).toBe("path-b");
+    expect(state.context.choice).toBe("b");
+    expect(state.history[0]).toEqual({
+      stepId: "intro",
+      startedAt: expect.any(Number),
+      completedAt: expect.any(Number),
+      action: "skip",
+    });
+  });
+
+  it("should skip with resolver function for context-driven branching", () => {
+    type TestContext = { isPremium: boolean };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "onboarding",
+      steps: {
+        onboarding: { next: ["premium", "standard"] },
+        premium: {},
+        standard: {},
+      },
+    };
+
+    const resolvers = {
+      onboarding: (ctx: TestContext) =>
+        ctx.isPremium ? "premium" : "standard",
+    };
+
+    let state = createInitialState(definition, { isPremium: true });
+    state = flowReducer(state, { type: "SKIP" }, definition, { resolvers });
+
+    expect(state.stepId).toBe("premium");
+    expect(state.history[0]).toMatchObject({
+      stepId: "onboarding",
+      action: "skip",
+    });
+
+    // Test with isPremium: false
+    state = createInitialState(definition, { isPremium: false });
+    state = flowReducer(state, { type: "SKIP" }, definition, { resolvers });
+
+    expect(state.stepId).toBe("standard");
+  });
+
+  it("should throw when skip has array next but no resolver and no target", () => {
+    type TestContext = { value: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "menu",
+      steps: {
+        menu: { next: ["option1", "option2"] },
+        option1: {},
+        option2: {},
+      },
+    };
+
+    const state = createInitialState(definition, { value: "" });
+
+    expect(() => {
+      flowReducer(state, { type: "SKIP" }, definition);
+    }).toThrow(
+      "Step \"menu\" has multiple next steps [option1, option2] but no resolver function. Component must call skip() with explicit target: skip('option1') or skip('option2')",
+    );
+  });
+
+  it("should warn and stay on step when skip target is invalid", () => {
+    type TestContext = { value: string };
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: {},
+      },
+    };
+
+    let state = createInitialState(definition, { value: "test" });
+    state = flowReducer(state, { type: "SKIP", target: "invalid" }, definition);
+
+    expect(state.stepId).toBe("first"); // Should stay on current step
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'Invalid target "invalid" from step "first". Allowed: second',
+    );
+
+    consoleWarnSpy.mockRestore();
+  });
+
+  it("should throw when skip resolver returns invalid step", () => {
+    type TestContext = { choice: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "menu",
+      steps: {
+        menu: { next: ["option1", "option2"] },
+        option1: {},
+        option2: {},
+      },
+    };
+
+    const badResolvers = {
+      menu: () => "invalid-step", // Returns step not in next array
+    };
+
+    const state = createInitialState(definition, { choice: "" });
+
+    expect(() => {
+      flowReducer(state, { type: "SKIP" }, definition, {
+        resolvers: badResolvers,
+      });
+    }).toThrow(
+      'resolver() returned "invalid-step" which is not in next array: [option1, option2] for step "menu"',
+    );
+  });
+
+  it("should skip on final step and mark as complete", () => {
+    type TestContext = { value: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "final",
+      steps: {
+        final: {}, // No next step
+      },
+    };
+
+    let state = createInitialState(definition, { value: "test" });
+    state = flowReducer(state, { type: "SKIP" }, definition);
+
+    expect(state.status).toBe("complete");
+    expect(state.stepId).toBe("final");
+  });
+
+  it("should stay on step when skip resolver returns undefined", () => {
+    type TestContext = { shouldSkip: boolean };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "conditional",
+      steps: {
+        conditional: { next: ["next-step"] },
+        "next-step": {},
+      },
+    };
+
+    const resolvers = {
+      conditional: (ctx: TestContext) =>
+        ctx.shouldSkip ? undefined : "next-step",
+    };
+
+    let state = createInitialState(definition, { shouldSkip: true });
+    state = flowReducer(state, { type: "SKIP" }, definition, { resolvers });
+
+    expect(state.stepId).toBe("conditional"); // Should stay on current step
+  });
+
+  it("should warn when skip target doesn't match string next", () => {
+    type TestContext = { value: string };
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: {},
+        third: {},
+      },
+    };
+
+    let state = createInitialState(definition, { value: "test" });
+    state = flowReducer(
+      state,
+      { type: "SKIP", target: "third" }, // Target doesn't match the single string next
+      definition,
+    );
+
+    expect(state.stepId).toBe("first"); // Should stay on current step
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'Invalid target "third" from step "first". Allowed: second',
+    );
+
+    consoleWarnSpy.mockRestore();
+  });
+
+  it("should warn when skip target not in array next", () => {
+    type TestContext = { value: string };
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "menu",
+      steps: {
+        menu: { next: ["option1", "option2"] },
+        option1: {},
+        option2: {},
+        option3: {},
+      },
+    };
+
+    let state = createInitialState(definition, { value: "test" });
+    state = flowReducer(
+      state,
+      { type: "SKIP", target: "option3" }, // Not in the array
+      definition,
+    );
+
+    expect(state.stepId).toBe("menu"); // Should stay on current step
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'Invalid target "option3" from step "menu". Allowed: option1, option2',
+    );
+
+    consoleWarnSpy.mockRestore();
+  });
+
   it("should update context with SET_CONTEXT", () => {
     type TestContext = { name: string; age: number };
 

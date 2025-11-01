@@ -47,8 +47,11 @@ export type StepDefinition<TNext extends StepTransition = StepTransition> = {
 /**
  * Action taken when leaving a step
  * Represents how the user exited/completed a step
+ * - "next": Completed the step normally and moved forward
+ * - "skip": Skipped the step and moved forward
+ * - "back": Navigated backward to a previous step
  */
-export type NavigationAction = "next" | "back";
+export type NavigationAction = "next" | "skip" | "back";
 
 /**
  * Navigation history entry tracking step visits
@@ -167,6 +170,7 @@ export type FlowState<TContext extends FlowContext = FlowContext> = {
  */
 export type FlowAction<TContext extends FlowContext = FlowContext> =
   | { type: "NEXT"; target?: string; update?: ContextUpdate<TContext> }
+  | { type: "SKIP"; target?: string; update?: ContextUpdate<TContext> }
   | { type: "BACK" }
   | { type: "SET_CONTEXT"; update: ContextUpdate<TContext> }
   | { type: "RESTORE"; state: FlowState<TContext> }

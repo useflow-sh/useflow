@@ -350,6 +350,8 @@ export function Flow<TConfig extends FlowConfig<any>>({
         path: flowState.path,
         history: flowState.history,
         status: flowState.status,
+        startedAt: flowState.startedAt,
+        completedAt: flowState.completedAt,
       };
 
       const persistedState = await persister.save(flow.id, stateToSave, {
@@ -372,6 +374,8 @@ export function Flow<TConfig extends FlowConfig<any>>({
     flowState.path,
     flowState.history,
     flowState.status,
+    flowState.startedAt,
+    flowState.completedAt,
     config,
     instanceId,
     persister,
@@ -564,6 +568,8 @@ export function Flow<TConfig extends FlowConfig<any>>({
         path: flowState.path,
         history: flowState.history,
         status: flowState.status,
+        startedAt: flowState.startedAt,
+        completedAt: flowState.completedAt,
         restore: flowState.restore,
         // Methods (stable via useCallback)
         next,

@@ -29,6 +29,10 @@ export type UseFlowReducerReturn<
   path: PathEntry[];
   /** Complete navigation history with timestamps - tracks all movements */
   history: HistoryEntry[];
+  /** When the flow was started (first step entered) */
+  startedAt: number;
+  /** When the flow was completed (undefined if still active) */
+  completedAt?: number;
   // Overloaded next function signatures
   next: {
     (target: TValidNextSteps, update?: ContextUpdate<TContext>): void;
@@ -128,6 +132,8 @@ export function useFlowReducer<TContext extends FlowContext>(
     status: state.status,
     path: state.path,
     history: state.history,
+    startedAt: state.startedAt,
+    completedAt: state.completedAt,
     next,
     skip,
     back,

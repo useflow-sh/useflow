@@ -27,10 +27,28 @@ export function FlowInspector({
   variantId?: string;
   position?: "left" | "right";
 }) {
-  const { context, stepId, status, path, history, isRestoring } = useFlow();
+  const {
+    context,
+    stepId,
+    status,
+    path,
+    history,
+    isRestoring,
+    startedAt,
+    completedAt,
+  } = useFlow();
   const [showDebug, setShowDebug] = useState(true);
   const [persistedState, setPersistedState] =
     useState<PersistedFlowState | null>(null);
+  const [, setTick] = useState(0);
+
+  // Update elapsed time every second when flow is active
+  useEffect(() => {
+    if (status === "active") {
+      const interval = setInterval(() => setTick((t) => t + 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [status]);
 
   // Poll storage for updates to persisted state
   useEffect(() => {
@@ -89,6 +107,22 @@ export function FlowInspector({
               <div>
                 <strong>Step:</strong> {stepId}
               </div>
+              <div>
+                <strong>Started:</strong>{" "}
+                {new Date(startedAt).toLocaleTimeString()}
+              </div>
+              {completedAt && (
+                <div>
+                  <strong>Completed:</strong>{" "}
+                  {new Date(completedAt).toLocaleTimeString()}
+                </div>
+              )}
+              {completedAt && (
+                <div>
+                  <strong>Duration:</strong>{" "}
+                  {((completedAt - startedAt) / 1000).toFixed(2)}s
+                </div>
+              )}
               <div>
                 <strong>Path:</strong>{" "}
                 {path.length > 0

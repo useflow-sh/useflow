@@ -91,6 +91,10 @@ export type PersistedFlowState<TContext extends FlowContext = FlowContext> = {
   /** Complete navigation history with timestamps - tracks all movements */
   history: HistoryEntry[];
   status: "active" | "complete";
+  /** When the flow was started (first step entered) */
+  startedAt: number;
+  /** When the flow was completed (undefined if still active) */
+  completedAt?: number;
   __meta?: {
     savedAt?: number;
     version?: string;
@@ -162,6 +166,10 @@ export type FlowState<TContext extends FlowContext = FlowContext> = {
   /** Complete navigation history with timestamps - tracks all movements */
   history: HistoryEntry[];
   status: "active" | "complete";
+  /** When the flow was started (first step entered) */
+  startedAt: number;
+  /** When the flow was completed (undefined if still active) */
+  completedAt?: number;
 };
 
 /**

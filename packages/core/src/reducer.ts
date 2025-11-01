@@ -96,6 +96,8 @@ export function createInitialState<TContext extends FlowContext>(
     path: [startEntry],
     history: [startEntry],
     status: "active",
+    startedAt: now,
+    // completedAt is undefined until flow completes
   };
 }
 
@@ -140,7 +142,7 @@ export function flowReducer<TContext extends FlowContext>(
 
       // No next step = final state
       if (!step?.next) {
-        return { ...updatedState, status: "complete" };
+        return { ...updatedState, status: "complete", completedAt: Date.now() };
       }
 
       let nextStepId: string | undefined;
@@ -245,6 +247,7 @@ export function flowReducer<TContext extends FlowContext>(
         path: [...completedPath, nextEntry],
         history: [...completedHistory, nextEntry],
         status: isFinalStep ? "complete" : "active",
+        completedAt: isFinalStep ? now : undefined,
       };
     }
 
@@ -264,7 +267,7 @@ export function flowReducer<TContext extends FlowContext>(
 
       // No next step = final state
       if (!step?.next) {
-        return { ...updatedState, status: "complete" };
+        return { ...updatedState, status: "complete", completedAt: Date.now() };
       }
 
       let nextStepId: string | undefined;
@@ -369,6 +372,7 @@ export function flowReducer<TContext extends FlowContext>(
         path: [...completedPath, nextEntry],
         history: [...completedHistory, nextEntry],
         status: isFinalStep ? "complete" : "active",
+        completedAt: isFinalStep ? now : undefined,
       };
     }
 
@@ -422,6 +426,8 @@ export function flowReducer<TContext extends FlowContext>(
         stepId: previousEntry.stepId,
         path: updatedPath,
         history: [...completedHistory, reentryEntry],
+        status: "active", // Going back makes flow active again
+        completedAt: undefined, // Clear completion timestamp when going back
       };
     }
 

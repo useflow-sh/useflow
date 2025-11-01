@@ -1602,3 +1602,226 @@ describe("resolve property", () => {
     expect(state.context.status).toBe("ready");
   });
 });
+
+describe("Flow timestamps", () => {
+  it("should set startedAt when flow is initialized", () => {
+    type TestContext = { value: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: {},
+      },
+    };
+
+    const beforeTime = Date.now();
+    const state = createInitialState(definition, { value: "test" });
+    const afterTime = Date.now();
+
+    expect(state.startedAt).toBeGreaterThanOrEqual(beforeTime);
+    expect(state.startedAt).toBeLessThanOrEqual(afterTime);
+    expect(state.completedAt).toBeUndefined();
+  });
+
+  it("should set completedAt when flow reaches final step via NEXT", () => {
+    type TestContext = { value: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: {},
+      },
+    };
+
+    let state = createInitialState(definition, { value: "test" });
+    const startedAt = state.startedAt;
+
+    // Navigate to second step
+    const beforeComplete = Date.now();
+    state = flowReducer(state, { type: "NEXT" }, definition);
+    const afterComplete = Date.now();
+
+    expect(state.status).toBe("complete");
+    expect(state.completedAt).toBeGreaterThanOrEqual(beforeComplete);
+    expect(state.completedAt).toBeLessThanOrEqual(afterComplete);
+    expect(state.startedAt).toBe(startedAt); // Should preserve original start time
+  });
+
+  it("should set completedAt when flow reaches final step via SKIP", () => {
+    type TestContext = { value: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: {},
+      },
+    };
+
+    let state = createInitialState(definition, { value: "test" });
+    const startedAt = state.startedAt;
+
+    // Skip to second step
+    const beforeComplete = Date.now();
+    state = flowReducer(state, { type: "SKIP" }, definition);
+    const afterComplete = Date.now();
+
+    expect(state.status).toBe("complete");
+    expect(state.completedAt).toBeGreaterThanOrEqual(beforeComplete);
+    expect(state.completedAt).toBeLessThanOrEqual(afterComplete);
+    expect(state.startedAt).toBe(startedAt); // Should preserve original start time
+  });
+
+  it("should set completedAt when navigating to final step from intermediate step", () => {
+    type TestContext = { value: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: { next: "third" },
+        third: {},
+      },
+    };
+
+    let state = createInitialState(definition, { value: "test" });
+    const startedAt = state.startedAt;
+
+    // Navigate to second
+    state = flowReducer(state, { type: "NEXT" }, definition);
+    expect(state.status).toBe("active");
+    expect(state.completedAt).toBeUndefined();
+
+    // Navigate to third (final)
+    const beforeComplete = Date.now();
+    state = flowReducer(state, { type: "NEXT" }, definition);
+    const afterComplete = Date.now();
+
+    expect(state.status).toBe("complete");
+    expect(state.completedAt).toBeGreaterThanOrEqual(beforeComplete);
+    expect(state.completedAt).toBeLessThanOrEqual(afterComplete);
+    expect(state.startedAt).toBe(startedAt); // Should preserve original start time
+  });
+
+  it("should preserve timestamps when navigating back", () => {
+    type TestContext = { value: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: {},
+      },
+    };
+
+    let state = createInitialState(definition, { value: "test" });
+    const startedAt = state.startedAt;
+
+    // Navigate forward
+    state = flowReducer(state, { type: "NEXT" }, definition);
+
+    // Navigate back
+    state = flowReducer(state, { type: "BACK" }, definition);
+
+    expect(state.startedAt).toBe(startedAt); // Should preserve original start time
+    expect(state.completedAt).toBeUndefined(); // Should clear completed time when going back
+    expect(state.status).toBe("active");
+  });
+
+  it("should reset timestamps when flow is reset", () => {
+    type TestContext = { value: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: {},
+      },
+    };
+
+    let state = createInitialState(definition, { value: "test" });
+    const originalStartedAt = state.startedAt;
+
+    // Navigate to completion
+    state = flowReducer(state, { type: "NEXT" }, definition);
+    expect(state.status).toBe("complete");
+    expect(state.completedAt).toBeDefined();
+
+    // Reset the flow
+    const beforeReset = Date.now();
+    state = flowReducer(
+      state,
+      { type: "RESET", initialContext: { value: "reset" } },
+      definition,
+    );
+    const afterReset = Date.now();
+
+    expect(state.status).toBe("active");
+    expect(state.completedAt).toBeUndefined();
+    expect(state.startedAt).toBeGreaterThanOrEqual(beforeReset);
+    expect(state.startedAt).toBeLessThanOrEqual(afterReset);
+    // Start time should be greater than or equal to original (new timestamp)
+    expect(state.startedAt).toBeGreaterThanOrEqual(originalStartedAt);
+  });
+
+  it("should calculate flow duration from timestamps", () => {
+    type TestContext = { value: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: {},
+      },
+    };
+
+    let state = createInitialState(definition, { value: "test" });
+    const startTime = state.startedAt;
+
+    // Navigate to completion
+    state = flowReducer(state, { type: "NEXT" }, definition);
+
+    const duration = state.completedAt! - state.startedAt;
+    expect(duration).toBeGreaterThanOrEqual(0);
+    expect(state.completedAt).toBeGreaterThanOrEqual(state.startedAt);
+    expect(state.startedAt).toBe(startTime); // Preserved from init
+  });
+
+  it("should calculate flow duration from timestamps", () => {
+    type TestContext = { value: string };
+
+    const definition: FlowDefinition<TestContext> = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: {},
+      },
+    };
+
+    let state = createInitialState(definition, { value: "test" });
+
+    // Add a small delay
+    const delay = 10;
+    const wait = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+
+    // Navigate to completion with delay
+    wait(delay).then(() => {
+      state = flowReducer(state, { type: "NEXT" }, definition);
+
+      const duration = state.completedAt! - state.startedAt;
+      expect(duration).toBeGreaterThanOrEqual(delay);
+      expect(state.completedAt).toBeGreaterThan(state.startedAt);
+    });
+  });
+});

@@ -13,7 +13,8 @@
       "!**/.expo",
       "!**/env.d.ts",
       "!**/coverage",
-      "!**/.astro"
+      "!**/.astro",
+      "!**/.alchemy"
     ]
   },
   "linter": {

@@ -12,7 +12,6 @@ import {
 import { AnimateFlowStep } from "../../components/AnimateFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { LoadingView } from "../../components/LoadingView";
-import { store } from "../../lib/storage";
 import { AssignStep } from "./components/AssignStep";
 import { DetailsStep } from "./components/DetailsStep";
 import { ReviewStep } from "./components/ReviewStep";
@@ -53,7 +52,7 @@ export function TaskFlowDemo() {
   useEffect(() => {
     const loadTasks = async () => {
       // Load draft tasks from flow store
-      const instances = await store.list(taskFlow.id);
+      const instances = await persister?.store.list?.(taskFlow.id);
 
       if (instances) {
         // Filter for active (incomplete) flows only
@@ -142,14 +141,10 @@ export function TaskFlowDemo() {
     localStorage.removeItem("completed-tasks");
   };
 
-  const handleCancelTask = () => {
-    if (activeTaskId) {
-      persister?.remove?.(taskFlow.id, { instanceId: activeTaskId });
-      // Remove from draft tasks
-      setDraftTasks((prev) => prev.filter((t) => t.id !== activeTaskId));
-    }
+  const handleBackToManager = () => {
+    // Just return to task manager view without deleting the draft
+    // The draft is automatically saved via onTransition handler
     setActiveTaskId(null);
-    handleStartNewTask();
   };
 
   const handleTransition = ({
@@ -376,7 +371,7 @@ export function TaskFlowDemo() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleCancelTask}
+              onClick={handleBackToManager}
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />

@@ -37,9 +37,9 @@ export function DynamicFlowDemo() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl border-0">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Dynamic Flow Demo</CardTitle>
+            <CardTitle className="text-3xl">Flow Variants Demo</CardTitle>
             <CardDescription className="text-base">
-              Same components, different flows - switch between flow definitions
+              Switch between flow definitions using the same components
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -121,8 +121,8 @@ export function DynamicFlowDemo() {
               <p className="text-sm text-muted-foreground">
                 The same step components (AccountStep, ProfileStep, etc.) are
                 reused by both flows. Only the flow definition changes - the
-                navigation order and which steps are included. This is perfect
-                for A/B testing, feature flags, or role-based flows.
+                navigation order and which steps are included. Perfect for
+                feature flags, role-based flows, or user preferences.
               </p>
             </div>
 
@@ -135,7 +135,7 @@ export function DynamicFlowDemo() {
     );
   }
 
-  // Select flow based on state - no helpers needed with Flow!
+  // Select flow based on user choice
   const selectedFlow = useExpressFlow ? expressFlow : standardFlow;
 
   return (

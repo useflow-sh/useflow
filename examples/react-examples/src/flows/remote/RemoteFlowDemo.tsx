@@ -25,14 +25,14 @@ import {
 } from "./components";
 
 /**
- * Demo component showing remote flow configuration
+ * Demo component showing remote flow configuration and variants
  *
  * This demonstrates:
- * 1. Loading remote configurations from external source (database/API)
- * 2. Schema validation of remote configs
- * 3. Graceful fallback to default configuration
- * 4. Components working with any valid configuration
- * 5. Dynamic flow switching without code changes
+ * 1. Loading flow configurations from external sources (database/API)
+ * 2. Flow variants for A/B testing (standard, express, extended)
+ * 3. Dynamic flow switching without code deployment
+ * 4. Same component set working with different flow structures
+ * 5. Integration with TanStack Query for data fetching
  */
 export function RemoteFlowDemo() {
   const [selectedConfig, setSelectedConfig] = useState<string>("standard");
@@ -41,11 +41,11 @@ export function RemoteFlowDemo() {
   const { data: flowConfig, isLoading: loading } = useQuery({
     queryKey: ["flowConfig", "onboarding-flow", selectedConfig],
     queryFn: () => fetchFlowConfig("onboarding-flow", selectedConfig),
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 1000 * 60,
   });
 
-  // Convert remote config to RuntimeFlowDefinition using defineFlow
-  // flowConfig comes from API as 'unknown', so we cast it to FlowDefinition for type safety
+  // Convert remote config to RuntimeFlowDefinition
+  // In production, validate flowConfig schema before casting
   const flowDefinition = useMemo(() => {
     if (!flowConfig) return null;
     return defineFlow(flowConfig as FlowDefinition);
@@ -54,19 +54,19 @@ export function RemoteFlowDemo() {
   return (
     <div className="container mx-auto py-8 space-y-8">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-bold">Remote Flow Demo</h1>
+        <h1 className="text-3xl font-bold">Remote Configuration Demo</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Flows loaded from external sources (database/API). Switch between
-          different flow variations to see how they can be changed without code
-          deployment.
+          Demonstrates loading flow configurations from external sources and
+          using variants for A/B testing. Change onboarding flows without code
+          deployment to optimize conversion rates.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Select Configuration</CardTitle>
+          <CardTitle>Select Flow Variant</CardTitle>
           <CardDescription>
-            Choose which flow configuration to load from the database
+            Choose a flow variant to test different onboarding experiences
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -79,28 +79,30 @@ export function RemoteFlowDemo() {
 
             <TabsContent value="standard" className="space-y-4">
               <div className="p-4 bg-muted rounded-lg">
-                <h3 className="font-medium">Standard Onboarding</h3>
+                <h3 className="font-medium">Standard Variant</h3>
                 <p className="text-sm text-muted-foreground">
-                  Complete flow with email verification and preferences setup.
+                  Balanced onboarding with verification and preferences. Good
+                  baseline for A/B testing.
                 </p>
               </div>
             </TabsContent>
 
             <TabsContent value="express" className="space-y-4">
               <div className="p-4 bg-muted rounded-lg">
-                <h3 className="font-medium">Express Onboarding</h3>
+                <h3 className="font-medium">Express Variant</h3>
                 <p className="text-sm text-muted-foreground">
-                  Quick flow skipping verification and preferences for better
-                  conversion.
+                  Minimal friction flow optimized for conversion. Skips
+                  verification and preferences.
                 </p>
               </div>
             </TabsContent>
 
             <TabsContent value="extended" className="space-y-4">
               <div className="p-4 bg-muted rounded-lg">
-                <h3 className="font-medium">Extended Flow</h3>
+                <h3 className="font-medium">Extended Variant</h3>
                 <p className="text-sm text-muted-foreground">
-                  Extended onboarding with survey and newsletter signup.
+                  Comprehensive onboarding for higher engagement. Includes
+                  survey and newsletter signup.
                 </p>
               </div>
             </TabsContent>
@@ -142,8 +144,8 @@ export function RemoteFlowDemo() {
                   <CardHeader>
                     <CardTitle>Flow Execution</CardTitle>
                     <CardDescription>
-                      The flow below is loaded from a remote source based on
-                      your selection above
+                      Flow variant loaded from remote source. Same components,
+                      different structure.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

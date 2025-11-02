@@ -77,8 +77,9 @@ export function FlowGallery() {
           </p>
           <div className="flex flex-col items-center gap-3">
             <p className="text-sm text-muted-foreground max-w-2xl mx-auto bg-muted/50 rounded-lg px-4 py-2 inline-block">
-              💾 All flows use localStorage persistence — refresh the page to
-              see your progress restored
+              💾 Most flows use local storage persistence. <br />
+              Refresh the page and your progress will be restored where you left
+              off.
             </p>
             <Button
               variant="outline"

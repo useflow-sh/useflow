@@ -367,7 +367,6 @@ Smooth slide-up animations defined in `index.css`:
      return (
        <Flow
          flow={myFlow}
-         initialContext={{}}
          persister={persister}
          saveMode="always"
          loadingComponent={<LoadingView />}

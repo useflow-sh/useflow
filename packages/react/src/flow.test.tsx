@@ -39,7 +39,7 @@ describe("Flow", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}}>
+      <Flow flow={flow}>
         {({ renderStep }) => (
           <>
             {renderStep({
@@ -80,7 +80,7 @@ describe("Flow", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}}>
+      <Flow flow={flow}>
         {({ renderStep }) => (
           <>
             {renderStep({
@@ -124,7 +124,7 @@ describe("Flow", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}}>
+      <Flow flow={flow}>
         {({ renderStep }) => (
           <>
             {renderStep({
@@ -207,7 +207,7 @@ describe("Flow", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}} onComplete={onComplete}>
+      <Flow flow={flow} onComplete={onComplete}>
         {({ renderStep }) => (
           <>
             {renderStep({
@@ -262,7 +262,7 @@ describe("Flow", () => {
       return (
         <div>
           <div data-testid="count">{count}</div>
-          <Flow flow={flow} initialContext={{}} onComplete={handleComplete}>
+          <Flow flow={flow} onComplete={handleComplete}>
             {({ renderStep }) => (
               <>
                 {renderStep({
@@ -354,7 +354,7 @@ describe("Flow", () => {
     });
 
     render(
-      <Flow flow={flow} initialContext={{}}>
+      <Flow flow={flow}>
         {({ renderStep }) =>
           renderStep({
             step1: <div data-testid="step1">Step 1</div>,
@@ -457,7 +457,7 @@ describe("Edge cases", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}}>
+      <Flow flow={flow}>
         {({ renderStep }) => (
           <>
             {renderStep({
@@ -620,7 +620,7 @@ describe("Step rendering", () => {
     });
 
     render(
-      <Flow flow={flow} initialContext={{}}>
+      <Flow flow={flow}>
         {({ renderStep }) => (
           <div data-testid="wrapper">
             {renderStep({
@@ -648,7 +648,7 @@ describe("Step rendering", () => {
     });
 
     render(
-      <Flow flow={flow} initialContext={{}}>
+      <Flow flow={flow}>
         {({ renderStep }) =>
           renderStep({
             test: <div data-testid="auto-step">Auto Rendered</div>,
@@ -679,7 +679,7 @@ describe("Step rendering", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}}>
+      <Flow flow={flow}>
         {({ renderStep }) => (
           <>
             {renderStep({
@@ -721,7 +721,7 @@ describe("Flow callbacks", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}} onNext={onNext}>
+      <Flow flow={flow} onNext={onNext}>
         {({ renderStep }) =>
           renderStep({
             first: <TestComponent />,
@@ -760,7 +760,7 @@ describe("Flow callbacks", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}} onSkip={onSkip}>
+      <Flow flow={flow} onSkip={onSkip}>
         {({ renderStep }) =>
           renderStep({
             first: <TestComponent />,
@@ -843,7 +843,7 @@ describe("Flow callbacks", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}} onTransition={onTransition}>
+      <Flow flow={flow} onTransition={onTransition}>
         {({ renderStep }) =>
           renderStep({
             first: <TestComponent />,
@@ -934,7 +934,7 @@ describe("Flow callbacks", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}} onBack={onBack}>
+      <Flow flow={flow} onBack={onBack}>
         {({ renderStep }) =>
           renderStep({
             first: <TestComponent />,
@@ -1082,7 +1082,7 @@ describe("Flow callbacks", () => {
 
     // Should not throw when no callbacks provided
     render(
-      <Flow flow={flow} initialContext={{}}>
+      <Flow flow={flow}>
         {({ renderStep }) =>
           renderStep({
             first: <TestComponent />,
@@ -1120,7 +1120,7 @@ describe("Flow callbacks", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}} onNext={onNext}>
+      <Flow flow={flow} onNext={onNext}>
         {({ renderStep }) =>
           renderStep({
             first: <TestComponent />,
@@ -1211,7 +1211,7 @@ describe("Flow callbacks", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}} onTransition={onTransition}>
+      <Flow flow={flow} onTransition={onTransition}>
         {({ renderStep }) =>
           renderStep({
             first: <TestComponent />,
@@ -1307,12 +1307,7 @@ describe("Flow callbacks", () => {
     }
 
     render(
-      <Flow
-        flow={flow}
-        initialContext={{}}
-        onNext={onNext}
-        onTransition={onTransition}
-      >
+      <Flow flow={flow} onNext={onNext} onTransition={onTransition}>
         {({ renderStep }) =>
           renderStep({
             first: <TestComponent />,
@@ -1366,12 +1361,7 @@ describe("Flow callbacks", () => {
     }
 
     render(
-      <Flow
-        flow={flow}
-        initialContext={{}}
-        onBack={onBack}
-        onTransition={onTransition}
-      >
+      <Flow flow={flow} onBack={onBack} onTransition={onTransition}>
         {({ renderStep }) =>
           renderStep({
             first: <TestComponent />,
@@ -1619,7 +1609,6 @@ describe("Persistence", () => {
     render(
       <Flow
         flow={flow}
-        initialContext={{}}
         persister={persister}
         loadingComponent={<div>Loading...</div>}
       >
@@ -1662,7 +1651,6 @@ describe("Persistence", () => {
     render(
       <Flow
         flow={flow}
-        initialContext={{}}
         persister={persister}
         onPersistenceError={onPersistenceError}
       >
@@ -1706,7 +1694,6 @@ describe("Persistence", () => {
     render(
       <Flow
         flow={flow}
-        initialContext={{}}
         persister={persister}
         onPersistenceError={onPersistenceError}
       >
@@ -1737,12 +1724,7 @@ describe("Persistence", () => {
     const onRestore = vi.fn();
 
     render(
-      <Flow
-        flow={flow}
-        initialContext={{}}
-        persister={persister}
-        onRestore={onRestore}
-      >
+      <Flow flow={flow} persister={persister} onRestore={onRestore}>
         {({ renderStep }) =>
           renderStep({
             step1: <div>Step 1</div>,
@@ -1778,7 +1760,7 @@ describe("Persistence", () => {
     const persister = createMockPersister();
 
     render(
-      <Flow flow={flow} initialContext={{}} persister={persister}>
+      <Flow flow={flow} persister={persister}>
         {({ renderStep }) =>
           renderStep({
             step1: <div>Step 1</div>,
@@ -1826,7 +1808,6 @@ describe("Persistence", () => {
     render(
       <Flow
         flow={flow}
-        initialContext={{}}
         persister={persister}
         onPersistenceError={onPersistenceError}
         saveDebounce={0}
@@ -1881,12 +1862,7 @@ describe("Persistence", () => {
     }
 
     render(
-      <Flow
-        flow={flow}
-        initialContext={{}}
-        persister={persister}
-        saveDebounce={0}
-      >
+      <Flow flow={flow} persister={persister} saveDebounce={0}>
         {({ renderStep }) => (
           <>
             {renderStep({
@@ -1957,12 +1933,7 @@ describe("Persistence", () => {
       }
 
       render(
-        <Flow
-          flow={flow}
-          initialContext={{}}
-          persister={persister}
-          saveDebounce={100}
-        >
+        <Flow flow={flow} persister={persister} saveDebounce={100}>
           {({ renderStep }) => (
             <>
               {renderStep({
@@ -2051,7 +2022,6 @@ describe("Persistence", () => {
     render(
       <Flow
         flow={flow}
-        initialContext={{}}
         persister={persister}
         saveMode="manual"
         saveDebounce={0}
@@ -2110,7 +2080,6 @@ describe("Persistence", () => {
     render(
       <Flow
         flow={flow}
-        initialContext={{}}
         persister={persister}
         saveMode="manual"
         saveDebounce={0}
@@ -2187,7 +2156,6 @@ describe("Persistence", () => {
     render(
       <Flow
         flow={flow}
-        initialContext={{}}
         persister={persister}
         saveMode="manual"
         onPersistenceError={onPersistenceError}
@@ -2233,7 +2201,7 @@ describe("Persistence", () => {
     }
 
     render(
-      <Flow flow={flow} initialContext={{}}>
+      <Flow flow={flow}>
         {({ renderStep }) => (
           <>
             {renderStep({
@@ -2281,13 +2249,7 @@ describe("Persistence", () => {
     }
 
     render(
-      <Flow
-        flow={flow}
-        initialContext={{}}
-        persister={persister}
-        saveMode="manual"
-        onSave={onSave}
-      >
+      <Flow flow={flow} persister={persister} saveMode="manual" onSave={onSave}>
         {({ renderStep }) => (
           <>
             {renderStep({
@@ -2481,7 +2443,6 @@ describe("Persistence", () => {
       render(
         <Flow
           flow={flow}
-          initialContext={{}}
           instanceId="task-123"
           persister={persister}
           saveDebounce={0}
@@ -2622,7 +2583,6 @@ describe("Persistence", () => {
         <>
           <Flow
             flow={flow}
-            initialContext={{}}
             instanceId="instance-1"
             persister={persister1}
             saveDebounce={0}
@@ -2639,7 +2599,6 @@ describe("Persistence", () => {
           </Flow>
           <Flow
             flow={flow}
-            initialContext={{}}
             instanceId="instance-2"
             persister={persister2}
             saveDebounce={0}
@@ -2714,7 +2673,6 @@ describe("Persistence", () => {
       render(
         <Flow
           flow={flow}
-          initialContext={{}}
           instanceId="task-789"
           persister={persister}
           saveDebounce={0}
@@ -2940,12 +2898,7 @@ describe("reset", () => {
     }
 
     render(
-      <Flow
-        flow={flow}
-        initialContext={{}}
-        instanceId="instance-123"
-        persister={persister}
-      >
+      <Flow flow={flow} instanceId="instance-123" persister={persister}>
         {({ renderStep }) => (
           <>
             {renderStep({
@@ -3015,7 +2968,6 @@ describe("reset", () => {
     render(
       <Flow
         flow={flow}
-        initialContext={{}}
         persister={persister}
         onPersistenceError={onPersistenceError}
       >

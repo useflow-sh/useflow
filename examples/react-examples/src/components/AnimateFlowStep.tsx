@@ -9,7 +9,7 @@ import type { ReactElement } from "react";
  *
  * @example
  * ```tsx
- * <Flow flow={myFlow} initialContext={{}}>
+ * <Flow flow={myFlow} >
  *   {({ renderStep }) => (
  *     <AnimateFlowStep>
  *       {renderStep({

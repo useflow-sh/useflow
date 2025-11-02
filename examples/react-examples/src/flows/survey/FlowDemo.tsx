@@ -170,7 +170,6 @@ export function SurveyFlowDemo() {
     <Flow
       flow={surveyFlow}
       instanceId="survey-instance"
-      initialContext={{}}
       onNext={handleNext}
       onBack={handleBack}
       onTransition={handleTransition}

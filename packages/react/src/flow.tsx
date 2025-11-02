@@ -80,7 +80,7 @@ type FlowProps<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>> = {
       ) => ReactElement;
     },
   ) => ReactNode;
-  initialContext: ExtractFlowContext<TFlow>;
+  initialContext?: ExtractFlowContext<TFlow>;
   instanceId?: string;
   onComplete?: (event: { context: ExtractFlowContext<TFlow> }) => void;
   onNext?: (event: {
@@ -137,7 +137,7 @@ type LastActionType =
  * single flows or multiple flows selected at runtime (union types).
  *
  * @param flow - RuntimeFlowDefinition returned by defineFlow() (not raw config)
- * @param initialContext - Initial context state for the flow
+ * @param initialContext - Initial context state for the flow (optional, defaults to {})
  * @param children - Render function that receives flow state
  * @param instanceId - Optional unique identifier for reusable flows with separate persistence
  * @param persister - Optional persister for saving/restoring flow state
@@ -145,7 +145,16 @@ type LastActionType =
  *
  * @example
  * ```tsx
- * // Basic usage
+ * // Basic usage (no context needed)
+ * <Flow flow={myFlow}>
+ *   {({ renderStep }) => renderStep({
+ *     welcome: <WelcomeStep />,
+ *     profile: <ProfileStep />,
+ *     complete: <CompleteStep />,
+ *   })}
+ * </Flow>
+ *
+ * // With initial context
  * <Flow flow={myFlow} initialContext={{ name: '' }}>
  *   {({ renderStep }) => renderStep({
  *     welcome: <WelcomeStep />,
@@ -235,7 +244,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
   // Initialize flow state (restoration happens after mount)
   const flowState = useFlowReducer<ExtractFlowContext<TFlow>>(
     flowDefinitionWithoutComponents,
-    initialContext,
+    (initialContext ?? {}) as ExtractFlowContext<TFlow>,
     undefined, // initialState - restoration happens in useEffect
     // Safe cast: ResolverMap is a stricter compile-time type, runtime shape matches RuntimeResolverMap
     // biome-ignore lint/suspicious/noExplicitAny: Runtime resolver map is compatible

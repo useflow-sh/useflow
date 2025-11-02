@@ -166,13 +166,13 @@ Flows automatically use global configuration - no props needed:
 // Before: Repetitive props on every flow
 <Flow
   flow={flow1}
-  initialContext={{}}
+
   persister={persister}
   saveMode="always"
 />
 
 // After: Clean, uses global config
-<Flow flow={flow1} initialContext={{}} />
+<Flow flow={flow1}  />
 ```
 
 ### Overriding Global Config
@@ -182,7 +182,6 @@ Individual flows can override any global setting:
 ```tsx
 <Flow
   flow={criticalFlow}
-  initialContext={{}}
   saveMode="navigation" // Override global "always"
   saveDebounce={0} // No debounce for this flow
 />
@@ -291,7 +290,7 @@ Main component that runs your flow using a render props pattern.
 ```tsx
 type FlowProps<TConfig> = {
   flow: RuntimeFlowDefinition<TConfig>; // From defineFlow()
-  initialContext: ExtractFlowContext<TConfig>;
+  initialContext?: ExtractFlowContext<TConfig>; // Optional, defaults to {}
   instanceId?: string; // Optional unique identifier for reusable flows
   onComplete?: (event: { context: ExtractFlowContext<TConfig> }) => void;
   onNext?: (event: {
@@ -337,6 +336,18 @@ type FlowProps<TConfig> = {
 **Example:**
 
 ```tsx
+// Simple flow (no context needed)
+<Flow flow={myFlow}>
+  {({ renderStep }) =>
+    renderStep({
+      welcome: <WelcomeStep />,
+      profile: <ProfileStep />,
+      complete: <CompleteStep />,
+    })
+  }
+</Flow>
+
+// With initial context
 <Flow
   flow={myFlow}
   initialContext={{ name: "" }}
@@ -580,7 +591,7 @@ function SurveyComplete() {
 **Available in render props:**
 
 ```tsx
-<Flow flow={surveyFlow} initialContext={{}}>
+<Flow flow={surveyFlow}>
   {({ renderStep, reset, context }) => {
     const handleRestart = async () => {
       await reset();

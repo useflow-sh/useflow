@@ -417,7 +417,7 @@ export function FlowModificationDemo() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Flow key={flowKey} flow={demoFlow} initialContext={{}}>
+              <Flow key={flowKey} flow={demoFlow}>
                 {({ renderStep }) =>
                   renderStep({
                     stepA: <StepA />,

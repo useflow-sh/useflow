@@ -17,9 +17,15 @@ import {
   useRef,
   useState,
 } from "react";
-import type { FlowDefinition } from "./define-flow";
-import type { ExtractContext, FlowConfig, StepNames } from "./type-helpers";
-import type { StepElements, StepInfo, UseFlowReturn } from "./types";
+import type {
+  ExtractAllStepNames,
+  ExtractFlowContext,
+  FlowConfig,
+  FlowDefinition,
+  FlowStepElements,
+  StepInfo,
+  UseFlowReturn,
+} from "./types";
 import { useFlowReducer } from "./use-flow-reducer";
 
 // biome-ignore lint/suspicious/noExplicitAny: React Context requires concrete type at creation, type safety enforced at usage via generics
@@ -61,49 +67,56 @@ export function useFlow<TContext extends FlowContext = FlowContext>(_options?: {
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-type FlowProps<TConfig extends FlowConfig<any>> = {
-  flow: FlowDefinition<TConfig>;
+type FlowProps<TFlow extends FlowDefinition<FlowConfig<any>>> = {
+  flow: TFlow;
   children: (
-    state: UseFlowReturn<ExtractContext<TConfig>, string, StepNames<TConfig>>,
+    state: Omit<
+      UseFlowReturn<ExtractFlowContext<TFlow>, string, string>,
+      "renderStep"
+    > & {
+      renderStep: (
+        elements: FlowStepElements<ExtractAllStepNames<TFlow>>,
+      ) => ReactElement;
+    },
   ) => ReactNode;
-  initialContext: ExtractContext<TConfig>;
+  initialContext: ExtractFlowContext<TFlow>;
   instanceId?: string;
   onComplete?: () => void;
   onNext?: (event: {
-    from: StepNames<TConfig>;
-    to: StepNames<TConfig>;
-    oldContext: ExtractContext<TConfig>;
-    newContext: ExtractContext<TConfig>;
+    from: string;
+    to: string;
+    oldContext: ExtractFlowContext<TFlow>;
+    newContext: ExtractFlowContext<TFlow>;
   }) => void;
   onSkip?: (event: {
-    from: StepNames<TConfig>;
-    to: StepNames<TConfig>;
-    oldContext: ExtractContext<TConfig>;
-    newContext: ExtractContext<TConfig>;
+    from: string;
+    to: string;
+    oldContext: ExtractFlowContext<TFlow>;
+    newContext: ExtractFlowContext<TFlow>;
   }) => void;
   onBack?: (event: {
-    from: StepNames<TConfig>;
-    to: StepNames<TConfig>;
-    oldContext: ExtractContext<TConfig>;
-    newContext: ExtractContext<TConfig>;
+    from: string;
+    to: string;
+    oldContext: ExtractFlowContext<TFlow>;
+    newContext: ExtractFlowContext<TFlow>;
   }) => void;
   onTransition?: (event: {
-    from: StepNames<TConfig>;
-    to: StepNames<TConfig>;
+    from: string;
+    to: string;
     direction: "forward" | "backward";
-    oldContext: ExtractContext<TConfig>;
-    newContext: ExtractContext<TConfig>;
+    oldContext: ExtractFlowContext<TFlow>;
+    newContext: ExtractFlowContext<TFlow>;
   }) => void;
   onContextUpdate?: (event: {
-    oldContext: ExtractContext<TConfig>;
-    newContext: ExtractContext<TConfig>;
+    oldContext: ExtractFlowContext<TFlow>;
+    newContext: ExtractFlowContext<TFlow>;
   }) => void;
   persister?: FlowPersister;
   saveDebounce?: number;
   saveMode?: "always" | "navigation" | "manual";
   onPersistenceError?: (error: Error) => void;
-  onSave?: (state: PersistedFlowState<ExtractContext<TConfig>>) => void;
-  onRestore?: (state: PersistedFlowState<ExtractContext<TConfig>>) => void;
+  onSave?: (state: PersistedFlowState<ExtractFlowContext<TFlow>>) => void;
+  onRestore?: (state: PersistedFlowState<ExtractFlowContext<TFlow>>) => void;
   loadingComponent?: ReactNode;
 };
 
@@ -119,7 +132,8 @@ type LastActionType =
  * Flow - main component for running a flow using render props pattern
  *
  * Uses children as a function that receives flow state and methods,
- * including a renderStep helper to display the current step with typesafety for static flows.
+ * including a renderStep helper to display the current step. Works with
+ * single flows or multiple flows selected at runtime (union types).
  *
  * @param flow - FlowDefinition returned by defineFlow() (not raw config)
  * @param initialContext - Initial context state for the flow
@@ -130,7 +144,7 @@ type LastActionType =
  *
  * @example
  * ```tsx
- * // Basic usage with renderStep helper
+ * // Basic usage
  * <Flow flow={myFlow} initialContext={{ name: '' }}>
  *   {({ renderStep }) => renderStep({
  *     welcome: <WelcomeStep />,
@@ -139,29 +153,24 @@ type LastActionType =
  *   })}
  * </Flow>
  *
- * // Passing context via render props to components
+ * // With dynamically selected flows
+ * const selectedFlow = condition ? flowA : flowB;
+ * <Flow flow={selectedFlow} initialContext={{ name: '' }}>
+ *   {({ renderStep }) => renderStep({
+ *     // All possible steps from all flows must be provided
+ *     welcome: <WelcomeStep />,
+ *     stepA: <StepA />,  // Only in flowA
+ *     stepB: <StepB />,  // Only in flowB
+ *   })}
+ * </Flow>
+ *
+ * // Passing context via render props
  * <Flow flow={myFlow} initialContext={{ name: '' }}>
  *   {({ renderStep, context, reset }) => renderStep({
  *     welcome: <WelcomeStep />,
  *     profile: <ProfileStep name={context.name} />,
  *     complete: <CompleteStep name={context.name} onReset={reset} />,
  *   })}
- * </Flow>
- *
- * // With custom layout
- * <Flow flow={myFlow} initialContext={{ name: '' }}>
- *   {({ renderStep, stepId, context }) => (
- *     <>
- *       <Header stepId={stepId} />
- *       <div className="content">
- *         {renderStep({
- *           welcome: <WelcomeStep />,
- *           profile: <ProfileStep />,
- *         })}
- *       </div>
- *       <Footer context={context} />
- *     </>
- *   )}
  * </Flow>
  *
  * // With persistence
@@ -179,7 +188,7 @@ type LastActionType =
  * ```
  */
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-export function Flow<TConfig extends FlowConfig<any>>({
+export function Flow<TFlow extends FlowDefinition<FlowConfig<any>>>({
   flow,
   initialContext,
   instanceId,
@@ -197,7 +206,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
   onRestore,
   loadingComponent,
   children,
-}: FlowProps<TConfig>) {
+}: FlowProps<TFlow>) {
   // Extract config from FlowDefinition
   const { id, config } = flow;
 
@@ -214,7 +223,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
   const [isRestoring, setIsRestoring] = useState(!!persister);
 
   // Initialize flow state (restoration happens after mount)
-  const flowState = useFlowReducer<ExtractContext<TConfig>>(
+  const flowState = useFlowReducer<ExtractFlowContext<TFlow>>(
     flowDefinitionWithoutComponents,
     initialContext,
     undefined, // initialState - restoration happens in useEffect
@@ -230,7 +239,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
         id,
         { next: step.next },
       ]),
-    ) as Record<StepNames<TConfig>, StepInfo<StepNames<TConfig>>>;
+    ) as Record<string, StepInfo<string>>;
   }, [config.steps]);
 
   // Extract possible next steps from current step
@@ -251,8 +260,8 @@ export function Flow<TConfig extends FlowConfig<any>>({
   // Wrap next/skip/back/setContext to track action type
   const next = useCallback(
     (
-      targetOrUpdate?: string | ContextUpdate<ExtractContext<TConfig>>,
-      update?: ContextUpdate<ExtractContext<TConfig>>,
+      targetOrUpdate?: string | ContextUpdate<ExtractFlowContext<TFlow>>,
+      update?: ContextUpdate<ExtractFlowContext<TFlow>>,
     ) => {
       lastActionRef.current = "NEXT";
       if (typeof targetOrUpdate === "string") {
@@ -266,8 +275,8 @@ export function Flow<TConfig extends FlowConfig<any>>({
 
   const skip = useCallback(
     (
-      targetOrUpdate?: string | ContextUpdate<ExtractContext<TConfig>>,
-      update?: ContextUpdate<ExtractContext<TConfig>>,
+      targetOrUpdate?: string | ContextUpdate<ExtractFlowContext<TFlow>>,
+      update?: ContextUpdate<ExtractFlowContext<TFlow>>,
     ) => {
       lastActionRef.current = "SKIP";
       if (typeof targetOrUpdate === "string") {
@@ -285,7 +294,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
   }, [flowState.back]);
 
   const setContext = useCallback(
-    (update: ContextUpdate<ExtractContext<TConfig>>) => {
+    (update: ContextUpdate<ExtractFlowContext<TFlow>>) => {
       lastActionRef.current = "SET_CONTEXT";
       flowState.setContext(update);
     },
@@ -345,7 +354,9 @@ export function Flow<TConfig extends FlowConfig<any>>({
       });
 
       if (persistedState) {
-        onSave?.(persistedState as PersistedFlowState<ExtractContext<TConfig>>);
+        onSave?.(
+          persistedState as PersistedFlowState<ExtractFlowContext<TFlow>>,
+        );
       }
     } catch (error) {
       console.error("[Flow] Failed to save state:", error);
@@ -377,42 +388,42 @@ export function Flow<TConfig extends FlowConfig<any>>({
     // Handle navigation callbacks
     if (action === "NEXT" && prevState.stepId !== flowState.stepId) {
       onNext?.({
-        from: prevState.stepId as StepNames<TConfig>,
-        to: flowState.stepId as StepNames<TConfig>,
+        from: prevState.stepId,
+        to: flowState.stepId,
         oldContext: prevState.context,
         newContext: flowState.context,
       });
       onTransition?.({
-        from: prevState.stepId as StepNames<TConfig>,
-        to: flowState.stepId as StepNames<TConfig>,
+        from: prevState.stepId,
+        to: flowState.stepId,
         direction: "forward",
         oldContext: prevState.context,
         newContext: flowState.context,
       });
     } else if (action === "SKIP" && prevState.stepId !== flowState.stepId) {
       onSkip?.({
-        from: prevState.stepId as StepNames<TConfig>,
-        to: flowState.stepId as StepNames<TConfig>,
+        from: prevState.stepId,
+        to: flowState.stepId,
         oldContext: prevState.context,
         newContext: flowState.context,
       });
       onTransition?.({
-        from: prevState.stepId as StepNames<TConfig>,
-        to: flowState.stepId as StepNames<TConfig>,
+        from: prevState.stepId,
+        to: flowState.stepId,
         direction: "forward",
         oldContext: prevState.context,
         newContext: flowState.context,
       });
     } else if (action === "BACK" && prevState.stepId !== flowState.stepId) {
       onBack?.({
-        from: prevState.stepId as StepNames<TConfig>,
-        to: flowState.stepId as StepNames<TConfig>,
+        from: prevState.stepId,
+        to: flowState.stepId,
         oldContext: prevState.context,
         newContext: flowState.context,
       });
       onTransition?.({
-        from: prevState.stepId as StepNames<TConfig>,
-        to: flowState.stepId as StepNames<TConfig>,
+        from: prevState.stepId,
+        to: flowState.stepId,
         direction: "backward",
         oldContext: prevState.context,
         newContext: flowState.context,
@@ -481,13 +492,13 @@ export function Flow<TConfig extends FlowConfig<any>>({
           }
 
           // Safe cast: persister returns base FlowContext, but we've validated
-          // the structure matches this flow. Context shape is trusted based on:
+          //  the structure matches this flow. Context shape is trusted based on:
           // 1. FlowId matching (same flow that saved it)
           // 2. Version checking + migration
           // 3. Custom validate function in persister options
           // TODO: add context shape validation from flow definition
           const typedState = state as PersistedFlowState<
-            ExtractContext<TConfig>
+            ExtractFlowContext<TFlow>
           >;
           flowState.restore(typedState);
           onRestore?.(typedState);
@@ -539,8 +550,8 @@ export function Flow<TConfig extends FlowConfig<any>>({
 
   // Create renderStep helper function
   const renderStep = useCallback(
-    (elements: StepElements<StepNames<TConfig>>): ReactElement => {
-      return elements[flowState.stepId as StepNames<TConfig>];
+    (elements: FlowStepElements<ExtractAllStepNames<TFlow>>): ReactElement => {
+      return elements[flowState.stepId as ExtractAllStepNames<TFlow>];
     },
     [flowState.stepId],
   );
@@ -551,11 +562,14 @@ export function Flow<TConfig extends FlowConfig<any>>({
   }
 
   // Create the flow state object to pass to children
-  const flowRenderState: UseFlowReturn<
-    ExtractContext<TConfig>,
-    string,
-    StepNames<TConfig>
-  > = {
+  const flowRenderState: Omit<
+    UseFlowReturn<ExtractFlowContext<TFlow>, string, string>,
+    "renderStep"
+  > & {
+    renderStep: (
+      elements: FlowStepElements<ExtractAllStepNames<TFlow>>,
+    ) => ReactElement;
+  } = {
     // From flowState
     stepId: flowState.stepId,
     step: flowState.step,
@@ -581,7 +595,7 @@ export function Flow<TConfig extends FlowConfig<any>>({
   };
 
   return (
-    <ReactFlowContext.Provider value={flowRenderState}>
+    <ReactFlowContext.Provider value={flowRenderState as any}>
       {children(flowRenderState)}
     </ReactFlowContext.Provider>
   );

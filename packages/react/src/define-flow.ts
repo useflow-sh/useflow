@@ -1,5 +1,4 @@
 import {
-  type RuntimeFlowDefinition as CoreRuntimeFlowDefinition,
   defineFlow as coreDefineFlow,
   type FlowContext,
   type FlowRuntimeConfig,
@@ -8,29 +7,14 @@ import { useFlow } from "./flow";
 import type {
   ExtractContext,
   FlowConfig,
+  FlowDefinition,
   StepNames,
+  UseFlowReturn,
   ValidNextSteps,
-} from "./type-helpers";
-import type { UseFlowReturn } from "./types";
+} from "./types";
 
-/**
- * React-enhanced flow definition
- * Extends core RuntimeFlowDefinition with React-specific useFlow hook
- */
-// biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-export type FlowDefinition<TConfig extends FlowConfig<any>> =
-  CoreRuntimeFlowDefinition<TConfig, ExtractContext<TConfig>> & {
-    /**
-     * Custom hook for this flow with type-safe step navigation
-     */
-    useFlow: <TStep extends StepNames<TConfig>>(options: {
-      step: TStep;
-    }) => UseFlowReturn<
-      ExtractContext<TConfig>,
-      ValidNextSteps<TConfig, TStep>,
-      StepNames<TConfig>
-    >;
-  };
+// Re-export FlowDefinition for backwards compatibility
+export type { FlowDefinition };
 
 /**
  * Define a React flow with type-safe navigation and optional runtime config

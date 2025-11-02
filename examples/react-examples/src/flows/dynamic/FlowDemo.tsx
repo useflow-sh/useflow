@@ -135,14 +135,13 @@ export function DynamicFlowDemo() {
     );
   }
 
-  // Select flow based on state
+  // Select flow based on state - no helpers needed with Flow!
   const selectedFlow = useExpressFlow ? expressFlow : standardFlow;
 
   return (
     <Flow
       key={selectedFlow.id}
-      // biome-ignore lint/suspicious/noExplicitAny: Union of different flow types requires type assertion for dynamic switching
-      flow={selectedFlow as any}
+      flow={selectedFlow}
       initialContext={{
         email: "",
         username: "",

@@ -111,27 +111,39 @@ const FinalStep = () => {
   );
 };
 
-// Configuration type
-type FlowConfig = {
+// Flow step names
+type DemoStepName = "stepA" | "stepB" | "stepC" | "stepD" | "final";
+
+// Type for dynamically built steps
+type DemoFlowSteps = Partial<
+  Record<
+    DemoStepName,
+    {
+      next?: DemoStepName | readonly DemoStepName[];
+    }
+  >
+>;
+
+// Demo configuration type
+type DemoConfig = {
   includeStepD: boolean;
   swapBC: boolean;
   skipB: boolean;
 };
 
-const defaultConfig: FlowConfig = {
+const defaultConfig: DemoConfig = {
   includeStepD: false,
   swapBC: false,
   skipB: false,
 };
 
 export function FlowModificationDemo() {
-  const [config, setConfig] = useState<FlowConfig>(defaultConfig);
+  const [config, setConfig] = useState<DemoConfig>(defaultConfig);
   const [flowKey, setFlowKey] = useState(0);
 
   // Generate flow definition based on config - this is the key magic!
   const demoFlow = useMemo(() => {
-    // biome-ignore lint/suspicious/noExplicitAny: dynamic flow definition
-    const steps: any = {};
+    const steps: DemoFlowSteps = {};
 
     // Step A always starts the flow
     steps.stepA = {
@@ -188,7 +200,7 @@ export function FlowModificationDemo() {
     });
   }, [config, flowKey]);
 
-  const updateConfig = (updates: Partial<FlowConfig>) => {
+  const updateConfig = (updates: Partial<DemoConfig>) => {
     setConfig((prev) => ({ ...prev, ...updates }));
     setFlowKey((prev) => prev + 1); // Force flow restart to see changes
   };
@@ -225,17 +237,11 @@ export function FlowModificationDemo() {
 
     // Step A logic
     if (config.skipB) {
-      lines.push("    stepA: {");
-      lines.push('      next: "stepC"  // Skip to C');
-      lines.push("    },");
+      lines.push('    stepA: { next: "stepC"  // Skip to C },');
     } else if (config.swapBC) {
-      lines.push("    stepA: {");
-      lines.push('      next: "stepC"  // C before B');
-      lines.push("    },");
+      lines.push('    stepA: { next: "stepC"  // C before B },');
     } else {
-      lines.push("    stepA: {");
-      lines.push('      next: "stepB"');
-      lines.push("    },");
+      lines.push('    stepA: { next: "stepB" },');
     }
 
     // Step B logic (only if not skipped)
@@ -318,8 +324,8 @@ export function FlowModificationDemo() {
         <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
           <p className="text-sm text-blue-900 dark:text-blue-100">
             <strong>💡 Runtime Configuration:</strong> This demo also shows
-            flows can be configured dynamically at runtime (e.g.based on feature
-            flags, API responses, or user permissions).
+            flows can be configured dynamically at runtime (e.g. based on
+            feature flags, API responses, or user permissions).
           </p>
         </div>
       </div>

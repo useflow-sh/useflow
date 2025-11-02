@@ -1,6 +1,36 @@
-import type { FlowContext } from "@useflow/core";
+import type {
+  FlowDefinition as CoreFlowDefinition,
+  RuntimeFlowDefinition as CoreRuntimeFlowDefinition,
+  FlowContext,
+} from "@useflow/core";
 import type { ReactElement } from "react";
 import type { UseFlowReducerReturn } from "./use-flow-reducer";
+
+/**
+ * React-enhanced flow definition
+ * Extends core RuntimeFlowDefinition with React-specific useFlow hook
+ */
+// biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
+export type FlowDefinition<TConfig extends FlowConfig<any>> =
+  CoreRuntimeFlowDefinition<TConfig, ExtractContext<TConfig>> & {
+    /**
+     * Custom hook for this flow with type-safe step navigation
+     */
+    useFlow: <TStep extends StepNames<TConfig>>(options: {
+      step: TStep;
+    }) => UseFlowReturn<
+      ExtractContext<TConfig>,
+      ValidNextSteps<TConfig, TStep>,
+      StepNames<TConfig>
+    >;
+  };
+
+/**
+ * FlowConfig is an alias for core's FlowDefinition
+ * Used for type constraints in defineFlow
+ */
+export type FlowConfig<TContext extends FlowContext = FlowContext> =
+  CoreFlowDefinition<TContext>;
 
 /**
  * Stripped-down step info exposed to components
@@ -80,3 +110,68 @@ export type UseFlowReturn<
    */
   renderStep: (elements: StepElements<TStepNames>) => ReactElement;
 };
+
+/**
+ * Extract step names from a flow config
+ */
+export type StepNames<TConfig> = TConfig extends { steps: infer S }
+  ? keyof S
+  : never;
+
+/**
+ * Extract context type from a flow config
+ */
+export type ExtractContext<TConfig> = TConfig extends FlowConfig<infer C>
+  ? C
+  : FlowContext;
+
+/**
+ * Extract valid next step destinations for a specific step
+ * - For arrays: extracts union of array element types (e.g., ["stepA", "stepB"] → "stepA" | "stepB")
+ * - For strings: returns the string literal type (e.g., "stepA" → "stepA")
+ * - For undefined: returns never (terminal step with no next)
+ */
+export type ValidNextSteps<
+  TConfig,
+  TStep extends StepNames<TConfig>,
+> = TConfig extends { steps: infer S }
+  ? TStep extends keyof S
+    ? S[TStep] extends { next: infer N }
+      ? N extends readonly (infer E)[]
+        ? E // Array: extract union of element types
+        : N extends string
+          ? N // String: use as-is
+          : never // No next or invalid type
+      : never
+    : never
+  : never;
+
+/**
+ * Extract all possible step names from a flow type
+ * Uses distributive conditional types to handle a union of flows automatically
+ */
+export type ExtractAllStepNames<TFlow> = TFlow extends FlowDefinition<
+  infer TConfig
+>
+  ? TConfig extends { steps: infer TSteps }
+    ? keyof TSteps
+    : never
+  : never;
+
+/**
+ * Extract context type from a flow type
+ */
+export type ExtractFlowContext<TFlow> = TFlow extends FlowDefinition<
+  FlowConfig<infer TContext>
+>
+  ? TContext
+  : FlowContext;
+
+/**
+ * Step elements mapping for Flow component
+ * Maps step names to their React components
+ */
+export type FlowStepElements<TStepNames extends string> = Record<
+  TStepNames,
+  React.ReactElement
+>;

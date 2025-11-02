@@ -28,20 +28,29 @@ import { defineFlow } from "@useflow/react";
  * ⚠️ IMPORTANT: Dynamic flow switching
  *
  * This example shows how to switch between different flow definitions at runtime.
- * TypeScript infers the exact step types for each flow automatically.
  *
  *   // Example 1: Switch based on condition
  *   const selectedFlow = useExpress ? expressFlow : standardFlow;
- *   <Flow flow={selectedFlow} />  // ✅ Works!
+ *   <Flow flow={selectedFlow} initialContext={...}>
+ *     {({ renderStep }) => renderStep({
+ *       welcome: <Welcome />,
+ *       account: <Account />,
+ *       verification: <Verification />,  // Only in standardFlow
+ *       profile: <Profile />,
+ *       preferences: <Preferences />,    // Only in standardFlow
+ *       complete: <Complete />,
+ *     })}
+ *   </Flow>
  *
  *   // Example 2: Fetch flow definition from API
  *   const flowConfig = await fetch('/api/flow').then(r => r.json());
  *   const flow = defineFlow(flowConfig);
  *   <Flow flow={flow} />  // ✅ Works!
  *
- * Trade-off when mixing flows with different steps:
- * ✅ You CAN switch flows dynamically
- * ❌ TypeScript sees the union type, so type-safe navigation is limited
+ * When using multiple flows:
+ * - TypeScript automatically collects all possible step names
+ * - You must provide components for all steps from all flows
+ * - Only the steps from the active flow will be rendered
  *
  * Components in dynamic flows use the generic useFlow() hook (not flow.useFlow())
  * to be reusable across both flow configurations.

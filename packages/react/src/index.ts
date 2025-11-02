@@ -37,5 +37,11 @@ export {
 export type { FlowDefinition } from "./define-flow";
 export { defineFlow } from "./define-flow";
 export { Flow, useFlow } from "./flow";
-export type { FlowConfig } from "./type-helpers";
-export type { StepElements, UseFlowReturn } from "./types";
+export type {
+  ExtractAllStepNames,
+  ExtractFlowContext,
+  FlowConfig,
+  FlowStepElements,
+  StepElements,
+  UseFlowReturn,
+} from "./types";

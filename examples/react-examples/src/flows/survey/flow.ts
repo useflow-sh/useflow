@@ -59,8 +59,6 @@ export const surveyFlow = defineFlow({
     question4: {
       next: "results",
     },
-    results: {
-      // Terminal step
-    },
+    results: {},
   },
 });

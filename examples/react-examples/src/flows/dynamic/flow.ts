@@ -86,11 +86,9 @@ export const standardFlow = defineFlow({
       next: "account",
     },
     account: {
-      // After account creation, verify email
       next: "verification",
     },
     verification: {
-      // After verification, collect profile info
       next: "profile",
     },
     profile: {
@@ -99,9 +97,7 @@ export const standardFlow = defineFlow({
     preferences: {
       next: "complete",
     },
-    complete: {
-      // Terminal step
-    },
+    complete: {},
   },
 });
 
@@ -124,15 +120,11 @@ export const expressFlow = defineFlow({
       next: "account",
     },
     account: {
-      // Skip verification, go straight to profile
       next: "profile",
     },
     profile: {
-      // Skip preferences, go straight to complete
       next: "complete",
     },
-    complete: {
-      // Terminal step
-    },
+    complete: {},
   },
 });

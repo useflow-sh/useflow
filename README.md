@@ -35,7 +35,7 @@ npm install @useflow/react
 Create a flow definition with your steps and context type:
 
 ```tsx
-import { defineFlow, type FlowConfig } from "@useflow/react";
+import { defineFlow } from "@useflow/react";
 
 type OnboardingContext = {
   name: string;
@@ -213,27 +213,6 @@ function SetupStep() {
 }
 ```
 
-### Context Updates with Updater Functions
-
-Update context with object merging or updater functions (like React's `setState`):
-
-```tsx
-const { next, setContext } = useFlow();
-
-// Merge updates
-setContext({ name: "John" });
-
-// Updater function for complex updates
-next((ctx) => ({
-  ...ctx,
-  preferences: {
-    ...ctx.preferences,
-    theme: "dark",
-  },
-  timestamp: Date.now(),
-}));
-```
-
 ### Type-Safe Navigation
 
 Use the flow's custom hook for type-safe navigation:
@@ -288,10 +267,11 @@ React to navigation and context changes:
 
 **Callback Types:**
 
-- `onNext` - Fires on forward navigation only (includes oldContext and newContext)
-- `onBack` - Fires on backward navigation only (includes oldContext and newContext)
+- `onNext` - Fires on `next()` navigation (includes oldContext and newContext)
+- `onSkip` - Fires on `skip()` navigation (includes oldContext and newContext)
+- `onBack` - Fires on `back()` navigation (includes oldContext and newContext)
 - `onTransition` - Fires on all navigation (forward or backward, includes direction, oldContext, and newContext)
-- `onContextUpdate` - Fires when context changes
+- `onContextUpdate` - Fires when context changes via `setContext()`
 - `onComplete` - Fires when flow reaches completion
 
 Perfect for analytics, animations, and external state synchronization.
@@ -310,11 +290,12 @@ export const onboardingFlow = defineFlow({
   steps: { /* ... */ },
 });
 
-// Create store and persister (simplified!)
+// Create store and persister
 const store = createLocalStorageStore(localStorage, { prefix: "myapp" });
 const persister = createPersister({ store });
 
-// Storage keys: "myapp:onboarding" and "myapp:checkout"
+// Storage keys use format: prefix:flowId:variantId:instanceId
+// Examples: "myapp:onboarding:default:default" and "myapp:checkout:default:default"
 <Flow flow={onboardingFlow} persister={persister} {...props} />
 <Flow flow={checkoutFlow} persister={persister} {...props} />
 ```
@@ -334,7 +315,7 @@ const store = createLocalStorageStore(localStorage, { prefix: "myapp" });
 const persister = createPersister({ store });
 
 // Multiple instances with separate state
-// Storage keys: "myapp:feedback:task-123" and "myapp:feedback:task-456"
+// Storage keys: "myapp:feedback:default:task-123" and "myapp:feedback:default:task-456"
 <Flow
   flow={feedbackFlow}
   instanceId="task-123"  // Unique instance
@@ -381,21 +362,31 @@ import type { FlowStore } from "@useflow/react";
 import { createPersister } from "@useflow/react";
 
 const remoteApiStore: FlowStore = {
-  async get(flowId, instanceId) {
-    const id = instanceId ? `${flowId}:${instanceId}` : flowId;
-    const response = await fetch(`/api/flows/${id}`);
+  async get(flowId, instanceId, variantId) {
+    // Construct API path from flow ID, instance ID, and variant ID
+    const params = new URLSearchParams({
+      instanceId: instanceId || "default",
+      variantId: variantId || "default",
+    });
+    const response = await fetch(`/api/flows/${flowId}?${params}`);
     return response.ok ? response.json() : null;
   },
-  async set(flowId, state, instanceId) {
-    const id = instanceId ? `${flowId}:${instanceId}` : flowId;
-    await fetch(`/api/flows/${id}`, {
+  async set(flowId, state, instanceId, variantId) {
+    const params = new URLSearchParams({
+      instanceId: instanceId || "default",
+      variantId: variantId || "default",
+    });
+    await fetch(`/api/flows/${flowId}?${params}`, {
       method: "PUT",
       body: JSON.stringify(state),
     });
   },
-  async remove(flowId, instanceId) {
-    const id = instanceId ? `${flowId}:${instanceId}` : flowId;
-    await fetch(`/api/flows/${id}`, { method: "DELETE" });
+  async remove(flowId, instanceId, variantId) {
+    const params = new URLSearchParams({
+      instanceId: instanceId || "default",
+      variantId: variantId || "default",
+    });
+    await fetch(`/api/flows/${flowId}?${params}`, { method: "DELETE" });
   },
 };
 
@@ -426,15 +417,18 @@ const indexedDBStore = {
 
 const store = kvStorageAdapter({
   storage: indexedDBStore,
-  formatKey: (flowId, instanceId) =>
-    instanceId ? `myapp:${flowId}:${instanceId}` : `myapp:${flowId}`,
+  formatKey: (flowId, instanceId, variantId) => {
+    const vid = variantId || "default";
+    const iid = instanceId || "default";
+    return `myapp:${flowId}:${vid}:${iid}`;
+  },
   listKeys: async (flowId) => {
     const allKeys = await db.getAllKeys();
     if (!flowId) return allKeys.filter((k) => k.startsWith("myapp:"));
-    const baseKey = `myapp:${flowId}`;
-    return allKeys.filter((k) => k === baseKey || k.startsWith(`${baseKey}:`));
+    const baseKey = `myapp:${flowId}:`;
+    return allKeys.filter((k) => k.startsWith(baseKey));
   },
-  serializer: JsonSerializer,
+  // JsonSerializer is the default
 });
 
 const persister = createPersister({
@@ -493,11 +487,16 @@ Control where the current step renders:
 
 ## Examples
 
-See the [react-examples example](./examples/react-examples) for complete working implementations:
+See the [react-examples](./examples/react-examples) directory for complete working implementations:
 
 - **Simple Flow** - Linear step-by-step navigation
-- **Advanced Flow** - Conditional branching with business/personal paths
-- Hook-based patterns with full TypeScript integration
+- **Branching Flow** - Conditional navigation with context-driven branching
+- **Task Flow** - Multiple flow instances with separate state
+- **Survey Flow** - Event hooks (onNext, onBack, onTransition)
+- **Flow Variants** - Runtime flow switching
+- **Remote Configuration** - Load flow configs from external sources
+
+All examples include full TypeScript integration and persistence.
 
 ## How It Works
 
@@ -530,7 +529,7 @@ This separation means:
 
 ```tsx
 // Define flows
-import { defineFlow, type FlowConfig } from "@useflow/react";
+import { defineFlow } from "@useflow/react";
 
 // Render flows
 import { Flow, useFlow } from "@useflow/react";

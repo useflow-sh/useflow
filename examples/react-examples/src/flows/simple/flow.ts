@@ -32,11 +32,8 @@ export const simpleFlow = defineFlow({
       next: "preferences",
     },
     preferences: {
-      // Allow skipping to complete
       next: "complete",
     },
-    complete: {
-      // Terminal step - flow is complete
-    },
+    complete: {},
   },
 });

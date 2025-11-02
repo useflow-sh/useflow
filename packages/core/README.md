@@ -189,7 +189,7 @@ type Context = {
   name: string;
 };
 
-const config: FlowConfig<Context> = {
+const config: FlowDefinition<Context> = {
   id: "account-flow",
   start: "userType",
   steps: {
@@ -261,38 +261,6 @@ state = flowReducer(
 );
 ```
 
-### Guard Conditions
-
-Prevent navigation until conditions are met using runtime resolvers:
-
-```typescript
-type Context = {
-  isValid: boolean;
-};
-
-const config: FlowConfig<Context> = {
-  id: "form-flow",
-  start: "form",
-  steps: {
-    form: {
-      next: ["complete"],
-    },
-    complete: {},
-  },
-};
-
-// Runtime resolvers (passed to flowReducer)
-const resolvers = {
-  form: (ctx: Context) => ctx.isValid ? "complete" : undefined,
-};
-
-// When resolver returns undefined, stays on current step
-state = flowReducer(state, { type: "NEXT" }, config, resolvers);
-// If isValid is false, stepId remains "form"
-```
-
-**Note:** Framework adapters like `@useflow/react` handle passing resolvers to the reducer automatically.
-
 ## Type Safety
 
 Full TypeScript support with type inference:
@@ -313,12 +281,16 @@ const flow: FlowDefinition<MyContext> = {
     welcome: {
       // TypeScript knows ctx has name, age, preferences
       next: ["adult", "minor"],
-      resolve: (ctx) => (ctx.age >= 18 ? "adult" : "minor"),
     },
     adult: { next: "complete" },
     minor: { next: "complete" },
     complete: {},
   },
+};
+
+// Runtime resolvers (passed to flowReducer by framework adapters)
+const resolvers = {
+  welcome: (ctx: MyContext) => (ctx.age >= 18 ? "adult" : "minor"),
 };
 ```
 

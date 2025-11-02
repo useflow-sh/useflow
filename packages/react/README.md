@@ -20,7 +20,6 @@ npm install @useflow/react
 
 ```tsx
 import { defineFlow } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
 
 type OnboardingContext = {
   name: string;
@@ -86,7 +85,6 @@ function App() {
 
 ```tsx
 import { useFlow } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
 
 function ProfileStep() {
   const { context, next, back, setContext } = useFlow<OnboardingContext>();
@@ -125,25 +123,31 @@ Define a flow configuration with type-safe navigation. Returns a `RuntimeFlowDef
 
 ```tsx
 import { defineFlow } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
 
 type MyContext = {
   userType?: "business" | "personal";
 };
 
-export const myFlow = defineFlow({
-  id: "my-flow",
-  start: "welcome",
-  steps: {
-    welcome: {
-      next: ["business", "personal"],
-      resolve: (ctx) => (ctx.userType === "business" ? "business" : "personal"),
+export const myFlow = defineFlow(
+  {
+    id: "my-flow",
+    start: "welcome",
+    steps: {
+      welcome: {
+        next: ["business", "personal"],
+      },
+      business: { next: "complete" },
+      personal: { next: "complete" },
+      complete: {},
     },
-    business: { next: "complete" },
-    personal: { next: "complete" },
-    complete: {},
   },
-});
+  (steps) => ({
+    resolve: {
+      welcome: (ctx: MyContext) => 
+        ctx.userType === "business" ? steps.business : steps.personal,
+    },
+  })
+);
 ```
 
 **Returns:**
@@ -160,40 +164,46 @@ Main component that runs your flow using a render props pattern.
 ```tsx
 type FlowProps<TConfig> = {
   flow: RuntimeFlowDefinition<TConfig>; // From defineFlow()
-  initialContext: ExtractContext<TConfig>;
+  initialContext: ExtractFlowContext<TConfig>;
   instanceId?: string; // Optional unique identifier for reusable flows
   onComplete?: () => void;
   onNext?: (event: {
-    from: StepName;
-    to: StepName;
-    oldContext: TContext;
-    newContext: TContext;
+    from: string;
+    to: string;
+    oldContext: ExtractFlowContext<TConfig>;
+    newContext: ExtractFlowContext<TConfig>;
+  }) => void;
+  onSkip?: (event: {
+    from: string;
+    to: string;
+    oldContext: ExtractFlowContext<TConfig>;
+    newContext: ExtractFlowContext<TConfig>;
   }) => void;
   onBack?: (event: {
-    from: StepName;
-    to: StepName;
-    oldContext: TContext;
-    newContext: TContext;
+    from: string;
+    to: string;
+    oldContext: ExtractFlowContext<TConfig>;
+    newContext: ExtractFlowContext<TConfig>;
   }) => void;
   onTransition?: (event: {
-    from: StepName;
-    to: StepName;
+    from: string;
+    to: string;
     direction: "forward" | "backward";
-    oldContext: TContext;
-    newContext: TContext;
+    oldContext: ExtractFlowContext<TConfig>;
+    newContext: ExtractFlowContext<TConfig>;
   }) => void;
   onContextUpdate?: (event: {
-    oldContext: TContext;
-    newContext: TContext;
+    oldContext: ExtractFlowContext<TConfig>;
+    newContext: ExtractFlowContext<TConfig>;
   }) => void;
   persister?: FlowPersister; // Optional persistence
-  saveMode?: "navigation" | "always" | "manual"; // Save strategy (default: "navigation")
+  saveMode?: "always" | "navigation" | "manual"; // Save strategy (default: "navigation")
   saveDebounce?: number; // Debounce delay in ms (default: 300)
-  onSave?: (state: PersistedFlowState<TContext>) => void;
-  onRestore?: (state: PersistedFlowState<TContext>) => void;
+  onSave?: (state: PersistedFlowState<ExtractFlowContext<TConfig>>) => void;
+  onRestore?: (state: PersistedFlowState<ExtractFlowContext<TConfig>>) => void;
   onPersistenceError?: (error: Error) => void;
   loadingComponent?: ReactNode; // Show while restoring
-  children: (state: UseFlowReturn<TContext>) => ReactNode; // Render props function
+  children: (state: UseFlowReturn<ExtractFlowContext<TConfig>>) => ReactNode; // Render props function
 };
 ```
 
@@ -246,15 +256,22 @@ Hook to access flow state and navigation. Use directly in components or use the 
 
 ```tsx
 {
-  context: TContext;           // Current context
-  stepId: string;              // Current step ID
-  status: "active" | "complete"; // Flow status
-  component: ComponentType | undefined; // Current step's component
-  next: (update?) => void;     // Navigate forward
-  back: () => void;            // Navigate back
-  setContext: (update) => void; // Update context
-  save: () => Promise<void>;   // Manually save (for saveMode="manual")
-  isRestoring: boolean;        // True while restoring from persister
+  context: TContext;                 // Current context
+  stepId: string;                    // Current step ID
+  status: "active" | "complete";     // Flow status
+  path: PathEntry[];                 // Back navigation path
+  history: HistoryEntry[];           // Complete history with timestamps
+  startedAt: number;                 // When flow started
+  completedAt?: number;              // When flow completed (if complete)
+  next: (update?) => void;           // Navigate forward
+  skip: (update?) => void;           // Skip forward (fires onSkip)
+  back: () => void;                  // Navigate back
+  setContext: (update) => void;      // Update context
+  save: () => Promise<void>;         // Manually save (for saveMode="manual")
+  isRestoring: boolean;              // True while restoring from persister
+  steps: Record<string, StepInfo>;   // All steps in the flow
+  nextSteps: readonly string[] | undefined; // Valid next steps from current
+  renderStep: (elements) => ReactElement;   // Render current step
 }
 ```
 
@@ -406,59 +423,6 @@ next((ctx) => ({
 }));
 ```
 
-### Guard Conditions
-
-Prevent navigation until conditions are met using resolver functions:
-
-```tsx
-type Context = {
-  name: string;
-  isValid: boolean;
-};
-
-const flow = defineFlow(
-  {
-    id: "flow",
-    start: "form",
-    steps: {
-      form: {
-        next: ["complete"],
-      },
-      complete: {},
-    },
-  },
-  (steps) => ({
-    resolve: {
-      // Only navigate if form is valid
-      form: (ctx: Context) => (ctx.isValid ? steps.complete : undefined),
-    },
-  })
-);
-
-function FormStep() {
-  const { context, next, setContext } = useFlow<Context>();
-
-  const handleSubmit = () => {
-    // Validate
-    const isValid = context.name.length > 0;
-    setContext({ isValid });
-
-    // Try to navigate (will stay on current step if invalid)
-    next();
-  };
-
-  return (
-    <div>
-      <input
-        value={context.name}
-        onChange={(e) => setContext({ name: e.target.value })}
-      />
-      <button onClick={handleSubmit}>Submit</button>
-    </div>
-  );
-}
-```
-
 ### Dynamic Components
 
 Use `useFlow()` in inline components for dynamic rendering:
@@ -554,18 +518,19 @@ React to flow navigation events:
 
 **Callback Types:**
 
-- `onNext` - Fires on forward navigation only (includes oldContext and newContext)
-- `onBack` - Fires on backward navigation only (includes oldContext and newContext)
+- `onNext` - Fires on `next()` navigation (includes oldContext and newContext)
+- `onSkip` - Fires on `skip()` navigation (includes oldContext and newContext)
+- `onBack` - Fires on `back()` navigation (includes oldContext and newContext)
 - `onTransition` - **Unified callback** that fires on all navigation (forward or backward, includes direction, oldContext, and newContext)
-- `onContextUpdate` - Fires when context changes
+- `onContextUpdate` - Fires when context changes via `setContext()`
 - `onComplete` - Fires when flow reaches completion
 
 **Callback Ordering:**
 When navigating, callbacks fire in this order:
 
-1. Specific callback (`onNext` or `onBack`)
+1. Specific callback (`onNext`, `onSkip`, or `onBack`)
 2. General callback (`onTransition`)
-3. Context callback (`onContextUpdate` - if context changed)
+3. Context callback (`onContextUpdate` - if context changed via navigation or `setContext()`)
 
 **Use cases:**
 
@@ -637,7 +602,7 @@ export const onboardingFlow = defineFlow({
   },
 });
 
-// Create store and persister (simplified!)
+// Create store and persister
 const store = createLocalStorageStore(localStorage, { prefix: "myapp" });
 const persister = createPersister({
   store,
@@ -673,9 +638,9 @@ When users return, they'll automatically resume from where they left off!
 
 #### Storage Adapters
 
-**Recommended: Pre-configured Helpers**
+**Pre-configured Storage Helpers (Recommended)**
 
-Use these simplified helpers for common storage backends:
+Use these helpers for common storage backends:
 
 ```tsx
 import {
@@ -690,12 +655,9 @@ const persister = createPersister({ store });
 
 // sessionStorage (cleared when tab closes)
 const store2 = createSessionStorageStore(sessionStorage, { prefix: "myapp" });
-const persister2 = createPersister({
-  store: store2,
-  ttl: 1000 * 60 * 60 * 24 * 7, // 7 days
-});
+const persister2 = createPersister({ store: store2 });
 
-// With custom serializer
+// With custom serializer (advanced)
 import { MyCustomSerializer } from "./serializers";
 const store3 = createLocalStorageStore(localStorage, {
   prefix: "myapp",
@@ -703,32 +665,40 @@ const store3 = createLocalStorageStore(localStorage, {
 });
 ```
 
-**Advanced: Custom Key Generation**
+**Storage Key Format:**
 
-For advanced use cases (e.g., user-specific keys), use `kvStorageAdapter`:
+Keys follow the pattern: `prefix:flowId:variantId:instanceId`
+
+- Without `instanceId`: `"myapp:onboarding:default:default"`
+- With `instanceId`: `"myapp:feedback:default:task-123"`
+
+The `variantId` segment is reserved for future use (currently always "default").
+
+**Custom Key Generation (Advanced)**
+
+For advanced use cases like user-scoped keys, use `kvStorageAdapter`:
 
 ```tsx
-import {
-  kvStorageAdapter,
-  JsonSerializer,
-  createPersister,
-} from "@useflow/react";
+import { kvStorageAdapter, createPersister } from "@useflow/react";
 
 // User-scoped storage keys
 const store = kvStorageAdapter({
   storage: localStorage,
-  formatKey: (flowId, instanceId) => {
-    const base = `user:${userId}:${flowId}`;
-    return instanceId ? `${base}:${instanceId}` : base;
+  formatKey: (flowId, instanceId, variantId) => {
+    const userId = getCurrentUserId();
+    const vid = variantId || "default";
+    const iid = instanceId || "default";
+    return `user:${userId}:${flowId}:${vid}:${iid}`;
   },
   listKeys: (flowId) => {
     const allKeys = Object.keys(localStorage);
+    const userId = getCurrentUserId();
     const prefix = `user:${userId}:`;
     if (!flowId) return allKeys.filter((k) => k.startsWith(prefix));
-    const baseKey = `${prefix}${flowId}`;
-    return allKeys.filter((k) => k === baseKey || k.startsWith(`${baseKey}:`));
+    const baseKey = `${prefix}${flowId}:`;
+    return allKeys.filter((k) => k.startsWith(baseKey));
   },
-  serializer: JsonSerializer,
+  // JsonSerializer is the default, no need to specify
 });
 
 const persister = createPersister({
@@ -767,9 +737,8 @@ const checkoutFlow = defineFlow({ id: "checkout", /* ... */ });
 const store = createLocalStorageStore(localStorage, { prefix: "myapp" });
 const persister = createPersister({ store });
 
-// Automatic storage keys:
-// - "myapp:onboarding"
-// - "myapp:checkout"
+// Storage keys use format: prefix:flowId:variantId:instanceId
+// With defaults: "myapp:onboarding:default:default" and "myapp:checkout:default:default"
 <Flow flow={onboardingFlow} persister={persister} {...props} />
 <Flow flow={checkoutFlow} persister={persister} {...props} />
 ```
@@ -879,18 +848,37 @@ Persisted state includes:
 
 ```tsx
 {
-  stepId: "profile",           // Current step
-  context: { name: "John" },   // Full context
-  history: ["welcome"],        // Navigation history
-  status: "active",            // Flow status
-  __meta: {                    // Internal metadata (automatically managed)
+  stepId: "profile",                    // Current step
+  context: { name: "John" },            // Full context
+  
+  // Path: Stack of steps for back() navigation
+  // When you call back(), it pops from this stack
+  path: [
+    { stepId: "welcome", startedAt: 1234567890 }
+  ],
+  
+  // History: Complete chronological record of all steps visited
+  // Includes timestamps and how user left each step
+  history: [
+    { stepId: "welcome", startedAt: 1234567890, completedAt: 1234567900, action: "next" },
+    { stepId: "profile", startedAt: 1234567900 } // Current step - no completedAt/action yet
+  ],
+  
+  status: "active",                     // Flow status
+  startedAt: 1234567890,                // When flow started
+  completedAt: undefined,               // When flow completed (if complete)
+  
+  __meta: {                             // Internal (do not access directly)
     version: "v1",
     savedAt: 1234567890,
   }
 }
 ```
 
-**Note:** The `__meta` field is internal-only and automatically managed by the framework. You never need to read or write it directly - it's used for TTL checks and version tracking.
+**Note:** 
+- `path` is the navigation stack - used by `back()` to know where to go
+- `history` is the complete chronological log - includes all movements with timestamps
+- The `__meta` field is internal-only and automatically managed by the framework. Use `startedAt`, `completedAt`, and `history` for timestamps instead.
 
 #### Manual Persistence Control
 
@@ -900,7 +888,6 @@ Use `saveMode="manual"` to disable automatic saves and control when state is per
 
 ```tsx
 import { Flow, useFlow } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
 
 function MyStep() {
   const { context, next, save } = useFlow();
@@ -987,8 +974,12 @@ function TaskList({ tasks }: { tasks: Task[] }) {
 
 **How it works:**
 
-- **Without `instanceId`**: Storage key is `flowId` → `"feedback"`
-- **With `instanceId`**: Storage key is `flowId:instanceId` → `"feedback:task-123"`
+- **Without `instanceId`**: Storage key is `prefix:flowId:default:default`
+- **With `instanceId`**: Storage key is `prefix:flowId:default:instanceId`
+
+Example with prefix "myapp":
+- Without instanceId: `"myapp:feedback:default:default"`
+- With instanceId: `"myapp:feedback:default:task-123"`
 
 **When to use:**
 
@@ -1008,7 +999,6 @@ function TaskList({ tasks }: { tasks: Task[] }) {
 
 ```tsx
 import { useFlow } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
 
 function MyStep() {
   const handleRestart = () => {
@@ -1071,7 +1061,6 @@ Track save and restore events for analytics, debugging, or custom logic.
 
 ```tsx
 import { Flow } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
 
 function App() {
   const [showSaved, setShowSaved] = useState(false);
@@ -1097,7 +1086,7 @@ function App() {
           console.log("Welcome back! Resuming from:", state.stepId);
           analytics.track("Flow Resumed", {
             stepId: state.stepId,
-            daysOld: Math.floor((Date.now() - state.__meta.savedAt) / (1000 * 60 * 60 * 24)),
+            contextData: state.context,
           });
         }}
 
@@ -1145,9 +1134,7 @@ const persister = createPersister({
     analytics.track("Flow Progress Restored", {
       flowId,
       stepId: state.stepId,
-      daysOld: Math.floor(
-        (Date.now() - state.__meta.savedAt) / (1000 * 60 * 60 * 24)
-      ),
+      stepCount: state.history.length,
     });
   },
 
@@ -1213,7 +1200,6 @@ import {
   createPersister,
   kvStorageAdapter,
 } from "@useflow/react";
-import { JsonSerializer } from "@useflow/react";
 
 // Define flow with version and migration
 const onboardingFlow = defineFlow({
@@ -1264,9 +1250,14 @@ const onboardingFlow = defineFlow({
       return {
         ...state,
         stepId: state.stepId === "userProfile" ? "profile" : state.stepId,
-        history: state.history.map((step) =>
-          step === "userProfile" ? "profile" : step
-        ),
+        path: state.path.map((entry) => ({
+          ...entry,
+          stepId: entry.stepId === "userProfile" ? "profile" : entry.stepId,
+        })),
+        history: state.history.map((entry) => ({
+          ...entry,
+          stepId: entry.stepId === "userProfile" ? "profile" : entry.stepId,
+        })),
       };
     }
     return null;
@@ -1541,12 +1532,16 @@ function ProfileStep() {
 
 ## Examples
 
-See the [react-examples example](../../examples/react-examples) for complete implementations:
+See the [react-examples](../../examples/react-examples) directory for complete implementations:
 
 - **Simple Flow** - Linear step-by-step navigation
-- **Advanced Flow** - Conditional branching with business/personal paths
-- Component-driven navigation with array-based steps
-- Full TypeScript integration
+- **Branching Flow** - Conditional navigation with context-driven and component-driven branching
+- **Task Flow** - Multiple flow instances with separate state
+- **Survey Flow** - Event hooks (onNext, onBack, onTransition)
+- **Flow Variants** - Runtime flow switching for A/B testing
+- **Remote Configuration** - Load flow configs from external sources
+
+All examples include full TypeScript integration and persistence.
 
 ## Testing
 

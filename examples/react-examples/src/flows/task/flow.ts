@@ -48,8 +48,6 @@ export const taskFlow = defineFlow({
     review: {
       next: "complete",
     },
-    complete: {
-      // Terminal step
-    },
+    complete: {},
   },
 });

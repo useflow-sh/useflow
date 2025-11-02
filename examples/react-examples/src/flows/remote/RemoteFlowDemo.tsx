@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { defineFlow, Flow, type FlowConfig } from "@useflow/react";
+import { defineFlow, Flow, type FlowDefinition } from "@useflow/react";
 import { useMemo, useState } from "react";
 import { FlowInspector } from "@/components/FlowInspector";
 import { FlowVisualizer } from "@/components/FlowVisualizer";
@@ -44,11 +44,11 @@ export function RemoteFlowDemo() {
     staleTime: 1000 * 60, // 1 minute
   });
 
-  // Convert remote config to FlowDefinition using defineFlow
-  // flowConfig comes from API as 'unknown', so we cast it to FlowConfig for type safety
+  // Convert remote config to RuntimeFlowDefinition using defineFlow
+  // flowConfig comes from API as 'unknown', so we cast it to FlowDefinition for type safety
   const flowDefinition = useMemo(() => {
     if (!flowConfig) return null;
-    return defineFlow(flowConfig as FlowConfig);
+    return defineFlow(flowConfig as FlowDefinition);
   }, [flowConfig]);
 
   return (

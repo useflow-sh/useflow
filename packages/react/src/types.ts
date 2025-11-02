@@ -1,17 +1,18 @@
 import type {
-  FlowDefinition as CoreFlowDefinition,
   RuntimeFlowDefinition as CoreRuntimeFlowDefinition,
   FlowContext,
 } from "@useflow/core";
 import type { ReactElement } from "react";
-import type { UseFlowReducerReturn } from "./use-flow-reducer";
+import type { FlowDefinition, UseFlowReducerReturn } from "./use-flow-reducer";
+
+export type { FlowDefinition };
 
 /**
  * React-enhanced flow definition
  * Extends core RuntimeFlowDefinition with React-specific useFlow hook
  */
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-export type FlowDefinition<TConfig extends FlowConfig<any>> =
+export type RuntimeFlowDefinition<TConfig extends FlowDefinition<any>> =
   CoreRuntimeFlowDefinition<TConfig, ExtractContext<TConfig>> & {
     /**
      * Custom hook for this flow with type-safe step navigation
@@ -24,13 +25,6 @@ export type FlowDefinition<TConfig extends FlowConfig<any>> =
       StepNames<TConfig>
     >;
   };
-
-/**
- * FlowConfig is an alias for core's FlowDefinition
- * Used for type constraints in defineFlow
- */
-export type FlowConfig<TContext extends FlowContext = FlowContext> =
-  CoreFlowDefinition<TContext>;
 
 /**
  * Stripped-down step info exposed to components
@@ -121,7 +115,7 @@ export type StepNames<TConfig> = TConfig extends { steps: infer S }
 /**
  * Extract context type from a flow config
  */
-export type ExtractContext<TConfig> = TConfig extends FlowConfig<infer C>
+export type ExtractContext<TConfig> = TConfig extends FlowDefinition<infer C>
   ? C
   : FlowContext;
 
@@ -150,7 +144,7 @@ export type ValidNextSteps<
  * Extract all possible step names from a flow type
  * Uses distributive conditional types to handle a union of flows automatically
  */
-export type ExtractAllStepNames<TFlow> = TFlow extends FlowDefinition<
+export type ExtractAllStepNames<TFlow> = TFlow extends RuntimeFlowDefinition<
   infer TConfig
 >
   ? TConfig extends { steps: infer TSteps }
@@ -161,17 +155,8 @@ export type ExtractAllStepNames<TFlow> = TFlow extends FlowDefinition<
 /**
  * Extract context type from a flow type
  */
-export type ExtractFlowContext<TFlow> = TFlow extends FlowDefinition<
-  FlowConfig<infer TContext>
+export type ExtractFlowContext<TFlow> = TFlow extends RuntimeFlowDefinition<
+  FlowDefinition<infer TContext>
 >
   ? TContext
   : FlowContext;
-
-/**
- * Step elements mapping for Flow component
- * Maps step names to their React components
- */
-export type FlowStepElements<TStepNames extends string> = Record<
-  TStepNames,
-  React.ReactElement
->;

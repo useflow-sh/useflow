@@ -19,7 +19,7 @@ npm install @useflow/react
 ### 1. Define Your Flow
 
 ```tsx
-import { defineFlow, type FlowConfig } from "@useflow/react";
+import { defineFlow } from "@useflow/react";
 import { JsonSerializer } from "@useflow/react";
 
 type OnboardingContext = {
@@ -119,12 +119,12 @@ function ProfileStep() {
 
 ### `defineFlow<TConfig>(config)`
 
-Define a flow configuration with type-safe navigation. Returns a `FlowDefinition` with a custom `useFlow` hook.
+Define a flow configuration with type-safe navigation. Returns a `RuntimeFlowDefinition` with a custom `useFlow` hook.
 
 **Usage with TypeScript:**
 
 ```tsx
-import { defineFlow, type FlowConfig } from "@useflow/react";
+import { defineFlow } from "@useflow/react";
 import { JsonSerializer } from "@useflow/react";
 
 type MyContext = {
@@ -159,7 +159,7 @@ Main component that runs your flow using a render props pattern.
 
 ```tsx
 type FlowProps<TConfig> = {
-  flow: FlowDefinition<TConfig>; // From defineFlow()
+  flow: RuntimeFlowDefinition<TConfig>; // From defineFlow()
   initialContext: ExtractContext<TConfig>;
   instanceId?: string; // Optional unique identifier for reusable flows
   onComplete?: () => void;
@@ -200,7 +200,11 @@ type FlowProps<TConfig> = {
 **Example:**
 
 ```tsx
-<Flow flow={myFlow} initialContext={{ name: "" }} onComplete={() => console.log("Done!")}>
+<Flow
+  flow={myFlow}
+  initialContext={{ name: "" }}
+  onComplete={() => console.log("Done!")}
+>
   {({ renderStep }) =>
     renderStep({
       welcome: <WelcomeStep />,
@@ -617,13 +621,20 @@ Save and restore flow progress automatically across sessions.
 #### Quick Start
 
 ```tsx
-import { defineFlow, Flow, createPersister, createLocalStorageStore } from "@useflow/react";
+import {
+  defineFlow,
+  Flow,
+  createPersister,
+  createLocalStorageStore,
+} from "@useflow/react";
 
 // Define your flow with a unique ID
 export const onboardingFlow = defineFlow({
   id: "user-onboarding", // Required for persistence
   start: "welcome",
-  steps: { /* ... */ },
+  steps: {
+    /* ... */
+  },
 });
 
 // Create store and persister (simplified!)

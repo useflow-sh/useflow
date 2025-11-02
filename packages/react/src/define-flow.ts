@@ -6,15 +6,12 @@ import {
 import { useFlow } from "./flow";
 import type {
   ExtractContext,
-  FlowConfig,
   FlowDefinition,
+  RuntimeFlowDefinition,
   StepNames,
   UseFlowReturn,
   ValidNextSteps,
 } from "./types";
-
-// Re-export FlowDefinition for backwards compatibility
-export type { FlowDefinition };
 
 /**
  * Define a React flow with type-safe navigation and optional runtime config
@@ -79,11 +76,11 @@ export type { FlowDefinition };
 // 2. defineFlow<MyContext>({ config }) - context type explicitly provided for resolvers
 export function defineFlow<
   TContext extends FlowContext = FlowContext,
-  const TConfig extends FlowConfig<TContext> = FlowConfig<TContext>,
+  const TConfig extends FlowDefinition<TContext> = FlowDefinition<TContext>,
 >(
   config: TConfig,
   runtimeConfig?: FlowRuntimeConfig<TConfig, TContext>,
-): FlowDefinition<TConfig> {
+): RuntimeFlowDefinition<TConfig> {
   // Call core defineFlow to get enhanced definition
   const coreDefinition = coreDefineFlow<TContext, TConfig>(
     config,
@@ -113,5 +110,5 @@ export function defineFlow<
   return {
     ...coreDefinition,
     useFlow: useFlowHook,
-  } as FlowDefinition<TConfig>;
+  } as RuntimeFlowDefinition<TConfig>;
 }

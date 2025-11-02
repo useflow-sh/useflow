@@ -20,9 +20,9 @@ import {
 import type {
   ExtractAllStepNames,
   ExtractFlowContext,
-  FlowConfig,
   FlowDefinition,
-  FlowStepElements,
+  RuntimeFlowDefinition,
+  StepElements,
   StepInfo,
   UseFlowReturn,
 } from "./types";
@@ -67,7 +67,7 @@ export function useFlow<TContext extends FlowContext = FlowContext>(_options?: {
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-type FlowProps<TFlow extends FlowDefinition<FlowConfig<any>>> = {
+type FlowProps<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>> = {
   flow: TFlow;
   children: (
     state: Omit<
@@ -75,7 +75,7 @@ type FlowProps<TFlow extends FlowDefinition<FlowConfig<any>>> = {
       "renderStep"
     > & {
       renderStep: (
-        elements: FlowStepElements<ExtractAllStepNames<TFlow>>,
+        elements: StepElements<ExtractAllStepNames<TFlow>>,
       ) => ReactElement;
     },
   ) => ReactNode;
@@ -135,7 +135,7 @@ type LastActionType =
  * including a renderStep helper to display the current step. Works with
  * single flows or multiple flows selected at runtime (union types).
  *
- * @param flow - FlowDefinition returned by defineFlow() (not raw config)
+ * @param flow - RuntimeFlowDefinition returned by defineFlow() (not raw config)
  * @param initialContext - Initial context state for the flow
  * @param children - Render function that receives flow state
  * @param instanceId - Optional unique identifier for reusable flows with separate persistence
@@ -188,7 +188,7 @@ type LastActionType =
  * ```
  */
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-export function Flow<TFlow extends FlowDefinition<FlowConfig<any>>>({
+export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
   flow,
   initialContext,
   instanceId,
@@ -207,7 +207,7 @@ export function Flow<TFlow extends FlowDefinition<FlowConfig<any>>>({
   loadingComponent,
   children,
 }: FlowProps<TFlow>) {
-  // Extract config from FlowDefinition
+  // Extract config from RuntimeFlowDefinition
   const { id, config } = flow;
 
   const flowDefinitionWithoutComponents = useMemo(
@@ -550,7 +550,7 @@ export function Flow<TFlow extends FlowDefinition<FlowConfig<any>>>({
 
   // Create renderStep helper function
   const renderStep = useCallback(
-    (elements: FlowStepElements<ExtractAllStepNames<TFlow>>): ReactElement => {
+    (elements: StepElements<ExtractAllStepNames<TFlow>>): ReactElement => {
       return elements[flowState.stepId as ExtractAllStepNames<TFlow>];
     },
     [flowState.stepId],
@@ -567,7 +567,7 @@ export function Flow<TFlow extends FlowDefinition<FlowConfig<any>>>({
     "renderStep"
   > & {
     renderStep: (
-      elements: FlowStepElements<ExtractAllStepNames<TFlow>>,
+      elements: StepElements<ExtractAllStepNames<TFlow>>,
     ) => ReactElement;
   } = {
     // From flowState
@@ -595,7 +595,7 @@ export function Flow<TFlow extends FlowDefinition<FlowConfig<any>>>({
   };
 
   return (
-    <ReactFlowContext.Provider value={flowRenderState as any}>
+    <ReactFlowContext.Provider value={flowRenderState}>
       {children(flowRenderState)}
     </ReactFlowContext.Provider>
   );

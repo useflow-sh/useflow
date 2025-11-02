@@ -1,7 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
-import type { FlowDefinition } from "@useflow/core";
 import { describe, expect, it } from "vitest";
-import { useFlowReducer } from "./use-flow-reducer";
+import { type FlowDefinition, useFlowReducer } from "./use-flow-reducer";
 
 describe("useFlowReducer", () => {
   it("should initialize with start step", () => {

@@ -4,7 +4,7 @@ import { getFlowConfigFromDatabase } from "./database";
  * API Layer for Flow Configuration
  *
  * This simulates an API endpoint that fetches flow configurations from a database.
- * Returns a FlowConfig object (not a FlowDefinition - use defineFlow to convert it).
+ * Returns a FlowDefinition object (not a RuntimeFlowDefinition - use defineFlow to convert it).
  *
  * In a real application, this would be an actual API route that:
  * 1. Receives requests from the client

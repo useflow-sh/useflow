@@ -16,7 +16,6 @@ export type {
   PersisterOptions,
   ResolveFunction,
   ResolverMap,
-  RuntimeFlowDefinition,
   Serializer,
   StepRefs,
   StringSerializer,
@@ -34,14 +33,13 @@ export {
 } from "@useflow/core";
 
 // React-specific exports
-export type { FlowDefinition } from "./define-flow";
 export { defineFlow } from "./define-flow";
 export { Flow, useFlow } from "./flow";
 export type {
   ExtractAllStepNames,
   ExtractFlowContext,
-  FlowConfig,
-  FlowStepElements,
+  FlowDefinition,
+  RuntimeFlowDefinition,
   StepElements,
   UseFlowReturn,
 } from "./types";

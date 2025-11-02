@@ -53,7 +53,7 @@ export const extendedFlowConfig = {
   },
 };
 
-// Simulated database: Map of flowId -> variantId -> FlowConfig
+// Simulated database: Map of flowId -> variantId -> FlowDefinition
 const database = {
   "onboarding-flow": {
     standard: standardFlowConfig,
@@ -66,7 +66,7 @@ const database = {
  * Simulated database query function
  *
  * Fetches a flow config by flow ID and variant ID.
- * Returns a FlowConfig (not a FlowDefinition - use defineFlow to convert it).
+ * Returns a FlowDefinition (not a RuntimeFlowDefinition - use defineFlow to convert it).
  *
  * This allows you to:
  * - Store multiple flow templates (different flow IDs)

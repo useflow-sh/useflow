@@ -9,8 +9,10 @@
       "examples/*"
     ],
     "catalog": {
+      "alchemy": "^0.77.0",
       "react": "19.1.0",
       "react-dom": "19.1.0",
+      "@cloudflare/workers-types": "^4.20251014.0",
       "@types/react": "~19.1.10",
       "@types/react-dom": "^19.0.4",
       "typescript": "^5.8.2",
@@ -25,8 +27,11 @@
     }
   },
   "scripts": {
+    "dev": "bun alchemy dev",
+    "deploy": "bun alchemy deploy",
     "check": "biome check --write .",
     "build": "turbo build",
+    "build:docs": "bun run build --filter=docs",
     "check-types": "turbo check-types --log-order=stream",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -37,11 +42,13 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.0",
+    "@cloudflare/workers-types": "catalog:",
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/ui": "catalog:",
+    "alchemy": "catalog:",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "tsdown": "catalog:",

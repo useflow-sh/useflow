@@ -45,3 +45,9 @@ coverage
 .cache
 tmp
 temp
+
+# astro
+.astro
+
+# alchemy
+.alchemy

@@ -1796,7 +1796,7 @@ describe("Flow timestamps", () => {
     expect(state.startedAt).toBe(startTime); // Preserved from init
   });
 
-  it("should calculate flow duration from timestamps", () => {
+  it("should calculate flow duration from timestamps", async () => {
     type TestContext = { value: string };
 
     const definition: FlowDefinition<TestContext> = {
@@ -1816,12 +1816,11 @@ describe("Flow timestamps", () => {
       new Promise((resolve) => setTimeout(resolve, ms));
 
     // Navigate to completion with delay
-    wait(delay).then(() => {
-      state = flowReducer(state, { type: "NEXT" }, definition);
+    await wait(delay);
+    state = flowReducer(state, { type: "NEXT" }, definition);
 
-      const duration = state.completedAt! - state.startedAt;
-      expect(duration).toBeGreaterThanOrEqual(delay);
-      expect(state.completedAt).toBeGreaterThan(state.startedAt);
-    });
+    const duration = state.completedAt! - state.startedAt;
+    expect(duration).toBeGreaterThanOrEqual(delay);
+    expect(state.completedAt).toBeGreaterThan(state.startedAt);
   });
 });

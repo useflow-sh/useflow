@@ -17,6 +17,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useFlowConfig } from "./provider";
 import type {
   ExtractAllStepNames,
   ExtractFlowContext,
@@ -198,15 +199,24 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
   onBack,
   onTransition,
   onContextUpdate,
-  persister,
-  saveDebounce = 300,
-  saveMode = "navigation",
-  onPersistenceError,
+  persister: persisterProp,
+  saveDebounce: saveDebounceProp,
+  saveMode: saveModeProp,
+  onPersistenceError: onPersistenceErrorProp,
   onSave,
   onRestore,
   loadingComponent,
   children,
 }: FlowProps<TFlow>) {
+  // Get global config from provider (if available)
+  const globalConfig = useFlowConfig();
+
+  // Merge global and local config (local props override global)
+  const persister = persisterProp ?? globalConfig?.persister;
+  const saveDebounce = saveDebounceProp ?? globalConfig?.saveDebounce ?? 300;
+  const saveMode = saveModeProp ?? globalConfig?.saveMode ?? "navigation";
+  const onPersistenceError =
+    onPersistenceErrorProp ?? globalConfig?.onPersistenceError;
   // Extract config from RuntimeFlowDefinition
   const { id, config } = flow;
 
@@ -256,6 +266,9 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
 
   // Track what type of action caused the state change
   const lastActionRef = useRef<LastActionType>(null);
+
+  // Track if flow has started (for global onFlowStart callback)
+  const hasStartedRef = useRef(false);
 
   // Wrap next/skip/back/setContext to track action type
   const next = useCallback(
@@ -378,6 +391,26 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
     onPersistenceError,
   ]);
 
+  // Fire global onFlowStart callback once on mount
+  useEffect(() => {
+    if (!hasStartedRef.current && !isRestoring) {
+      hasStartedRef.current = true;
+      globalConfig?.callbacks?.onFlowStart?.({
+        flowId: flow.id,
+        variantId: config.variantId,
+        instanceId,
+        context: flowState.context,
+      });
+    }
+  }, [
+    flow.id,
+    config.variantId,
+    instanceId,
+    flowState.context,
+    globalConfig,
+    isRestoring,
+  ]);
+
   // Handle callbacks when state changes
   useEffect(() => {
     const action = lastActionRef.current;
@@ -400,6 +433,17 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
         oldContext: prevState.context,
         newContext: flowState.context,
       });
+      // Global transition callback
+      globalConfig?.callbacks?.onStepTransition?.({
+        flowId: flow.id,
+        variantId: config.variantId,
+        instanceId,
+        from: prevState.stepId,
+        to: flowState.stepId,
+        direction: "forward",
+        oldContext: prevState.context,
+        newContext: flowState.context,
+      });
     } else if (action === "SKIP" && prevState.stepId !== flowState.stepId) {
       onSkip?.({
         from: prevState.stepId,
@@ -414,6 +458,17 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
         oldContext: prevState.context,
         newContext: flowState.context,
       });
+      // Global transition callback
+      globalConfig?.callbacks?.onStepTransition?.({
+        flowId: flow.id,
+        variantId: config.variantId,
+        instanceId,
+        from: prevState.stepId,
+        to: flowState.stepId,
+        direction: "forward",
+        oldContext: prevState.context,
+        newContext: flowState.context,
+      });
     } else if (action === "BACK" && prevState.stepId !== flowState.stepId) {
       onBack?.({
         from: prevState.stepId,
@@ -422,6 +477,17 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
         newContext: flowState.context,
       });
       onTransition?.({
+        from: prevState.stepId,
+        to: flowState.stepId,
+        direction: "backward",
+        oldContext: prevState.context,
+        newContext: flowState.context,
+      });
+      // Global transition callback
+      globalConfig?.callbacks?.onStepTransition?.({
+        flowId: flow.id,
+        variantId: config.variantId,
+        instanceId,
         from: prevState.stepId,
         to: flowState.stepId,
         direction: "backward",
@@ -443,6 +509,13 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
     // Handle onComplete callback
     if (flowState.status === "complete" && prevState.status !== "complete") {
       onComplete?.();
+      // Global complete callback
+      globalConfig?.callbacks?.onFlowComplete?.({
+        flowId: flow.id,
+        variantId: config.variantId,
+        instanceId,
+        context: flowState.context,
+      });
     }
 
     previousStateRef.current = flowState;
@@ -454,6 +527,10 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
     onTransition,
     onContextUpdate,
     onComplete,
+    globalConfig,
+    flow.id,
+    config.variantId,
+    instanceId,
   ]);
 
   // Handle async restoration from persister after mount

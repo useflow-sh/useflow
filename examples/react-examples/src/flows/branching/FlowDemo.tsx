@@ -3,7 +3,6 @@ import { AnimateFlowStep } from "../../components/AnimateFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { FlowVisualizer } from "../../components/FlowVisualizer";
 import { LoadingView } from "../../components/LoadingView";
-import { persister, store } from "../../lib/storage";
 import { CompleteStep } from "../../shared-steps/CompleteStep";
 import { PreferencesStep } from "../../shared-steps/PreferencesStep";
 import { ProfileStep } from "../../shared-steps/ProfileStep";
@@ -26,8 +25,6 @@ export function BranchingFlowDemo() {
         companyName: undefined,
         startedAt: undefined,
       }}
-      persister={persister}
-      saveMode="always"
       loadingComponent={<LoadingView />}
     >
       {({ renderStep, context, reset }) => (
@@ -37,11 +34,7 @@ export function BranchingFlowDemo() {
             <FlowVisualizer />
           </div>
 
-          <FlowInspector
-            flowId={branchingFlow.id}
-            store={store}
-            position="right"
-          />
+          <FlowInspector flowId={branchingFlow.id} position="right" />
 
           {/* Main content - centered in viewport */}
           <div className="flex items-center justify-center min-h-screen">

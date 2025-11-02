@@ -1,8 +1,18 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { FlowPersister } from "@useflow/core";
+import { createMemoryStore } from "@useflow/core";
 import { act, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { defineFlow } from "./define-flow";
 import { Flow, useFlow } from "./flow";
+
+// Helper to create a mock persister with a memory store
+const createMockPersister = (overrides = {}): FlowPersister => ({
+  save: vi.fn(),
+  restore: vi.fn().mockResolvedValue(null),
+  store: createMemoryStore(),
+  ...overrides,
+});
 
 describe("Flow", () => {
   it("should provide flow context to children", () => {
@@ -1432,10 +1442,9 @@ describe("Persistence", () => {
       status: "active",
     };
 
-    const persister = {
-      save: vi.fn(),
+    const persister = createMockPersister({
       restore: vi.fn().mockResolvedValue(savedState),
-    };
+    });
 
     render(
       <Flow flow={flow} initialContext={{ name: "" }} persister={persister}>
@@ -1496,10 +1505,9 @@ describe("Persistence", () => {
       status: "active" as const,
     };
 
-    const persister = {
-      save: vi.fn(),
+    const persister = createMockPersister({
       restore: vi.fn().mockResolvedValue(savedState),
-    };
+    });
 
     const onRestore = vi.fn();
 
@@ -1540,12 +1548,11 @@ describe("Persistence", () => {
       },
     });
 
-    const persister = {
+    const persister = createMockPersister({
       save: vi
         .fn()
         .mockImplementation((_flowId, state) => Promise.resolve(state)),
-      restore: vi.fn().mockResolvedValue(null),
-    };
+    });
 
     const onSave = vi.fn();
 
@@ -1600,15 +1607,14 @@ describe("Persistence", () => {
       },
     });
 
-    const persister = {
-      save: vi.fn(),
+    const persister = createMockPersister({
       restore: vi.fn().mockImplementation(
         () =>
           new Promise((resolve) => {
             setTimeout(() => resolve(null), 100);
           }),
       ),
-    };
+    });
 
     render(
       <Flow
@@ -1647,10 +1653,9 @@ describe("Persistence", () => {
       status: "active" as const,
     };
 
-    const persister = {
-      save: vi.fn(),
+    const persister = createMockPersister({
       restore: vi.fn().mockResolvedValue(invalidState),
-    };
+    });
 
     const onPersistenceError = vi.fn();
 
@@ -1693,6 +1698,7 @@ describe("Persistence", () => {
     const persister = {
       save: vi.fn(),
       restore: vi.fn().mockRejectedValue(error),
+      store: createMemoryStore(),
     };
 
     const onPersistenceError = vi.fn();
@@ -1726,10 +1732,7 @@ describe("Persistence", () => {
       },
     });
 
-    const persister = {
-      save: vi.fn(),
-      restore: vi.fn().mockResolvedValue(null),
-    };
+    const persister = createMockPersister();
 
     const onRestore = vi.fn();
 
@@ -1772,10 +1775,7 @@ describe("Persistence", () => {
       }),
     );
 
-    const persister = {
-      save: vi.fn(),
-      restore: vi.fn().mockResolvedValue(null),
-    };
+    const persister = createMockPersister();
 
     render(
       <Flow flow={flow} initialContext={{}} persister={persister}>
@@ -1809,6 +1809,7 @@ describe("Persistence", () => {
     const persister = {
       save: vi.fn().mockRejectedValue(saveError),
       restore: vi.fn().mockResolvedValue(null),
+      store: createMemoryStore(),
     };
 
     const onPersistenceError = vi.fn();
@@ -1867,6 +1868,7 @@ describe("Persistence", () => {
     const persister = {
       save: vi.fn().mockResolvedValue(undefined),
       restore: vi.fn().mockResolvedValue(null),
+      store: createMemoryStore(),
     };
 
     function TestContent() {
@@ -1941,6 +1943,7 @@ describe("Persistence", () => {
       const persister = {
         save: vi.fn().mockResolvedValue(undefined),
         restore: vi.fn().mockResolvedValue(null),
+        store: createMemoryStore(),
       };
 
       function TestContent() {
@@ -2033,6 +2036,7 @@ describe("Persistence", () => {
     const persister = {
       save: vi.fn().mockResolvedValue(undefined),
       restore: vi.fn().mockResolvedValue(null),
+      store: createMemoryStore(),
     };
 
     function TestContent() {
@@ -2090,6 +2094,7 @@ describe("Persistence", () => {
     const persister = {
       save: vi.fn().mockResolvedValue(undefined),
       restore: vi.fn().mockResolvedValue(null),
+      store: createMemoryStore(),
     };
 
     function TestContent() {
@@ -2165,6 +2170,7 @@ describe("Persistence", () => {
     const persister = {
       save: vi.fn().mockRejectedValue(saveError),
       restore: vi.fn().mockResolvedValue(null),
+      store: createMemoryStore(),
     };
 
     const onPersistenceError = vi.fn();
@@ -2257,12 +2263,11 @@ describe("Persistence", () => {
       },
     });
 
-    const persister = {
+    const persister = createMockPersister({
       save: vi
         .fn()
         .mockImplementation((_flowId, state) => Promise.resolve(state)),
-      restore: vi.fn().mockResolvedValue(null),
-    };
+    });
 
     const onSave = vi.fn();
 
@@ -2322,6 +2327,7 @@ describe("Persistence", () => {
     const persister = {
       save: vi.fn().mockResolvedValue(undefined),
       restore: vi.fn().mockResolvedValue(null),
+      store: createMemoryStore(),
     };
 
     function TestContent() {
@@ -2391,6 +2397,7 @@ describe("Persistence", () => {
     const persister = {
       save: vi.fn().mockResolvedValue(undefined),
       restore: vi.fn().mockResolvedValue(null),
+      store: createMemoryStore(),
     };
 
     function TestContent() {
@@ -2459,6 +2466,7 @@ describe("Persistence", () => {
       const persister = {
         save: vi.fn().mockResolvedValue(undefined),
         restore: vi.fn().mockResolvedValue(null),
+        store: createMemoryStore(),
       };
 
       function TestContent() {
@@ -2544,10 +2552,9 @@ describe("Persistence", () => {
         status: "active" as const,
       };
 
-      const persister = {
-        save: vi.fn(),
+      const persister = createMockPersister({
         restore: vi.fn().mockResolvedValue(savedState),
-      };
+      });
 
       render(
         <Flow
@@ -2593,11 +2600,13 @@ describe("Persistence", () => {
       const persister1 = {
         save: vi.fn().mockResolvedValue(undefined),
         restore: vi.fn().mockResolvedValue(null),
+        store: createMemoryStore(),
       };
 
       const persister2 = {
         save: vi.fn().mockResolvedValue(undefined),
         restore: vi.fn().mockResolvedValue(null),
+        store: createMemoryStore(),
       };
 
       function TestContent() {
@@ -2690,6 +2699,7 @@ describe("Persistence", () => {
       const persister = {
         save: vi.fn().mockResolvedValue(undefined),
         restore: vi.fn().mockResolvedValue(null),
+        store: createMemoryStore(),
       };
 
       function TestContent() {
@@ -2818,6 +2828,7 @@ describe("reset", () => {
       })),
       restore: vi.fn(async () => null),
       remove: vi.fn(async () => {}),
+      store: createMemoryStore(),
     };
 
     const flow = defineFlow({
@@ -2903,6 +2914,7 @@ describe("reset", () => {
       })),
       restore: vi.fn(async () => null),
       remove: vi.fn(async () => {}),
+      store: createMemoryStore(),
     };
 
     const flow = defineFlow({
@@ -2976,6 +2988,7 @@ describe("reset", () => {
       remove: vi.fn(async () => {
         throw new Error("Failed to remove");
       }),
+      store: createMemoryStore(),
     };
 
     const flow = defineFlow({

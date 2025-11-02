@@ -113,6 +113,133 @@ function ProfileStep() {
 }
 ```
 
+## Global Configuration with FlowProvider
+
+For apps with multiple flows, use `FlowProvider` to configure default settings globally and eliminate repetitive props.
+
+### Setup
+
+Wrap your app with `FlowProvider` to set defaults for all flows:
+
+```tsx
+import { FlowProvider } from "@useflow/react";
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+
+// Create persister once
+const store = createLocalStorageStore(localStorage, { prefix: "myapp" });
+const persister = createPersister({ store, ttl: 7 * 24 * 60 * 60 * 1000 });
+
+function App() {
+  return (
+    <FlowProvider
+      config={{
+        persister,
+        saveMode: "always",
+        saveDebounce: 300,
+        onPersistenceError: (error) => {
+          console.error("Flow persistence error:", error);
+        },
+        callbacks: {
+          onFlowStart: ({ flowId, context }) => {
+            console.log(`Flow ${flowId} started`, context);
+          },
+          onFlowComplete: ({ flowId, context }) => {
+            analytics.track("flow_completed", { flowId, context });
+          },
+          onStepTransition: ({ flowId, from, to, direction }) => {
+            console.log(`${flowId}: ${from} → ${to} (${direction})`);
+          },
+        },
+      }}
+    >
+      <YourApp />
+    </FlowProvider>
+  );
+}
+```
+
+### Using Global Config
+
+Flows automatically use global configuration - no props needed:
+
+```tsx
+// Before: Repetitive props on every flow
+<Flow
+  flow={flow1}
+  initialContext={{}}
+  persister={persister}
+  saveMode="always"
+/>
+
+// After: Clean, uses global config
+<Flow flow={flow1} initialContext={{}} />
+```
+
+### Overriding Global Config
+
+Individual flows can override any global setting:
+
+```tsx
+<Flow
+  flow={criticalFlow}
+  initialContext={{}}
+  saveMode="navigation" // Override global "always"
+  saveDebounce={0} // No debounce for this flow
+/>
+```
+
+### Global Callback Events
+
+Global callbacks receive full flow identification:
+
+```tsx
+onFlowStart: ({ flowId, variantId, instanceId, context }) => {
+  // flowId: Flow identifier
+  // variantId: Variant identifier (for A/B testing)
+  // instanceId: Instance identifier (for reusable flows)
+  // context: Flow context data
+};
+
+onFlowComplete: ({ flowId, variantId, instanceId, context }) => {
+  // Called when any flow completes
+};
+
+onStepTransition: ({
+  flowId,
+  variantId,
+  instanceId,
+  from,
+  to,
+  direction,
+  oldContext,
+  newContext,
+}) => {
+  // Called on every step transition
+  // direction: "forward" | "backward"
+};
+```
+
+### FlowProvider Config Options
+
+| Option                       | Type              | Default        | Description                                                   |
+| ---------------------------- | ----------------- | -------------- | ------------------------------------------------------------- |
+| `persister`                  | `FlowPersister`   | `undefined`    | Default persister for all flows                               |
+| `saveMode`                   | `SaveMode`        | `"navigation"` | Default save mode: `"always"` \| `"navigation"` \| `"manual"` |
+| `saveDebounce`               | `number`          | `300`          | Default debounce delay (ms) for save operations               |
+| `onPersistenceError`         | `(error) => void` | `undefined`    | Global error handler for persistence failures                 |
+| `callbacks`                  | `object`          | `undefined`    | Global lifecycle callbacks                                    |
+| `callbacks.onFlowStart`      | `(event) => void` | `undefined`    | Called when any flow starts                                   |
+| `callbacks.onFlowComplete`   | `(event) => void` | `undefined`    | Called when any flow completes                                |
+| `callbacks.onStepTransition` | `(event) => void` | `undefined`    | Called on every step transition                               |
+
+### Benefits
+
+- **Less Boilerplate**: Configure once, use everywhere
+- **Consistency**: All flows share same default behavior
+- **Flexibility**: Override per-flow when needed
+- **Observability**: Track all flow lifecycle events globally
+- **Future-Ready**: Foundation for remote config, analytics, A/B testing
+
 ## API Reference
 
 ### `defineFlow<TConfig>(config)`
@@ -143,7 +270,7 @@ export const myFlow = defineFlow(
   },
   (steps) => ({
     resolve: {
-      welcome: (ctx: MyContext) => 
+      welcome: (ctx: MyContext) =>
         ctx.userType === "business" ? steps.business : steps.personal,
     },
   })
@@ -267,6 +394,7 @@ Hook to access flow state and navigation. Use directly in components or use the 
   skip: (update?) => void;           // Skip forward (fires onSkip)
   back: () => void;                  // Navigate back
   setContext: (update) => void;      // Update context
+  reset: () => Promise<void>;        // Reset to initial state (clears persisted data)
   save: () => Promise<void>;         // Manually save (for saveMode="manual")
   isRestoring: boolean;              // True while restoring from persister
   steps: Record<string, StepInfo>;   // All steps in the flow
@@ -422,6 +550,56 @@ next((ctx) => ({
   timestamp: Date.now(),
 }));
 ```
+
+### Resetting Flows
+
+Reset a flow back to its initial state. This clears all context data, navigation history, and persisted state:
+
+```tsx
+function SurveyComplete() {
+  const { reset } = useFlow();
+
+  const handleRetake = async () => {
+    // Resets flow to initial state
+    // - Clears context back to initialContext
+    // - Resets to start step
+    // - Clears navigation history
+    // - Removes persisted state (if using a persister)
+    await reset();
+  };
+
+  return (
+    <div>
+      <h2>Survey Complete!</h2>
+      <button onClick={handleRetake}>Retake Survey</button>
+    </div>
+  );
+}
+```
+
+**Available in render props:**
+
+```tsx
+<Flow flow={surveyFlow} initialContext={{}}>
+  {({ renderStep, reset, context }) => {
+    const handleRestart = async () => {
+      await reset();
+      console.log("Flow restarted!");
+    };
+
+    return (
+      <div>
+        {renderStep({
+          welcome: <WelcomeStep />,
+          results: <ResultsStep onRestart={handleRestart} />,
+        })}
+      </div>
+    );
+  }}
+</Flow>
+```
+
+**Note:** The `reset()` function automatically handles persisted state cleanup, so you don't need to manually call `persister.remove()`. It returns a Promise that resolves when the reset is complete.
 
 ### Dynamic Components
 
@@ -850,24 +1028,24 @@ Persisted state includes:
 {
   stepId: "profile",                    // Current step
   context: { name: "John" },            // Full context
-  
+
   // Path: Stack of steps for back() navigation
   // When you call back(), it pops from this stack
   path: [
     { stepId: "welcome", startedAt: 1234567890 }
   ],
-  
+
   // History: Complete chronological record of all steps visited
   // Includes timestamps and how user left each step
   history: [
     { stepId: "welcome", startedAt: 1234567890, completedAt: 1234567900, action: "next" },
     { stepId: "profile", startedAt: 1234567900 } // Current step - no completedAt/action yet
   ],
-  
+
   status: "active",                     // Flow status
   startedAt: 1234567890,                // When flow started
   completedAt: undefined,               // When flow completed (if complete)
-  
+
   __meta: {                             // Internal (do not access directly)
     version: "v1",
     savedAt: 1234567890,
@@ -875,7 +1053,8 @@ Persisted state includes:
 }
 ```
 
-**Note:** 
+**Note:**
+
 - `path` is the navigation stack - used by `back()` to know where to go
 - `history` is the complete chronological log - includes all movements with timestamps
 - The `__meta` field is internal-only and automatically managed by the framework. Use `startedAt`, `completedAt`, and `history` for timestamps instead.
@@ -978,6 +1157,7 @@ function TaskList({ tasks }: { tasks: Task[] }) {
 - **With `instanceId`**: Storage key is `prefix:flowId:default:instanceId`
 
 Example with prefix "myapp":
+
 - Without instanceId: `"myapp:feedback:default:default"`
 - With instanceId: `"myapp:feedback:default:task-123"`
 

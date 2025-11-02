@@ -15,7 +15,7 @@ import { AnimateFlowStep } from "../../components/AnimateFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { FlowVisualizer } from "../../components/FlowVisualizer";
 import { LoadingView } from "../../components/LoadingView";
-import { persister, store } from "../../lib/storage";
+
 import { AccountStep } from "./components/AccountStep";
 import { CompleteStep } from "./components/CompleteStep";
 import { PreferencesStep } from "./components/PreferencesStep";
@@ -148,8 +148,6 @@ export function DynamicFlowDemo() {
         name: "",
         notifications: true,
       }}
-      persister={persister}
-      saveMode="always"
       loadingComponent={<LoadingView />}
     >
       {({ renderStep }) => (
@@ -176,11 +174,7 @@ export function DynamicFlowDemo() {
             <FlowVisualizer />
           </div>
 
-          <FlowInspector
-            flowId={selectedFlow.id}
-            store={store}
-            position="right"
-          />
+          <FlowInspector flowId={selectedFlow.id} position="right" />
 
           {/* Main content - centered in viewport */}
           <div className="flex items-center justify-center min-h-screen">

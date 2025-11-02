@@ -36,6 +36,12 @@ export {
 export { defineFlow } from "./define-flow";
 export { Flow, useFlow } from "./flow";
 export type {
+  FlowProviderConfig,
+  SaveMode,
+  TransitionEvent,
+} from "./provider";
+export { FlowProvider, useFlowConfig } from "./provider";
+export type {
   ExtractAllStepNames,
   ExtractFlowContext,
   FlowDefinition,

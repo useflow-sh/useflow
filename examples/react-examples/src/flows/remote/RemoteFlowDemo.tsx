@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { persister, store } from "@/lib/storage";
+
 import { fetchFlowConfig } from "./api";
 import {
   AccountStep,
@@ -128,8 +128,6 @@ export function RemoteFlowDemo() {
             email: "",
             userType: "business",
           }}
-          persister={persister}
-          saveMode="always"
         >
           {({ renderStep }) => (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -162,7 +160,6 @@ export function RemoteFlowDemo() {
                     <FlowInspector
                       flowId={flowDefinition.id}
                       variantId={selectedConfig}
-                      store={store}
                       position="right"
                     />
                   </CardContent>

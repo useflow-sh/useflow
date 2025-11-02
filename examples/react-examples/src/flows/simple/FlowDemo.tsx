@@ -2,7 +2,6 @@ import { Flow } from "@useflow/react";
 import { FlowInspector } from "../../components/FlowInspector";
 import { FlowVisualizer } from "../../components/FlowVisualizer";
 import { LoadingView } from "../../components/LoadingView";
-import { persister, store } from "../../lib/storage";
 import { CompleteStep } from "../../shared-steps/CompleteStep";
 import { PreferencesStep } from "../../shared-steps/PreferencesStep";
 import { ProfileStep } from "../../shared-steps/ProfileStep";
@@ -18,8 +17,6 @@ export function SimpleFlowDemo() {
         theme: undefined,
         notifications: false,
       }}
-      persister={persister}
-      saveMode="always"
       loadingComponent={<LoadingView />}
     >
       {({ renderStep, context, reset, stepId }) => (
@@ -29,11 +26,7 @@ export function SimpleFlowDemo() {
             <FlowVisualizer />
           </div>
 
-          <FlowInspector
-            flowId={simpleFlow.id}
-            store={store}
-            position="right"
-          />
+          <FlowInspector flowId={simpleFlow.id} position="right" />
 
           {/* Main content - centered in viewport */}
           <div className="flex items-center justify-center min-h-screen">

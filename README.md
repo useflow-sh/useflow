@@ -137,6 +137,46 @@ function ProfileStep() {
 }
 ```
 
+### 4. Configure Globally (Optional)
+
+For apps with multiple flows, use `FlowProvider` to set defaults once:
+
+```tsx
+import { FlowProvider, createLocalStorageStore, createPersister } from "@useflow/react";
+
+// Set up persistence once
+const store = createLocalStorageStore(localStorage, { prefix: "myapp" });
+const persister = createPersister({ store });
+
+function App() {
+  return (
+    <FlowProvider
+      config={{
+        persister,           // All flows use this persister
+        saveMode: "always",  // All flows auto-save by default
+        callbacks: {
+          onFlowComplete: ({ flowId }) => {
+            analytics.track("flow_completed", { flowId });
+          },
+        },
+      }}
+    >
+      {/* All flows automatically use global config */}
+      <Flow flow={onboardingFlow} initialContext={{...}} />
+      <Flow flow={checkoutFlow} initialContext={{...}} />
+    </FlowProvider>
+  );
+}
+```
+
+**Benefits:**
+
+- Configure once, use everywhere - no repetitive props
+- Global callbacks to track all flow lifecycle events
+- Individual flows can override when needed
+
+See the [`@useflow/react` README](./packages/react/README.md#global-configuration-with-flowprovider) for full documentation.
+
 ## Advanced Features
 
 ### Context-Driven Branching
@@ -170,8 +210,10 @@ const flow = defineFlow(
   (steps) => ({
     resolve: {
       // Type annotation on ctx parameter for type safety
-      userType: (ctx: Context) => 
-        ctx.accountType === "business" ? steps.businessDetails : steps.preferences,
+      userType: (ctx: Context) =>
+        ctx.accountType === "business"
+          ? steps.businessDetails
+          : steps.preferences,
     },
   })
 );

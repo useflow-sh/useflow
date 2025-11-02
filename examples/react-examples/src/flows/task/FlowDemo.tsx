@@ -1,4 +1,4 @@
-import { Flow } from "@useflow/react";
+import { Flow, useFlowConfig } from "@useflow/react";
 import { ArrowLeft, ChevronDown, ListTodo, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
 import { AnimateFlowStep } from "../../components/AnimateFlowStep";
 import { FlowInspector } from "../../components/FlowInspector";
 import { LoadingView } from "../../components/LoadingView";
-import { persister, store } from "../../lib/storage";
+import { store } from "../../lib/storage";
 import { AssignStep } from "./components/AssignStep";
 import { DetailsStep } from "./components/DetailsStep";
 import { ReviewStep } from "./components/ReviewStep";
@@ -37,6 +37,9 @@ type DraftTask = {
 };
 
 export function TaskFlowDemo() {
+  const globalConfig = useFlowConfig();
+  const persister = globalConfig?.persister;
+
   const [activeTaskId, setActiveTaskId] = useState<string | undefined | null>(
     null,
   );
@@ -107,7 +110,7 @@ export function TaskFlowDemo() {
   const handleCreateAnother = (context: TaskFlowContext) => {
     saveTask(context);
     if (activeTaskId) {
-      persister.remove?.(taskFlow.id, { instanceId: activeTaskId });
+      persister?.remove?.(taskFlow.id, { instanceId: activeTaskId });
       // Remove from draft tasks
       setDraftTasks((prev) => prev.filter((t) => t.id !== activeTaskId));
     }
@@ -118,7 +121,7 @@ export function TaskFlowDemo() {
   const handleViewAll = (context: TaskFlowContext) => {
     saveTask(context);
     if (activeTaskId) {
-      persister.remove?.(taskFlow.id, { instanceId: activeTaskId });
+      persister?.remove?.(taskFlow.id, { instanceId: activeTaskId });
       // Remove from draft tasks
       setDraftTasks((prev) => prev.filter((t) => t.id !== activeTaskId));
     }
@@ -130,7 +133,7 @@ export function TaskFlowDemo() {
   };
 
   const handleDeleteDraft = async (taskId: string | undefined) => {
-    await persister.remove?.(taskFlow.id, { instanceId: taskId });
+    await persister?.remove?.(taskFlow.id, { instanceId: taskId });
     setDraftTasks((prev) => prev.filter((t) => t.id !== taskId));
   };
 
@@ -141,7 +144,7 @@ export function TaskFlowDemo() {
 
   const handleCancelTask = () => {
     if (activeTaskId) {
-      persister.remove?.(taskFlow.id, { instanceId: activeTaskId });
+      persister?.remove?.(taskFlow.id, { instanceId: activeTaskId });
       // Remove from draft tasks
       setDraftTasks((prev) => prev.filter((t) => t.id !== activeTaskId));
     }
@@ -364,8 +367,6 @@ export function TaskFlowDemo() {
         description: "",
       }}
       onTransition={handleTransition}
-      persister={persister}
-      saveMode="always"
       loadingComponent={<LoadingView />}
     >
       {({ renderStep, context }) => (
@@ -385,7 +386,6 @@ export function TaskFlowDemo() {
 
           <FlowInspector
             flowId={taskFlow.id}
-            store={store}
             instanceId={activeTaskId}
             position="right"
           />

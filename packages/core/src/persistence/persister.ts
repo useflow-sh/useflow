@@ -9,6 +9,12 @@ import type { FlowStore } from "./store";
  */
 export interface FlowPersister {
   /**
+   * The underlying store used by this persister
+   * Useful for debugging, inspecting state, and direct store operations
+   */
+  store: FlowStore;
+
+  /**
    * Save flow state for a specific flow ID
    * Can be sync or async
    *
@@ -147,6 +153,8 @@ export function createPersister(options: PersisterOptions): FlowPersister {
   const { store, ttl, validate, onSave, onRestore, onError } = options;
 
   return {
+    store,
+
     save: async (flowId, state, saveOptions) => {
       try {
         const withMeta: PersistedFlowState = {

@@ -3,7 +3,7 @@ import type {
   KVFlowStore,
   PersistedFlowState,
 } from "@useflow/react";
-import { useFlow } from "@useflow/react";
+import { useFlow, useFlowConfig } from "@useflow/react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,17 +16,20 @@ import {
 
 export function FlowInspector({
   flowId,
-  store,
+  store: storeProp,
   instanceId,
   variantId,
   position = "right",
 }: {
   flowId: string;
-  store: FlowStore;
+  store?: FlowStore;
   instanceId?: string;
   variantId?: string;
   position?: "left" | "right";
 }) {
+  // Get store from global config if not provided as prop
+  const globalConfig = useFlowConfig();
+  const store = storeProp ?? globalConfig?.persister?.store;
   const {
     context,
     stepId,
@@ -52,6 +55,8 @@ export function FlowInspector({
 
   // Poll storage for updates to persisted state
   useEffect(() => {
+    if (!store) return;
+
     const updatePersistedState = async () => {
       const state = await store.get(flowId, { instanceId, variantId });
       setPersistedState(state || null);
@@ -66,12 +71,14 @@ export function FlowInspector({
   }, [flowId, store, instanceId, variantId]);
 
   const handleClearCurrentFlow = async () => {
+    if (!store) return;
     await store.remove(flowId, { instanceId, variantId });
     setPersistedState(null);
     window.location.reload();
   };
 
   const handleClearAllFlows = async () => {
+    if (!store) return;
     await store.removeAll?.();
     setPersistedState(null);
     window.location.reload();
@@ -158,17 +165,19 @@ export function FlowInspector({
                 <span className="text-muted-foreground">No saved state</span>
               )}
             </div>
-            {"formatKey" in store && typeof store.formatKey === "function" && (
-              <div className="text-[0.65rem] text-muted-foreground">
-                Key:{" "}
-                <code>
-                  {(store as KVFlowStore).formatKey(flowId, {
-                    instanceId,
-                    variantId,
-                  })}
-                </code>
-              </div>
-            )}
+            {store &&
+              "formatKey" in store &&
+              typeof store.formatKey === "function" && (
+                <div className="text-[0.65rem] text-muted-foreground">
+                  Key:{" "}
+                  <code>
+                    {(store as KVFlowStore).formatKey(flowId, {
+                      instanceId,
+                      variantId,
+                    })}
+                  </code>
+                </div>
+              )}
             {(instanceId || variantId) && (
               <div className="text-[0.65rem] text-muted-foreground space-y-0.5">
                 {variantId && (

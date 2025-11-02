@@ -24,7 +24,7 @@ import { VerificationStep } from "./components/VerificationStep";
 import { WelcomeStep } from "./components/WelcomeStep";
 import { expressFlow, standardFlow } from "./flow";
 
-export function DynamicFlowDemo() {
+export function FlowVariantsDemo() {
   const [isStarted, setIsStarted] = useState(false);
   const [useExpressFlow, setUseExpressFlow] = useState(false);
 

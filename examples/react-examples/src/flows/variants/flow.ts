@@ -1,7 +1,7 @@
 import { defineFlow } from "@useflow/react";
 
 /**
- * Dynamic Flows - Demonstrates Flow Definition Switching
+ * Flow Variants - Demonstrates Flow Definition Switching
  *
  * This example showcases how the SAME step components can be used with
  * DIFFERENT flow definitions, allowing you to:
@@ -25,7 +25,7 @@ import { defineFlow } from "@useflow/react";
  *   - Customize flows per user/tenant
  *   - Test new flows with specific users
  *
- * ⚠️ IMPORTANT: Dynamic flow switching
+ * ⚠️ IMPORTANT: Flow variant switching
  *
  * This example shows how to switch between different flow definitions at runtime.
  *
@@ -52,7 +52,7 @@ import { defineFlow } from "@useflow/react";
  * - You must provide components for all steps from all flows
  * - Only the steps from the active flow will be rendered
  *
- * Components in dynamic flows use the generic useFlow() hook (not flow.useFlow())
+ * Components in flow variants use the generic useFlow() hook (not flow.useFlow())
  * to be reusable across both flow configurations.
  */
 

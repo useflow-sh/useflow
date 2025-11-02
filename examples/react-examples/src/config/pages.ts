@@ -13,12 +13,12 @@ import type { ComponentType } from "react";
 // Import all page components
 import { FlowGallery } from "../components/FlowGallery";
 import { BranchingFlowDemo } from "../flows/branching/FlowDemo";
-import { DynamicFlowDemo } from "../flows/dynamic/FlowDemo";
 import { FlowModificationDemo } from "../flows/flow-modification-demo/FlowModificationDemo";
 import { RemoteFlowDemo } from "../flows/remote/RemoteFlowDemo";
 import { SimpleFlowDemo } from "../flows/simple/FlowDemo";
 import { SurveyFlowDemo } from "../flows/survey/FlowDemo";
 import { TaskFlowDemo } from "../flows/task/FlowDemo";
+import { FlowVariantsDemo } from "../flows/variants/FlowDemo";
 
 export interface PageConfig {
   id: string;
@@ -142,10 +142,10 @@ export const pages: PageConfig[] = [
   {
     id: "dynamic",
     label: "Flow Variants",
-    path: "/dynamic",
+    path: "/variants",
     icon: Workflow,
     description: "Multiple flow definitions",
-    component: DynamicFlowDemo,
+    component: FlowVariantsDemo,
     category: "examples",
     isGalleryItem: true,
     galleryTitle: "Flow Variants",

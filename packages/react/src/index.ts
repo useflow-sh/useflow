@@ -4,6 +4,7 @@
 export type {
   AsyncStorageOptions,
   BrowserStorageOptions,
+  FlowContext,
   FlowPersister,
   FlowRuntimeConfig,
   FlowStore,

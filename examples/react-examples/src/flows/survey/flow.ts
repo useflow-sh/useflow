@@ -31,13 +31,13 @@ export type SurveyFlowContext = {
   q4_support?: number;
 
   // Metadata
-  startedAt?: number;
-  completedAt?: number;
   score?: number;
 
   // Tracking
-  totalTime?: number;
   questionsAnswered?: number;
+
+  // Note: startedAt, completedAt, and totalTime are automatically tracked
+  // by the flow state and available via the useFlow() hook
 };
 
 export const surveyFlow = defineFlow({

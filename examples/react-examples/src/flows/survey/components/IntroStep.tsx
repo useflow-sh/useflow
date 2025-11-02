@@ -14,8 +14,8 @@ export function IntroStep() {
   const { next } = surveyFlow.useFlow({ step: "intro" });
 
   const handleStart = () => {
-    // Use updater function to add timestamp
-    next((ctx) => ({ ...ctx, startedAt: Date.now(), questionsAnswered: 0 }));
+    // Initialize tracking (startedAt is automatically tracked by the flow)
+    next({ questionsAnswered: 0 });
   };
 
   return (

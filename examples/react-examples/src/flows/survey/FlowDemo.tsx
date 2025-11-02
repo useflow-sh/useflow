@@ -139,6 +139,33 @@ export function SurveyFlowDemo() {
     );
   };
 
+  /**
+   * onComplete: Triggered when flow finishes
+   * Use case: Save data, show confirmation, redirect, analytics
+   */
+  const handleComplete = ({ context }: { context: SurveyFlowContext }) => {
+    // Calculate final survey score
+    const totalScore =
+      (context.q1_satisfaction || 0) +
+      (context.q2_recommend || 0) +
+      (context.q3_features || 0) +
+      (context.q4_support || 0);
+    const averageScore = (totalScore / 4).toFixed(1);
+
+    logEvent("complete", `Survey completed! Score: ${averageScore}/5.0`);
+
+    // Example: Send analytics event to external service
+    console.log("Survey completion:", {
+      averageScore,
+      responses: {
+        satisfaction: context.q1_satisfaction,
+        recommend: context.q2_recommend,
+        features: context.q3_features,
+        support: context.q4_support,
+      },
+    });
+  };
+
   return (
     <Flow
       flow={surveyFlow}
@@ -147,17 +174,10 @@ export function SurveyFlowDemo() {
       onNext={handleNext}
       onBack={handleBack}
       onTransition={handleTransition}
+      onComplete={handleComplete}
       loadingComponent={<LoadingView />}
     >
-      {({
-        renderStep,
-        context,
-        reset,
-        startedAt,
-        completedAt,
-        stepId,
-        status,
-      }) => {
+      {({ renderStep, context, reset, startedAt, completedAt, stepId }) => {
         // Calculate current step index from stepId
         const currentStepIndex = steps.findIndex((step) => step.id === stepId);
 
@@ -168,33 +188,6 @@ export function SurveyFlowDemo() {
           reset();
           setEventLogs([]);
           logEvent("transition", "Survey restarted");
-        };
-
-        /**
-         * Handle flow completion - defined here to access context
-         * onComplete callback fires when flow reaches final step
-         */
-        const handleComplete = () => {
-          // Calculate final survey score
-          const totalScore =
-            (context.q1_satisfaction || 0) +
-            (context.q2_recommend || 0) +
-            (context.q3_features || 0) +
-            (context.q4_support || 0);
-          const averageScore = (totalScore / 4).toFixed(1);
-
-          logEvent("complete", `Survey completed! Score: ${averageScore}/5.0`);
-
-          // Example: Send analytics event to external service
-          console.log("Survey completion:", {
-            averageScore,
-            responses: {
-              satisfaction: context.q1_satisfaction,
-              recommend: context.q2_recommend,
-              features: context.q3_features,
-              support: context.q4_support,
-            },
-          });
         };
 
         return (

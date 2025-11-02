@@ -12,7 +12,8 @@
       "!**/.vscode",
       "!**/.expo",
       "!**/env.d.ts",
-      "!**/coverage"
+      "!**/coverage",
+      "!**/.astro"
     ]
   },
   "linter": {
@@ -44,6 +45,16 @@
         "rules": {
           "style": {
             "noNonNullAssertion": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.astro"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off"
           }
         }
       }

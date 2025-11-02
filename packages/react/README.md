@@ -293,7 +293,7 @@ type FlowProps<TConfig> = {
   flow: RuntimeFlowDefinition<TConfig>; // From defineFlow()
   initialContext: ExtractFlowContext<TConfig>;
   instanceId?: string; // Optional unique identifier for reusable flows
-  onComplete?: () => void;
+  onComplete?: (event: { context: ExtractFlowContext<TConfig> }) => void;
   onNext?: (event: {
     from: string;
     to: string;
@@ -340,7 +340,7 @@ type FlowProps<TConfig> = {
 <Flow
   flow={myFlow}
   initialContext={{ name: "" }}
-  onComplete={() => console.log("Done!")}
+  onComplete={({ context }) => console.log("Done!", context)}
 >
   {({ renderStep }) =>
     renderStep({
@@ -680,8 +680,9 @@ React to flow navigation events:
     console.log("Context changed:", { oldContext, newContext });
     // Sync to external state, localStorage, etc.
   }}
-  onComplete={() => {
-    console.log("Flow completed!");
+  onComplete={({ context }) => {
+    console.log("Flow completed!", context);
+    // Send analytics, save to database, redirect, etc.
   }}
 >
   {({ renderStep }) =>
@@ -701,7 +702,7 @@ React to flow navigation events:
 - `onBack` - Fires on `back()` navigation (includes oldContext and newContext)
 - `onTransition` - **Unified callback** that fires on all navigation (forward or backward, includes direction, oldContext, and newContext)
 - `onContextUpdate` - Fires when context changes via `setContext()`
-- `onComplete` - Fires when flow reaches completion
+- `onComplete` - Fires when flow reaches completion (includes final context)
 
 **Callback Ordering:**
 When navigating, callbacks fire in this order:

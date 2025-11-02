@@ -82,7 +82,7 @@ type FlowProps<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>> = {
   ) => ReactNode;
   initialContext: ExtractFlowContext<TFlow>;
   instanceId?: string;
-  onComplete?: () => void;
+  onComplete?: (event: { context: ExtractFlowContext<TFlow> }) => void;
   onNext?: (event: {
     from: string;
     to: string;
@@ -508,7 +508,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
 
     // Handle onComplete callback
     if (flowState.status === "complete" && prevState.status !== "complete") {
-      onComplete?.();
+      onComplete?.({ context: flowState.context });
       // Global complete callback
       globalConfig?.callbacks?.onFlowComplete?.({
         flowId: flow.id,

@@ -2,6 +2,7 @@
 
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
+import starlightThemeObsidian from "starlight-theme-obsidian";
 
 // https://astro.build/config
 export default defineConfig({
@@ -12,6 +13,11 @@ export default defineConfig({
   },
   integrations: [
     starlight({
+      plugins: [
+        starlightThemeObsidian({
+          graph: false,
+        }),
+      ],
       title: "My Docs",
       social: [
         {

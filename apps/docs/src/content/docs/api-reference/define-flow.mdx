@@ -313,28 +313,6 @@ defineFlow({
 }))
 ```
 
-### Migration functions
-
-Handle version upgrades:
-
-```typescript
-defineFlow({
-  version: "v2",
-  /* ... */
-}).with(() => ({
-  migration: (state, fromVersion) => {
-    if (fromVersion === "v1") {
-      // Transform state
-      return {
-        ...state,
-        context: transformContext(state.context)
-      };
-    }
-    return null;  // Discard unknown versions
-  }
-}))
-```
-
 ## Best practices
 
 ### 1. Use descriptive IDs

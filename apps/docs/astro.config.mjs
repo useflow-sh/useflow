@@ -24,6 +24,7 @@ export default defineConfig({
       title: "useFlow",
       description:
         "Type-safe, declarative multi-step flows for React applications",
+      customCss: ["./src/styles/custom.css"],
       social: [
         {
           icon: "github",

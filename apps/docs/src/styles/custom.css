@@ -1,0 +1,266 @@
+/* useFlow Documentation Theme */
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Page content fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+main {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.sl-markdown-content > * {
+  animation: fadeIn 0.5s ease-out backwards;
+}
+
+.sl-markdown-content > *:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.sl-markdown-content > *:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.sl-markdown-content > *:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.sl-markdown-content > *:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.sl-markdown-content > *:nth-child(5) {
+  animation-delay: 0.25s;
+}
+.sl-markdown-content > *:nth-child(6) {
+  animation-delay: 0.3s;
+}
+.sl-markdown-content > *:nth-child(7) {
+  animation-delay: 0.35s;
+}
+.sl-markdown-content > *:nth-child(8) {
+  animation-delay: 0.4s;
+}
+.sl-markdown-content > *:nth-child(9) {
+  animation-delay: 0.45s;
+}
+.sl-markdown-content > *:nth-child(10) {
+  animation-delay: 0.5s;
+}
+.sl-markdown-content > *:nth-child(n + 11) {
+  animation-delay: 0.5s;
+}
+
+:root {
+  /* Brand colors */
+  --color-brand-blue: #8fbfe0;
+  --color-brand-teal: #6bc2b3;
+  --color-brand-dark: #2b303a;
+  --color-brand-dark-alt: #343a46;
+
+  /* Light mode colors */
+  --color-light-bg: #f5f5f0;
+  --color-light-surface: #e4e1d9;
+}
+
+/* Dark mode theme customization */
+:root {
+  /* Accent colors - using brand blue */
+  --sl-hue-accent: 200;
+  --sl-color-accent-low: hsl(200, 40%, 25%);
+  --sl-color-accent: #8fbfe0;
+  --sl-color-accent-high: #b3d6ea;
+
+  /* Background colors - using brand dark colors */
+  --sl-color-bg: #1a1d24;
+  --sl-color-bg-nav: #1a1d24;
+  --sl-color-bg-sidebar: #1a1d24;
+
+  /* Text colors */
+  --sl-color-text: #e5e7eb;
+  --sl-color-text-accent: var(--sl-color-accent-high);
+
+  /* Hairlines/borders */
+  --sl-color-hairline: var(--color-brand-dark-alt);
+  --sl-color-hairline-light: rgba(143, 191, 224, 0.1);
+}
+
+/* Light mode theme customization */
+:root[data-theme="light"],
+[data-theme="light"] ::backdrop {
+  /* Accent colors - matching dark mode style */
+  --sl-color-accent-high: #5a9ec4;
+  --sl-color-accent: #8fbfe0;
+  --sl-color-accent-low: hsl(200, 40%, 85%);
+
+  /* Background colors */
+  --sl-color-bg: var(--color-light-bg);
+  --sl-color-bg-nav: var(--color-light-bg);
+  --sl-color-bg-sidebar: var(--color-light-bg);
+  --sl-color-bg-inline-code: var(--color-light-surface);
+
+  /* Text colors */
+  --sl-color-text: var(--color-brand-dark);
+  --sl-color-text-accent: var(--sl-color-accent-high);
+
+  /* Hairlines/borders */
+  --sl-color-hairline: rgba(43, 48, 58, 0.1);
+  --sl-color-hairline-light: rgba(43, 48, 58, 0.05);
+}
+
+/* Accent teal for secondary elements */
+.sl-badge,
+[data-theme="light"] .sl-badge {
+  --sl-color-accent: var(--color-brand-teal);
+}
+
+/* Link hover states with teal */
+.sl-markdown-content a:hover {
+  color: var(--color-brand-teal);
+}
+
+/* Gradient accents for special elements */
+.hero .action.primary,
+.call-to-action {
+  background: linear-gradient(
+    135deg,
+    var(--color-brand-blue) 0%,
+    var(--color-brand-teal) 100%
+  );
+  border: none;
+  color: white;
+}
+
+.hero .action.primary:hover,
+.call-to-action:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+/* Code block improvements */
+.expressive-code {
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.expressive-code pre {
+  border-radius: 0.5rem;
+}
+
+/* Only show gradient border on hover for entire component */
+.expressive-code::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 0.5rem;
+  padding: 2px;
+  background: linear-gradient(
+    135deg,
+    var(--color-brand-blue),
+    var(--color-brand-teal)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.expressive-code:hover::after {
+  opacity: 1;
+}
+
+.expressive-code:hover {
+  border-image: linear-gradient(
+      135deg,
+      var(--color-brand-blue),
+      var(--color-brand-teal)
+    )
+    1;
+}
+
+.expressive-code:hover {
+  border-image: linear-gradient(
+      135deg,
+      var(--color-brand-blue),
+      var(--color-brand-teal)
+    )
+    1;
+}
+
+/* Card hover effects with gradient border */
+.sl-link-card,
+.card {
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.sl-link-card::before,
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(
+    135deg,
+    var(--color-brand-blue),
+    var(--color-brand-teal)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.sl-link-card:hover::before,
+.card:hover::before {
+  opacity: 1;
+}
+
+/* Gradient text for hero tagline */
+.hero .tagline {
+  background: linear-gradient(
+    135deg,
+    var(--color-brand-blue),
+    var(--color-brand-teal)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
+}
+
+/* Copy button tooltip */
+.expressive-code [title]::before,
+.expressive-code [title]::after {
+  background: var(--color-brand-blue) !important;
+}
+
+/* Copied tooltip - override green with brand blue */
+.expressive-code button[data-copied]::before,
+.expressive-code button[data-copied]::after {
+  background: var(--color-brand-blue) !important;
+  border-color: var(--color-brand-blue) !important;
+}
+
+.expressive-code .feedback {
+  background: var(--color-brand-blue) !important;
+}

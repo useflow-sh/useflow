@@ -75,84 +75,124 @@ main {
   animation-delay: 0.5s;
 }
 
+/* 
+ * Note: Color system now uses standard design system naming in global.css:
+ * - primary (blue) for main brand elements
+ * - secondary (teal) for accents and highlights
+ * - neutral (gray) for backgrounds and text
+ */
+
+/* Gradient animation - continuous left to right flow */
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: -200% 50%;
+  }
+}
+
+/* Make sidebar and nav header match page background */
 :root {
-  /* Brand colors */
-  --color-brand-blue: #8fbfe0;
-  --color-brand-teal: #6bc2b3;
-  --color-brand-dark: #2b303a;
-  --color-brand-dark-alt: #343a46;
+  --sl-color-bg-sidebar: var(--color-neutral-100);
+  --sl-color-bg-nav: var(--color-neutral-100);
 
-  /* Light mode colors */
-  --color-light-bg: #f5f5f0;
-  --color-light-surface: #e4e1d9;
+  /* Borders and hairlines for light mode */
+  --sl-color-hairline: var(--color-neutral-300);
+  --sl-color-hairline-light: var(--color-neutral-200);
+
+  /* Brand gradient - repeating pattern for seamless animation */
+  --brand-gradient: linear-gradient(
+    90deg,
+    var(--color-primary-300) 0%,
+    var(--color-secondary-300) 25%,
+    var(--color-primary-300) 50%,
+    var(--color-secondary-300) 75%,
+    var(--color-primary-300) 100%
+  );
+  --brand-gradient-direction: 90deg;
 }
 
-/* Dark mode theme customization */
-:root {
-  /* Accent colors - using brand blue */
-  --sl-hue-accent: 200;
-  --sl-color-accent-low: hsl(200, 40%, 25%);
-  --sl-color-accent: #8fbfe0;
-  --sl-color-accent-high: #b3d6ea;
-
-  /* Background colors - using brand dark colors */
-  --sl-color-bg: #1a1d24;
-  --sl-color-bg-nav: #1a1d24;
-  --sl-color-bg-sidebar: #1a1d24;
-
-  /* Text colors */
-  --sl-color-text: #e5e7eb;
-  --sl-color-text-accent: var(--sl-color-accent-high);
-
-  /* Hairlines/borders */
-  --sl-color-hairline: var(--color-brand-dark-alt);
-  --sl-color-hairline-light: rgba(143, 191, 224, 0.1);
+:root[data-theme="light"] .expressive-code,
+.expressive-code[data-theme="light"] {
+  /* Code block tabs - make them visible against light background */
+  --ec-frm-edTabBarBg: var(--color-neutral-200);
+  --ec-frm-edActTabBg: var(--color-neutral-300);
 }
 
-/* Light mode theme customization */
-:root[data-theme="light"],
-[data-theme="light"] ::backdrop {
-  /* Accent colors - matching dark mode style */
-  --sl-color-accent-high: #5a9ec4;
-  --sl-color-accent: #8fbfe0;
-  --sl-color-accent-low: hsl(200, 40%, 85%);
+:root[data-theme="dark"] {
+  --sl-color-bg-sidebar: var(--color-neutral-900);
+  --sl-color-bg-nav: var(--color-neutral-900);
 
-  /* Background colors */
-  --sl-color-bg: var(--color-light-bg);
-  --sl-color-bg-nav: var(--color-light-bg);
-  --sl-color-bg-sidebar: var(--color-light-bg);
-  --sl-color-bg-inline-code: var(--color-light-surface);
+  /* Make code blocks darker than page background */
+  --sl-color-black: var(--color-neutral-950);
 
-  /* Text colors */
-  --sl-color-text: var(--color-brand-dark);
-  --sl-color-text-accent: var(--sl-color-accent-high);
-
-  /* Hairlines/borders */
-  --sl-color-hairline: rgba(43, 48, 58, 0.1);
-  --sl-color-hairline-light: rgba(43, 48, 58, 0.05);
+  /* Borders and hairlines for dark mode */
+  --sl-color-hairline: var(--color-neutral-600);
+  --sl-color-hairline-light: var(--color-neutral-700);
 }
 
-/* Accent teal for secondary elements */
+/* Table styling - minimal with horizontal separators only */
+.sl-markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.sl-markdown-content table th,
+.sl-markdown-content table td {
+  border: none;
+  border-bottom: 1px solid var(--sl-color-hairline);
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.sl-markdown-content table thead th {
+  border-bottom: 2px solid var(--sl-color-hairline);
+  font-weight: 600;
+}
+
+.sl-markdown-content table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Secondary color for badges */
 .sl-badge,
 [data-theme="light"] .sl-badge {
-  --sl-color-accent: var(--color-brand-teal);
+  --sl-color-accent: var(--color-secondary-300);
 }
 
-/* Link hover states with teal */
+/* Secondary color for link hover states */
 .sl-markdown-content a:hover {
-  color: var(--color-brand-teal);
+  color: var(--color-secondary-300);
 }
 
-/* Gradient accents for special elements */
+/* Primary to secondary gradient for special elements */
 .hero .action.primary,
-.call-to-action {
-  background: linear-gradient(
-    135deg,
-    var(--color-brand-blue) 0%,
-    var(--color-brand-teal) 100%
-  );
-  border: none;
-  color: white;
+.call-to-action,
+a.sl-link-button.primary {
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
+  background: none;
+}
+
+.hero .action.primary::before,
+.call-to-action::before,
+.sl-link-button.primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--brand-gradient);
+  background-size: 200% 100%;
+  animation: gradient-flow 4s linear infinite;
+  z-index: -1;
+}
+
+.hero .action.primary > *,
+.call-to-action > *,
+.sl-link-button.primary > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hero .action.primary:hover,
@@ -162,29 +202,35 @@ main {
   transition: all 0.2s ease;
 }
 
-/* Code block improvements */
-.expressive-code {
-  border-radius: 0.5rem;
+/* Code block improvements - apply to frame (includes tabs) */
+.expressive-code .frame {
   transition: all 0.3s ease;
   position: relative;
+  z-index: 0;
+  border-radius: var(--sl-border-radius-md);
 }
 
+/* Override Expressive Code border radius - target pre directly */
 .expressive-code pre {
-  border-radius: 0.5rem;
+  border-radius: var(--sl-border-radius-md);
 }
 
-/* Only show gradient border on hover for entire component */
-.expressive-code::after {
+/* Remove outline from frames - keep consistent with regular code blocks */
+.expressive-code .frame.has-title,
+.expressive-code .frame.is-terminal {
+  outline: none;
+}
+
+/* Only show gradient border on hover for entire frame (tabs + code) */
+.expressive-code .frame::after {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: 0.5rem;
+  border-radius: var(--sl-border-radius-md);
   padding: 2px;
-  background: linear-gradient(
-    135deg,
-    var(--color-brand-blue),
-    var(--color-brand-teal)
-  );
+  background: var(--brand-gradient);
+  background-size: 200% 100%;
+  animation: gradient-flow 4s linear infinite;
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -193,28 +239,11 @@ main {
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
+  z-index: 10;
 }
 
-.expressive-code:hover::after {
+.expressive-code .frame:hover::after {
   opacity: 1;
-}
-
-.expressive-code:hover {
-  border-image: linear-gradient(
-      135deg,
-      var(--color-brand-blue),
-      var(--color-brand-teal)
-    )
-    1;
-}
-
-.expressive-code:hover {
-  border-image: linear-gradient(
-      135deg,
-      var(--color-brand-blue),
-      var(--color-brand-teal)
-    )
-    1;
 }
 
 /* Card hover effects with gradient border */
@@ -231,11 +260,9 @@ main {
   inset: 0;
   border-radius: inherit;
   padding: 2px;
-  background: linear-gradient(
-    135deg,
-    var(--color-brand-blue),
-    var(--color-brand-teal)
-  );
+  background: var(--brand-gradient);
+  background-size: 200% 100%;
+  animation: gradient-flow 4s linear infinite;
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -246,31 +273,113 @@ main {
   pointer-events: none;
 }
 
+.sl-link-card:hover,
+.card:hover {
+  border-color: transparent;
+  box-shadow: none;
+}
+
 .sl-link-card:hover::before,
 .card:hover::before {
   opacity: 1;
 }
 
-/* Gradient text for hero tagline */
-.hero .tagline {
-  background: linear-gradient(
-    135deg,
-    var(--color-brand-blue),
-    var(--color-brand-teal)
-  );
+/* Gradient text for hero title and header */
+.hero h1,
+.site-title {
+  position: relative;
+  background: var(--brand-gradient);
+  background-size: 200% 100%;
+  animation: gradient-flow 4s linear infinite;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  font-weight: 600;
 }
 
 /* Copy button tooltip */
 .expressive-code .feedback {
-  background: var(--color-brand-blue) !important;
+  background: var(--color-primary-300) !important;
 }
 
-/* Tooltip arrow caret - arrow points right, so color left border */
-.expressive-code .feedback::before,
-.expressive-code .feedback::after {
-  border-left-color: var(--color-brand-blue) !important;
+/* Search modal background - match page background */
+dialog-frame,
+.dialog-frame {
+  background-color: var(--color-neutral-100) !important;
+}
+
+:root[data-theme="dark"] dialog-frame,
+:root[data-theme="dark"] .dialog-frame {
+  background-color: var(--color-neutral-900) !important;
+}
+
+/* 
+ * ============================================================================
+ * TAILWIND BORDER RESTORATION
+ * ============================================================================
+ * 
+ * The @astrojs/starlight-tailwind integration applies Tailwind's reset which
+ * sets `border: 0 solid` on all elements. This breaks Starlight's default
+ * borders that are defined in component styles.
+ * 
+ * Rather than fighting Tailwind's reset globally, we restore borders on
+ * specific Starlight components that need them.
+ * ============================================================================
+ */
+
+/* Sidebar nested items - left border indicator */
+.sidebar-pane ul ul li {
+  border-inline-start: 1px solid var(--sl-color-hairline-light);
+}
+
+/* Code block tabs - restore tab borders */
+.expressive-code .frame.has-title:not(.is-terminal) .title {
+  border: var(--ec-brdWd) solid var(--ec-frm-edActTabBrdCol);
+  border-bottom: none;
+}
+
+/* Code block active tab indicator - accent colored underline */
+.expressive-code .frame.has-title:not(.is-terminal) .title::after {
+  border-bottom: 2px solid var(--sl-color-accent);
+}
+
+/* Code block tab bar header - restore border */
+.expressive-code .frame.has-title:not(.is-terminal) .header::before {
+  border: var(--ec-brdWd) solid var(--ec-frm-edTabBarBrdCol);
+}
+
+/* Terminal header bottom border */
+.expressive-code .frame.is-terminal .header {
+  border: var(--ec-brdWd) solid var(--ec-brdCol);
+}
+
+/* Starlight Tabs component - restore tab list border */
+starlight-tabs [role="tablist"] {
+  border-bottom: 2px solid var(--sl-color-gray-5);
+}
+
+/* Starlight Tabs component - restore individual tab borders */
+starlight-tabs .tab > [role="tab"] {
+  border-bottom: 2px solid var(--sl-color-gray-5);
+}
+
+/* Active tab gets accent color border */
+starlight-tabs .tab [role="tab"][aria-selected="true"] {
+  border-color: var(--sl-color-text-accent);
+}
+
+/* Starlight Tabs component - restore individual tab borders */
+starlight-tabs .tab > [role="tab"] {
+  border-bottom: 2px solid var(--sl-color-gray-5);
+}
+
+/* Active page gets accent color */
+.sidebar-pane ul ul li:has(> a[aria-current="page"]) {
+  border-inline-start-color: var(--sl-color-accent-high);
+}
+
+/* Hover state */
+.sidebar-pane ul
+  ul
+  li:has(> a:not([aria-current="page"]):is(:hover, :focus-visible)) {
+  border-inline-start-color: var(--sl-color-gray-2);
 }

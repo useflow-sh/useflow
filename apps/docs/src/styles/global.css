@@ -1,0 +1,82 @@
+/* Tailwind CSS configuration for Starlight */
+@layer base, starlight, theme, components, utilities;
+
+/* Import Starlight's Tailwind compatibility CSS */
+@import "@astrojs/starlight-tailwind";
+
+/* Import Tailwind theme and utilities */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* useFlow Brand Theme - Standard Design System */
+@theme {
+  /* Primary color scale - Blue (#8fbfe0) */
+  /* Used for: main brand elements, links, primary buttons */
+  /* Starlight maps this via --color-accent-* for its UI */
+  --color-primary-50: #f0f7fb;
+  --color-primary-100: #d9ebf5;
+  --color-primary-200: #b3d6ea;
+  --color-primary-300: #8fbfe0; /* Brand blue */
+  --color-primary-400: #6aabcd;
+  --color-primary-500: #5a9ec4;
+  --color-primary-600: #4a8aad;
+  --color-primary-700: #3a7089;
+  --color-primary-800: #2d5669;
+  --color-primary-900: #1f3c4a;
+  --color-primary-950: #152834;
+
+  /* Secondary color scale - Teal (#6bc2b3) */
+  /* Used for: badges, hover states, gradients, secondary accents */
+  --color-secondary-50: #f0faf8;
+  --color-secondary-100: #d4f1ec;
+  --color-secondary-200: #a9e3d9;
+  --color-secondary-300: #6bc2b3; /* Brand teal */
+  --color-secondary-400: #4dab9c;
+  --color-secondary-500: #3d9688;
+  --color-secondary-600: #30796e;
+  --color-secondary-700: #265f57;
+  --color-secondary-800: #1d4842;
+  --color-secondary-900: #15332e;
+  --color-secondary-950: #0f2421;
+
+  /* Neutral color scale - Warm to cool gradient */
+  /* Used for: text, backgrounds, borders */
+  /* Starlight maps this via --color-gray-* for its UI */
+  /* Light end: warm beige tones (brightened for text contrast), Dark end: cooler neutral grays */
+  --color-neutral-50: #fafaf8; /* Very light warm beige - bright text on dark bg */
+  --color-neutral-100: #f5f5f0; /* Light warm gray - main light mode background */
+  --color-neutral-200: #ebebde; /* Light warm gray - inline code bg in light mode */
+  --color-neutral-300: #ddddd0; /* Mid warm gray - borders */
+  --color-neutral-400: #c8c8bb; /* Darker warm gray - transition */
+  --color-neutral-500: #9d9d90; /* Neutral mid-tone - shifting cooler */
+  --color-neutral-600: #75756b; /* Medium dark gray - smoother gradient */
+  --color-neutral-700: #54544c; /* Dark gray */
+  --color-neutral-800: #3c3c36; /* Darker neutral gray */
+  --color-neutral-900: #26252a; /* Very dark neutral gray - dark mode background */
+  --color-neutral-950: #1c1b1e; /* Nearly black neutral */
+
+  /* Starlight compatibility - map to accent and gray */
+  --color-accent-50: var(--color-primary-50);
+  --color-accent-100: var(--color-primary-100);
+  --color-accent-200: var(--color-primary-200);
+  --color-accent-300: var(--color-primary-300);
+  --color-accent-400: var(--color-primary-400);
+  --color-accent-500: var(--color-primary-500);
+  --color-accent-600: var(--color-primary-600);
+  --color-accent-700: var(--color-primary-700);
+  --color-accent-800: var(--color-primary-800);
+  --color-accent-900: var(--color-primary-900);
+  --color-accent-950: var(--color-primary-950);
+
+  --color-gray-50: var(--color-neutral-50);
+  --color-gray-100: var(--color-neutral-100);
+  --color-gray-200: var(--color-neutral-200);
+  --color-gray-300: var(--color-neutral-300);
+  --color-gray-400: var(--color-neutral-400);
+  --color-gray-500: var(--color-neutral-500);
+  --color-gray-600: var(--color-neutral-600);
+  --color-gray-700: var(--color-neutral-700);
+  --color-gray-800: var(--color-neutral-800);
+  --color-gray-900: var(--color-neutral-900);
+  --color-gray-950: var(--color-neutral-950);
+}

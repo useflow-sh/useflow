@@ -2,6 +2,7 @@
 
 import sitemap from "@astrojs/sitemap";
 import starlight from "@astrojs/starlight";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import starlightThemeObsidian from "starlight-theme-obsidian";
 
@@ -17,6 +18,8 @@ export default defineConfig({
     defaultStrategy: "hover",
   },
   vite: {
+    // @ts-expect-error - Tailwind Vite plugin has type conflicts with Astro's Vite types
+    plugins: [tailwindcss()],
     ssr: {
       noExternal: ["zod"],
     },
@@ -32,13 +35,18 @@ export default defineConfig({
       title: "useFlow",
       description:
         "Type-safe, declarative multi-step flows for React applications",
-      customCss: ["./src/styles/custom.css"],
+      customCss: [
+        // Tailwind base styles and Starlight compatibility
+        "./src/styles/global.css",
+        // Custom useFlow theme styles
+        "./src/styles/custom.css",
+      ],
       head: [
         {
           tag: "style",
           content: `
             html, body {
-              background-color: #1a1d24 !important;
+              background-color: #26252a !important;
             }
             html[data-theme='light'], 
             html[data-theme='light'] body {
@@ -52,7 +60,7 @@ export default defineConfig({
             (function() {
               const theme = localStorage.getItem('starlight-theme') || 
                            (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-              document.documentElement.style.backgroundColor = theme === 'light' ? '#f5f5f0' : '#1a1d24';
+              document.documentElement.style.backgroundColor = theme === 'light' ? '#f5f5f0' : '#26252a';
             })();
           `,
         },

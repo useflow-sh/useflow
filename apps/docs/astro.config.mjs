@@ -25,6 +25,24 @@ export default defineConfig({
       description:
         "Type-safe, declarative multi-step flows for React applications",
       customCss: ["./src/styles/custom.css"],
+      head: [
+        {
+          tag: "script",
+          content: `
+            (function() {
+              const theme = localStorage.getItem('starlight-theme') || 
+                           (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+              document.documentElement.style.backgroundColor = theme === 'light' ? '#f5f5f0' : '#1a1d24';
+            })();
+          `,
+        },
+        {
+          tag: "script",
+          attrs: {
+            src: "/smooth-scroll.js",
+          },
+        },
+      ],
       social: [
         {
           icon: "github",

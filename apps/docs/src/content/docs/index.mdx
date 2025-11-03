@@ -15,7 +15,7 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid, Steps, Code, Tabs, TabItem } from "@astrojs/starlight/components";
+import { Card, CardGrid, Steps, Code, Tabs, TabItem, LinkCard } from "@astrojs/starlight/components";
 
 ## Build multi-step flows without the complexity
 
@@ -272,24 +272,24 @@ Build a complete onboarding flow in 3 simple steps:
 ## Get started
 
 <CardGrid>
-  <Card title="Quick Start" icon="rocket">
-    [Build your first flow →](/getting-started/quick-start)
-    
-    Ship a working flow in minutes
-  </Card>
-  <Card title="Why useFlow?" icon="information">
-    [Learn more →](/getting-started/why-useflow)
-    
-    Benefits and comparisons
-  </Card>
-  <Card title="Examples" icon="open-book">
-    [Browse recipes →](/recipes/onboarding)
-    
-    Production-ready patterns
-  </Card>
-  <Card title="API Reference" icon="document">
-    [View docs →](/api-reference/define-flow)
-    
-    Complete API reference
-  </Card>
+  <LinkCard
+    title="Quick Start"
+    description="Build your first flow. Ship a working flow in minutes"
+    href="/getting-started/quick-start"
+  />
+  <LinkCard
+    title="Why useFlow?"
+    description="Learn more about benefits and comparisons"
+    href="/getting-started/why-useflow"
+  />
+  <LinkCard
+    title="Examples"
+    description="Browse recipes with production-ready patterns"
+    href="/recipes/onboarding"
+  />
+  <LinkCard
+    title="API Reference"
+    description="View the complete API reference docs"
+    href="/api-reference/define-flow"
+  />
 </CardGrid>

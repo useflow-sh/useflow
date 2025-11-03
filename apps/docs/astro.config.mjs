@@ -9,6 +9,10 @@ const REPO_URL = "https://github.com/useflow-sh/useflow";
 
 // https://astro.build/config
 export default defineConfig({
+  prefetch: {
+    prefetchAll: true,
+    defaultStrategy: "hover",
+  },
   vite: {
     ssr: {
       noExternal: ["zod"],

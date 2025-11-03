@@ -5,6 +5,11 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Browser native view transition */
+@view-transition {
+  navigation: auto;
+}
+
 /* Page content fade-in animation */
 @keyframes fadeIn {
   from {

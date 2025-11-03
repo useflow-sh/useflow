@@ -1,14 +1,17 @@
 // @ts-check
 
+import sitemap from "@astrojs/sitemap";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import starlightThemeObsidian from "starlight-theme-obsidian";
 
 // Repository constants
 const REPO_URL = "https://github.com/useflow-sh/useflow";
+const DOCS_URL = process.env.DOCS_URL;
 
 // https://astro.build/config
 export default defineConfig({
+  site: DOCS_URL,
   prefetch: {
     prefetchAll: true,
     defaultStrategy: "hover",
@@ -19,6 +22,7 @@ export default defineConfig({
     },
   },
   integrations: [
+    sitemap(),
     starlight({
       plugins: [
         starlightThemeObsidian({

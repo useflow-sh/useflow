@@ -27,6 +27,18 @@ export default defineConfig({
       customCss: ["./src/styles/custom.css"],
       head: [
         {
+          tag: "style",
+          content: `
+            html, body {
+              background-color: #1a1d24 !important;
+            }
+            html[data-theme='light'], 
+            html[data-theme='light'] body {
+              background-color: #f5f5f0 !important;
+            }
+          `,
+        },
+        {
           tag: "script",
           content: `
             (function() {

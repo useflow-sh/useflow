@@ -254,18 +254,12 @@ main {
 }
 
 /* Copy button tooltip */
-.expressive-code [title]::before,
-.expressive-code [title]::after {
-  background: var(--color-brand-blue) !important;
-}
-
-/* Copied tooltip - override green with brand blue */
-.expressive-code button[data-copied]::before,
-.expressive-code button[data-copied]::after {
-  background: var(--color-brand-blue) !important;
-  border-color: var(--color-brand-blue) !important;
-}
-
 .expressive-code .feedback {
   background: var(--color-brand-blue) !important;
+}
+
+/* Tooltip arrow caret - arrow points right, so color left border */
+.expressive-code .feedback::before,
+.expressive-code .feedback::after {
+  border-left-color: var(--color-brand-blue) !important;
 }

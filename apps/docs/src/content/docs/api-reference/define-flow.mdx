@@ -1,0 +1,399 @@
+---
+title: defineFlow()
+description: API reference for the defineFlow function
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+The `defineFlow()` function is the primary API for creating typed flow definitions.
+
+## Import
+
+```typescript
+import { defineFlow } from "@useflow/react";
+```
+
+## Signature
+
+```typescript
+function defineFlow(
+  definition: FlowDefinition
+): RuntimeFlowDefinition<FlowDefinition, {}>
+
+// With runtime configuration:
+defineFlow(definition).with<TContext>(runtimeConfig): RuntimeFlowDefinition<FlowDefinition, TContext>
+```
+
+## Parameters
+
+### `definition`
+
+The flow definition object containing metadata and step configuration.
+
+```typescript
+{
+  id: string;                    // Unique identifier for the flow
+  start: string;                 // Starting step name
+  version?: string;              // Optional version for migrations
+  variantId?: string;            // Optional variant identifier
+  steps: Record<string, StepDefinition>;  // Step configuration
+}
+```
+
+**Step Definition:**
+
+```typescript
+type StepDefinition = {
+  next?: string | string[];      // Single step or array of possible steps
+}
+```
+
+### `.with<TContext>(runtimeConfig)` (optional)
+
+Chain method to add runtime configuration with a specific context type. This is where you define:
+- **Context type** - The shape of your flow's shared state
+- **Resolvers** - Functions that determine branching logic
+- **Migration** - Function to handle version upgrades
+
+**Parameter:** Function that receives type-safe step references and returns configuration:
+
+```typescript
+(steps: StepRefs) => {
+  migration?: MigrateFunction<TContext>;
+  resolvers?: ResolverMap;
+}
+```
+
+**When to use:**
+- ✅ Use when you need context-driven branching (resolvers)
+- ✅ Use when you need state migrations (versioning)
+- ✅ Use to explicitly type your context with `TContext`
+- ❌ Not needed for simple linear flows without branching
+
+## Return value
+
+Returns a `RuntimeFlowDefinition` object with:
+
+```typescript
+{
+  id: string;
+  config: FlowDefinition;
+  runtimeConfig?: FlowRuntimeConfig<TContext>;
+  useFlow: <TStep extends string>(options: { step: TStep }) => UseFlowReturn;
+  with: <TContext>(runtimeConfig) => RuntimeFlowDefinition<FlowDefinition, TContext>;
+}
+```
+
+## Examples
+
+### Basic flow
+
+```typescript
+import { defineFlow } from "@useflow/react";
+
+type MyContext = {
+  name: string;
+  email: string;
+};
+
+const flow = defineFlow({
+  id: "my-flow",
+  start: "welcome",
+  steps: {
+    welcome: {
+      next: "profile"
+    },
+    profile: {
+      next: "complete"
+    },
+    complete: {}
+  }
+}).with<MyContext>({});
+```
+
+### Flow with branching
+
+```typescript
+type MyContext = {
+  type: "business" | "personal";
+};
+
+const flow = defineFlow({
+  id: "branching-flow",
+  start: "userType",
+  steps: {
+    userType: {
+      next: ["business", "personal"]
+    },
+    business: { next: "complete" },
+    personal: { next: "complete" },
+    complete: {}
+  }
+}).with<MyContext>((steps) => ({
+  resolvers: {
+    userType: (ctx) =>
+      ctx.type === "business" ? steps.business : steps.personal
+  }
+}));
+```
+
+### Flow with versioning
+
+```typescript
+type MyContext = {
+  email: string;
+};
+
+const flow = defineFlow({
+  id: "onboarding",
+  version: "v2",
+  start: "welcome",
+  steps: {
+    welcome: { next: "profile" },
+    profile: { next: "complete" },
+    complete: {}
+  }
+}).with<MyContext>(() => ({
+  migration: (state, fromVersion) => {
+    if (fromVersion === "v1") {
+      return {
+        ...state,
+        context: {
+          ...state.context,
+          email: state.context.emailAddress  // Rename field
+        }
+      };
+    }
+    return null;
+  }
+}));
+```
+
+### Flow with multiple variants
+
+```typescript
+const standardFlow = defineFlow({
+  id: "onboarding",
+  variantId: "standard",
+  start: "welcome",
+  steps: {
+    welcome: { next: "verification" },
+    verification: { next: "profile" },
+    profile: { next: "complete" },
+    complete: {}
+  }
+});
+
+const expressFlow = defineFlow({
+  id: "onboarding",
+  variantId: "express",
+  start: "welcome",
+  steps: {
+    welcome: { next: "profile" },
+    profile: { next: "complete" },
+    complete: {}
+  }
+});
+```
+
+## Builder pattern
+
+`defineFlow()` uses a builder pattern - it returns a `RuntimeFlowDefinition` that you can use directly or enhance with `.with()`:
+
+### Basic flow (no runtime config)
+
+```typescript
+// Simple flow - no branching, no migrations
+const flow = defineFlow({
+  id: "simple",
+  start: "step1",
+  steps: {
+    step1: { next: "step2" },
+    step2: {}
+  }
+});
+
+// Use directly - no .with() needed
+<Flow flow={flow} initialContext={{}} />
+```
+
+### With runtime config
+
+```typescript
+type MyContext = { userType: "business" | "personal" };
+
+// Chain .with() to add resolvers and context type
+const flow = defineFlow({
+  id: "branching",
+  start: "userType",
+  steps: {
+    userType: { next: ["business", "personal"] },
+    business: { next: "complete" },
+    personal: { next: "complete" },
+    complete: {}
+  }
+}).with<MyContext>((steps) => ({
+  resolvers: {
+    userType: (ctx) => 
+      ctx.userType === "business" ? steps.business : steps.personal
+  }
+}));
+```
+
+**Key Points:**
+- `defineFlow()` returns a `RuntimeFlowDefinition` 
+- `.with<TContext>()` returns a new `RuntimeFlowDefinition` with context type
+- Both return values have the same API (config, useFlow, etc.)
+- Immutable - `.with()` creates a new instance
+
+## Type safety
+
+The `defineFlow` function provides full type inference:
+
+```typescript
+const flow = defineFlow({
+  id: "example",
+  start: "step1",
+  steps: {
+    step1: { next: "step2" },
+    step2: { next: ["step3", "step4"] },
+    step3: { next: "step5" },
+    step4: { next: "step5" },
+    step5: {}
+  }
+});
+
+// In components:
+function Step2() {
+  const { next } = flow.useFlow({ step: "step2" });
+  
+  next("step3");  // ✅ Valid
+  next("step4");  // ✅ Valid
+  next("step1");  // ❌ TypeScript error: not in next array
+}
+```
+
+## Runtime configuration
+
+### Resolver functions
+
+Define branching logic for steps with multiple `next` options:
+
+```typescript
+defineFlow({ /* definition */ })
+  .with<MyContext>((steps) => ({
+    resolvers: {
+      stepName: (context) => {
+        // Return one of the step references
+        return context.condition ? steps.stepA : steps.stepB;
+      }
+    }
+  }))
+```
+
+### Migration functions
+
+Handle version upgrades:
+
+```typescript
+defineFlow({
+  version: "v2",
+  /* ... */
+}).with<MyContext>(() => ({
+  migration: (state, fromVersion) => {
+    if (fromVersion === "v1") {
+      // Transform state
+      return {
+        ...state,
+        context: transformContext(state.context)
+      };
+    }
+    return null;  // Discard unknown versions
+  }
+}))
+```
+
+### Migration functions
+
+Handle version upgrades:
+
+```typescript
+defineFlow({
+  version: "v2",
+  /* ... */
+}).with(() => ({
+  migration: (state, fromVersion) => {
+    if (fromVersion === "v1") {
+      // Transform state
+      return {
+        ...state,
+        context: transformContext(state.context)
+      };
+    }
+    return null;  // Discard unknown versions
+  }
+}))
+```
+
+## Best practices
+
+### 1. Use descriptive IDs
+
+```typescript
+// ✅ Good: Clear identifier
+defineFlow({ id: "checkout-flow" })
+
+// ❌ Bad: Vague identifier
+defineFlow({ id: "flow1" })
+```
+
+### 2. Always version persisted flows
+
+```typescript
+// ✅ Good: Includes version
+defineFlow({ 
+  id: "onboarding",
+  version: "v1"
+})
+```
+
+### 3. Keep step names consistent
+
+```typescript
+// ✅ Good: Consistent naming
+defineFlow({
+  steps: {
+    userProfile: { next: "userPreferences" },
+    userPreferences: { next: "userComplete" }
+  }
+})
+
+// ❌ Inconsistent naming
+defineFlow({
+  steps: {
+    profile: { next: "prefs" },
+    prefs: { next: "done" }
+  }
+})
+```
+
+### 4. Define terminal steps explicitly
+
+```typescript
+// ✅ Good: Clear terminal step
+defineFlow({
+  steps: {
+    welcome: { next: "profile" },
+    profile: { next: "complete" },
+    complete: {}  // Terminal step
+  }
+})
+```
+
+## See also
+
+- [Flow Component](/api-reference/flow-component) - Render flows
+- [useFlow Hook](/api-reference/use-flow) - Access flow state
+- [Type Safety](/getting-started/typescript) - TypeScript guide
+- [Migrations](/guides/migrations) - Version management
+

@@ -1,0 +1,462 @@
+---
+title: <Flow> Component  
+description: API reference for the Flow component
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+The `<Flow>` component is the primary React component for rendering flows using the render props pattern.
+
+## Import
+
+```typescript
+import { Flow } from "@useflow/react";
+```
+
+## Props
+
+## Required props
+
+### `flow`
+
+The flow definition returned by `defineFlow()`.
+
+```typescript
+flow: RuntimeFlowDefinition<FlowDefinition, TContext>
+```
+
+### `children`
+
+Render function that receives flow state and returns React elements.
+
+```typescript
+children: (state: FlowState) => ReactNode
+```
+
+**Flow State Object:**
+
+```typescript
+{
+  // State
+  stepId: string;
+  step: StepInfo;  // Current step configuration object
+  context: TContext;
+  status: "active" | "completed";
+  
+  // Navigation
+  next: (target?: string, update?: ContextUpdate) => void;
+  skip: (target?: string, update?: ContextUpdate) => void;
+  back: () => void;
+  reset: () => void;
+  
+  // Context Management
+  setContext: (update: ContextUpdate<TContext>) => void;
+  
+  // Metadata
+  steps: Record<string, StepInfo>;
+  nextSteps: readonly string[] | undefined;
+  path: readonly PathEntry[];
+  history: readonly HistoryEntry[];
+  startedAt: number;
+  completedAt?: number;
+  
+  // Persistence
+  save: () => Promise<void>;
+  restore: (state: FlowState) => void;
+  isRestoring: boolean;
+  
+  // Rendering
+  renderStep: (elements: StepElements) => ReactElement;
+}
+```
+
+## Optional props
+
+### `initialContext`
+
+Initial context state for the flow.
+
+```typescript
+initialContext?: TContext
+```
+
+Default: `{}`
+
+### `instanceId`
+
+Unique identifier for flow instances (useful for reusable flows).
+
+```typescript
+instanceId?: string
+```
+
+### `persister`
+
+Persister for saving/restoring flow state.
+
+```typescript
+persister?: FlowPersister
+```
+
+### `saveMode`
+
+When to automatically save state.
+
+```typescript
+saveMode?: "always" | "navigation" | "manual"
+```
+
+- `"navigation"` (default) - Save on next/skip/back
+- `"always"` - Save on every context update
+- `"manual"` - Only save when calling `save()`
+
+### `saveDebounce`
+
+Debounce delay for save operations (milliseconds).
+
+```typescript
+saveDebounce?: number
+```
+
+Default: `300`
+
+### `loadingComponent`
+
+Component to show while restoring state.
+
+```typescript
+loadingComponent?: ReactNode
+```
+
+## Callback props
+
+### `onComplete`
+
+Called when flow reaches a terminal step.
+
+```typescript
+onComplete?: (event: { context: TContext }) => void
+```
+
+### `onNext`
+
+Called on forward navigation.
+
+```typescript
+onNext?: (event: {
+  from: string;
+  to: string;
+  oldContext: TContext;
+  newContext: TContext;
+}) => void
+```
+
+### `onSkip`
+
+Called when skipping a step.
+
+```typescript
+onSkip?: (event: {
+  from: string;
+  to: string;
+  oldContext: TContext;
+  newContext: TContext;
+}) => void
+```
+
+### `onBack`
+
+Called on backward navigation.
+
+```typescript
+onBack?: (event: {
+  from: string;
+  to: string;
+  oldContext: TContext;
+  newContext: TContext;
+}) => void
+```
+
+### `onTransition`
+
+Called on any navigation (next, skip, or back).
+
+```typescript
+onTransition?: (event: {
+  from: string;
+  to: string;
+  direction: "forward" | "backward";
+  oldContext: TContext;
+  newContext: TContext;
+}) => void
+```
+
+### `onContextUpdate`
+
+Called when context is updated.
+
+```typescript
+onContextUpdate?: (event: {
+  oldContext: TContext;
+  newContext: TContext;
+}) => void
+```
+
+### `onSave`
+
+Called after state is saved.
+
+```typescript
+onSave?: (state: PersistedFlowState<TContext>) => void
+```
+
+### `onRestore`
+
+Called after state is restored.
+
+```typescript
+onRestore?: (state: PersistedFlowState<TContext>) => void
+```
+
+### `onPersistenceError`
+
+Called when save/restore fails.
+
+```typescript
+onPersistenceError?: (error: Error) => void
+```
+
+## Examples
+
+### Basic usage
+
+```tsx
+<Flow flow={myFlow} initialContext={{ name: "" }}>
+  {({ renderStep }) =>
+    renderStep({
+      welcome: <WelcomeStep />,
+      profile: <ProfileStep />,
+      complete: <CompleteStep />
+    })
+  }
+</Flow>
+```
+
+### With progress indicator
+
+```tsx
+<Flow flow={myFlow}>
+  {({ renderStep, stepId, steps }) => {
+    const stepKeys = Object.keys(steps);
+    const progress = ((stepKeys.indexOf(stepId) + 1) / stepKeys.length) * 100;
+
+    return (
+      <div>
+        <div className="progress-bar" style={{ width: `${progress}%` }} />
+        {renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          complete: <CompleteStep />
+        })}
+      </div>
+    );
+  }}
+</Flow>
+```
+
+### With persistence
+
+```tsx
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+
+const store = createLocalStorageStore(localStorage);
+const persister = createPersister({ store });
+
+<Flow 
+  flow={myFlow}
+  persister={persister}
+  saveMode="navigation"
+  loadingComponent={<Spinner />}
+>
+  {({ renderStep, isRestoring }) => {
+    if (isRestoring) return <Spinner />;
+    return renderStep({
+      welcome: <WelcomeStep />,
+      profile: <ProfileStep />
+    });
+  }}
+</Flow>
+```
+
+### With callbacks
+
+```tsx
+<Flow
+  flow={myFlow}
+  onNext={(event) => {
+    console.log(`Moving from ${event.from} to ${event.to}`);
+    analytics.track("step_forward", event);
+  }}
+  onComplete={(event) => {
+    console.log("Flow completed!", event.context);
+    submitData(event.context);
+  }}
+>
+  {({ renderStep }) =>
+    renderStep({
+      welcome: <WelcomeStep />,
+      profile: <ProfileStep />
+    })
+  }
+</Flow>
+```
+
+### With custom layout
+
+```tsx
+<Flow flow={myFlow}>
+  {({ renderStep, stepId, context, back, next, canGoBack }) => (
+    <div className="custom-layout">
+      <header>
+        <h1>Step: {stepId}</h1>
+      </header>
+      
+      <main>
+        {renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          complete: <CompleteStep />
+        })}
+      </main>
+      
+      <footer>
+        <button onClick={back} disabled={!canGoBack}>
+          Back
+        </button>
+        <button onClick={() => next()}>
+          Next
+        </button>
+      </footer>
+    </div>
+  )}
+</Flow>
+```
+
+### Multiple instances
+
+```tsx
+function TaskCreator({ taskId }: { taskId: string }) {
+  return (
+    <Flow
+      flow={taskFlow}
+      instanceId={taskId}  // Separate state per task
+      persister={persister}
+    >
+      {({ renderStep }) =>
+        renderStep({
+          details: <DetailsStep />,
+          assign: <AssignStep />,
+          complete: <CompleteStep />
+        })
+      }
+    </Flow>
+  );
+}
+
+// Each instance has independent state
+<TaskCreator taskId="task-1" />
+<TaskCreator taskId="task-2" />
+```
+
+## renderStep helper
+
+The `renderStep` function takes a map of step components and renders the current step:
+
+```typescript
+renderStep: (elements: Record<string, ReactElement>) => ReactElement
+```
+
+**Usage:**
+
+```tsx
+{({ renderStep }) =>
+  renderStep({
+    step1: <Step1Component />,
+    step2: <Step2Component />,
+    step3: <Step3Component />
+  })
+}
+```
+
+**Type Safety:**
+
+TypeScript ensures all steps are provided:
+
+```tsx
+// ❌ Error: Missing step3
+renderStep({
+  step1: <Step1 />,
+  step2: <Step2 />
+})
+
+// ✅ All steps provided
+renderStep({
+  step1: <Step1 />,
+  step2: <Step2 />,
+  step3: <Step3 />
+})
+```
+
+## Best practices
+
+### 1. Use descriptive instance IDs
+
+```tsx
+// ✅ Good: Descriptive ID
+<Flow instanceId={`order-${orderId}`} />
+
+// ❌ Bad: Generic ID  
+<Flow instanceId="1" />
+```
+
+### 2. Handle loading states
+
+```tsx
+<Flow
+  flow={myFlow}
+  persister={persister}
+  loadingComponent={<Skeleton />}
+>
+  {({ renderStep, isRestoring }) => (
+    isRestoring ? <Spinner /> : renderStep({ /* ... */ })
+  )}
+</Flow>
+```
+
+### 3. Memoize callbacks
+
+```tsx
+const handleComplete = useCallback((event) => {
+  submitData(event.context);
+}, []);
+
+<Flow onComplete={handleComplete}>
+```
+
+### 4. Use global config for common settings
+
+```tsx
+// Set defaults in FlowProvider
+<FlowProvider config={{ persister, saveMode: "navigation" }}>
+  {/* Override only when needed */}
+  <Flow flow={specialFlow} saveMode="always" />
+</FlowProvider>
+```
+
+## See also
+
+- [defineFlow()](/api-reference/define-flow) - Create flows
+- [useFlow Hook](/api-reference/use-flow) - Access flow state
+- [FlowProvider](/api-reference/flow-provider) - Global configuration
+- [Callbacks Guide](/guides/callbacks) - Event handling
+

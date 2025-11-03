@@ -1,0 +1,510 @@
+---
+title: Flow Instances
+description: Run multiple independent instances of the same flow with isolated state
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Flow instances allow you to run the same flow definition multiple times simultaneously, with each instance maintaining its own isolated state. This is essential for applications that manage multiple entities of the same type.
+
+## What are flow instances?
+
+Flow instances use the `instanceId` prop to create separate state containers for the same flow definition. Each instance:
+
+- Maintains its own current step
+- Has isolated context data
+- Saves to separate persistence keys
+- Runs independently of other instances
+
+Think of it like having multiple browser tabs open - each tab (instance) runs the same website (flow) but maintains its own state.
+
+## When to use instances
+
+### Multiple items pattern
+
+When managing multiple items that each need their own flow state:
+
+```tsx
+// Task management - each task has its own creation flow
+function TaskManager({ tasks }) {
+  return (
+    <div>
+      {tasks.map(task => (
+        <Flow
+          key={task.id}
+          flow={taskCreationFlow}
+          instanceId={task.id}  // Unique state per task
+          persister={persister}
+          initialContext={{ taskId: task.id }}
+        >
+          {({ renderStep }) => renderStep({
+            details: <TaskDetailsStep />,
+            assign: <TaskAssignStep />,
+            review: <TaskReviewStep />,
+            complete: <TaskCompleteStep />
+          })}
+        </Flow>
+      ))}
+    </div>
+  );
+}
+```
+
+### Checkout pattern
+
+Multiple shopping carts or orders:
+
+```tsx
+function CheckoutManager({ orders }) {
+  return (
+    <>
+      {orders.map(order => (
+        <Flow
+          key={order.id}
+          flow={checkoutFlow}
+          instanceId={`order-${order.id}`}
+          persister={persister}
+          initialContext={{ 
+            orderId: order.id,
+            items: order.items 
+          }}
+        >
+          {({ renderStep }) => renderStep({
+            cart: <CartStep />,
+            shipping: <ShippingStep />,
+            payment: <PaymentStep />,
+            confirmation: <ConfirmationStep />
+          })}
+        </Flow>
+      ))}
+    </>
+  );
+}
+```
+
+### Document processing pattern
+
+Each document has its own review workflow:
+
+```tsx
+function DocumentReview({ documents }) {
+  return (
+    <>
+      {documents.map(doc => (
+        <Flow
+          key={doc.id}
+          flow={reviewFlow}
+          instanceId={`doc-${doc.id}`}
+          persister={persister}
+          initialContext={{ documentId: doc.id }}
+        >
+          {({ renderStep }) => renderStep({
+            upload: <UploadStep />,
+            review: <ReviewStep />,
+            approve: <ApprovalStep />,
+            publish: <PublishStep />
+          })}
+        </Flow>
+      ))}
+    </>
+  );
+}
+```
+
+## How instance IDs work
+
+### Storage keys
+
+Instance IDs become part of the persistence key:
+
+```
+[prefix]:[flowId]:[variantId]:[instanceId]
+```
+
+Examples:
+```
+flow:checkout::order-123     // Order 123's checkout state
+flow:checkout::order-456     // Order 456's checkout state (separate)
+flow:review::doc-abc         // Document ABC's review state
+flow:task::task-789          // Task 789's creation state
+```
+
+### State isolation
+
+Each instance maintains completely separate state:
+
+```tsx
+// These two flows don't affect each other
+<Flow flow={taskFlow} instanceId="task-1" />
+<Flow flow={taskFlow} instanceId="task-2" />
+
+// Task 1 can be on step 3 while Task 2 is on step 1
+// Each has its own context, history, and progress
+```
+
+## Common patterns
+
+### Dynamic instance creation
+
+Create new instances on demand:
+
+```tsx
+function TaskBoard() {
+  const [tasks, setTasks] = useState([]);
+  
+  const createNewTask = () => {
+    const newTaskId = `task-${Date.now()}`;
+    setTasks([...tasks, { id: newTaskId, status: 'draft' }]);
+  };
+
+  return (
+    <div>
+      <button onClick={createNewTask}>New Task</button>
+      
+      {tasks.map(task => (
+        <Flow
+          key={task.id}
+          flow={taskFlow}
+          instanceId={task.id}
+          persister={persister}
+          onComplete={({ context }) => {
+            // Update task status when flow completes
+            setTasks(prev => prev.map(t => 
+              t.id === task.id 
+                ? { ...t, status: 'complete', data: context }
+                : t
+            ));
+          }}
+        >
+          {({ renderStep }) => renderStep({
+            create: <CreateStep />,
+            assign: <AssignStep />,
+            review: <ReviewStep />
+          })}
+        </Flow>
+      ))}
+    </div>
+  );
+}
+```
+
+### Tab-based instances
+
+Different tabs for different items:
+
+```tsx
+function OrderTabs({ orders }) {
+  const [activeTab, setActiveTab] = useState(orders[0]?.id);
+  
+  return (
+    <div>
+      <div className="tabs">
+        {orders.map(order => (
+          <button
+            key={order.id}
+            onClick={() => setActiveTab(order.id)}
+            className={activeTab === order.id ? 'active' : ''}
+          >
+            Order #{order.number}
+          </button>
+        ))}
+      </div>
+      
+      {orders.map(order => (
+        <div
+          key={order.id}
+          style={{ display: activeTab === order.id ? 'block' : 'none' }}
+        >
+          <Flow
+            flow={checkoutFlow}
+            instanceId={order.id}
+            persister={persister}
+            initialContext={{ orderId: order.id }}
+          >
+            {({ renderStep }) => renderStep({
+              /* ... */
+            })}
+          </Flow>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### Modal-based instances
+
+Each modal gets its own instance:
+
+```tsx
+function EditProfileModal({ userId, isOpen, onClose }) {
+  if (!isOpen) return null;
+  
+  return (
+    <Modal onClose={onClose}>
+      <Flow
+        flow={editProfileFlow}
+        instanceId={`edit-${userId}-${Date.now()}`} // Unique per edit session
+        persister={persister}
+        initialContext={{ userId }}
+        onComplete={onClose}
+      >
+        {({ renderStep }) => renderStep({
+          basicInfo: <BasicInfoStep />,
+          preferences: <PreferencesStep />,
+          review: <ReviewStep />
+        })}
+      </Flow>
+    </Modal>
+  );
+}
+```
+
+## Instance management
+
+### Cleaning up old instances
+
+Remove completed or abandoned instance states:
+
+```tsx
+async function cleanupInstance(instanceId: string) {
+  await persister.remove('checkout', { instanceId });
+}
+
+// Clean up after completion
+<Flow
+  flow={checkoutFlow}
+  instanceId={orderId}
+  persister={persister}
+  onComplete={async ({ context }) => {
+    // Process order
+    await processOrder(context);
+    
+    // Clean up saved state
+    await persister.remove('checkout', { instanceId: orderId });
+  }}
+>
+```
+
+### Listing active instances
+
+Track which instances are active:
+
+```tsx
+function getActiveInstances() {
+  const instances = [];
+  
+  // Check localStorage for all flow states
+  for (const key in localStorage) {
+    if (key.startsWith('flow:task:')) {
+      const instanceId = key.split(':')[3];
+      if (instanceId) {
+        const state = JSON.parse(localStorage.getItem(key));
+        instances.push({
+          instanceId,
+          step: state.stepId,
+          startedAt: state.startedAt
+        });
+      }
+    }
+  }
+  
+  return instances;
+}
+```
+
+### Instance expiration
+
+Implement TTL for instance states:
+
+```tsx
+const persister = createPersister({
+  store: createLocalStorageStore(),
+  ttl: 24 * 60 * 60 * 1000, // 24 hours
+  validate: (state) => {
+    // Check if instance is expired
+    const age = Date.now() - state.startedAt;
+    return age < 24 * 60 * 60 * 1000;
+  }
+});
+```
+
+## Best practices
+
+### 1. Use descriptive instance IDs
+
+Make instance IDs meaningful and debuggable:
+
+```tsx
+// ✅ Good - Clear what the instance represents
+instanceId={`order-${orderId}`}
+instanceId={`doc-${documentId}-v${version}`}
+instanceId={`user-${userId}-edit-${timestamp}`}
+
+// ❌ Bad - Unclear or generic
+instanceId="1"
+instanceId={Math.random().toString()}
+instanceId="instance"
+```
+
+### 2. Include context in instance ID
+
+For complex scenarios, include relevant context:
+
+```tsx
+// Multiple edit sessions per user
+instanceId={`profile-${userId}-edit-${sessionId}`}
+
+// Drafts vs published versions
+instanceId={`doc-${docId}-${isDraft ? 'draft' : 'published'}`}
+
+// Tenant-specific instances
+instanceId={`${tenantId}-order-${orderId}`}
+```
+
+### 3. Handle missing instances
+
+Gracefully handle when an instance doesn't exist:
+
+```tsx
+function TaskFlow({ taskId }) {
+  const [taskExists, setTaskExists] = useState(true);
+  
+  if (!taskExists) {
+    return <div>Task not found</div>;
+  }
+  
+  return (
+    <Flow
+      flow={taskFlow}
+      instanceId={taskId}
+      persister={persister}
+      onPersistenceError={(error) => {
+        console.error('Failed to load task state:', error);
+        setTaskExists(false);
+      }}
+    >
+      {({ renderStep }) => renderStep({
+        /* ... */
+      })}
+    </Flow>
+  );
+}
+```
+
+### 4. Coordinate between instances
+
+Sometimes instances need to interact:
+
+```tsx
+function LinkedTasks({ parentTaskId, childTaskIds }) {
+  return (
+    <>
+      {/* Parent task flow */}
+      <Flow
+        flow={taskFlow}
+        instanceId={parentTaskId}
+        onComplete={({ context }) => {
+          // Update child tasks when parent completes
+          childTaskIds.forEach(childId => {
+            // Update child task context or trigger actions
+          });
+        }}
+      >
+        {/* ... */}
+      </Flow>
+      
+      {/* Child task flows */}
+      {childTaskIds.map(childId => (
+        <Flow
+          key={childId}
+          flow={taskFlow}
+          instanceId={childId}
+          initialContext={{ parentId: parentTaskId }}
+        >
+          {/* ... */}
+        </Flow>
+      ))}
+    </>
+  );
+}
+```
+
+## Instance IDs vs variants
+
+Understanding the difference:
+
+<Aside type="note">
+  **Instance IDs** = Same flow, multiple simultaneous runs (e.g., multiple orders)
+  
+  **Variant IDs** = Different flow structures (e.g., express vs standard checkout)
+  
+  You can use both together: Different variants, each with multiple instances.
+</Aside>
+
+```tsx
+// Combining variants and instances
+<Flow
+  flow={expressCheckoutFlow}  // Variant: express checkout
+  instanceId={`order-${orderId}`}  // Instance: specific order
+  persister={persister}
+>
+  {/* ... */}
+</Flow>
+```
+
+## Common pitfalls
+
+### Missing instance ID
+
+Without an instance ID, multiple flows overwrite each other:
+
+```tsx
+// ❌ BAD - All tasks share the same state!
+{tasks.map(task => (
+  <Flow flow={taskFlow} persister={persister}>
+    {/* ... */}
+  </Flow>
+))}
+
+// ✅ GOOD - Each task has isolated state
+{tasks.map(task => (
+  <Flow flow={taskFlow} instanceId={task.id} persister={persister}>
+    {/* ... */}
+  </Flow>
+))}
+```
+
+### Reusing instance IDs
+
+Be careful not to accidentally reuse instance IDs:
+
+```tsx
+// ❌ BAD - All edit sessions share the same state
+<Flow instanceId={`edit-${userId}`}>
+
+// ✅ GOOD - Each edit session is unique
+<Flow instanceId={`edit-${userId}-${Date.now()}`}>
+```
+
+### Forgetting to clean up
+
+Clean up instance states to avoid storage bloat:
+
+```tsx
+// Clean up on unmount
+useEffect(() => {
+  return () => {
+    if (shouldCleanup) {
+      persister.remove(flowId, { instanceId });
+    }
+  };
+}, []);
+```
+
+## Next steps
+
+- [Flow Variants](/guides/flow-variants) - Different flow structures
+- [Persistence](/guides/persistence) - Save and restore flow state
+- [Flow Component](/api-reference/flow-component) - API reference for instanceId
+- [Storage Stores](/api-reference/storage-stores) - How instance data is stored

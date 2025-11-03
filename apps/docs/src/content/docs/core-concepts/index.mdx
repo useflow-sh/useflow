@@ -1,0 +1,246 @@
+---
+title: Overview
+description: Understanding the fundamental concepts and architecture of useFlow
+---
+
+useFlow is built around a few core concepts that work together to create type-safe, declarative multi-step flows. Understanding these concepts will help you build robust flows efficiently.
+
+## Core concepts
+
+### 1. **Flows**
+
+A flow is a **declarative definition** of a multi-step process. It defines:
+- **Steps**: The individual stages in your flow
+- **Transitions**: How users move between steps
+- **Starting point**: Where the flow begins
+
+Flows are **JSON-serializable** and can be:
+- Defined in your code
+- Fetched from a remote API
+- Generated dynamically based on conditions
+
+```ts
+const onboardingFlow = defineFlow({
+  id: 'onboarding',
+  start: 'welcome',
+  steps: {
+    welcome: { next: 'profile' },
+    profile: { next: 'preferences' },
+    preferences: { next: 'complete' },
+    complete: {} // Terminal step
+  }
+});
+```
+
+[Learn more about Flows →](/core-concepts/flows)
+
+### 2. **Steps**
+
+Steps represent individual stages in your flow. Each step:
+- Has a unique identifier (the key in the `steps` object)
+- Defines its next destination(s)
+- Renders a React component
+
+Steps can be:
+- **Linear**: Single next destination
+- **Branching**: Multiple possible next destinations
+- **Terminal**: No next destination (flow complete)
+
+```tsx
+// Render current step
+<Flow flow={onboardingFlow}>
+  {({ renderStep }) => renderStep({
+    welcome: <WelcomeStep />,
+    profile: <ProfileStep />,
+    preferences: <PreferencesStep />,
+    complete: <CompleteStep />
+  })}
+</Flow>
+```
+
+[Learn more about Steps →](/core-concepts/steps)
+
+### 3. **Context**
+
+Context is the **shared state** that flows through your entire multi-step process. It:
+- Stores user data collected across steps
+- Is type-safe (inferred from your flow definition)
+- Can be updated as users progress
+- Persists automatically when configured
+
+```tsx
+// Define context type
+type OnboardingContext = {
+  name: string;
+  email: string;
+  preferences: string[];
+};
+
+// Update context when navigating
+const { next, context } = flow.useFlow({ step: 'profile' });
+
+next({ 
+  name: 'Alice',
+  email: 'alice@example.com'
+});
+```
+
+[Learn more about Context →](/core-concepts/context)
+
+### 4. **Navigation**
+
+Navigation controls how users move through your flow:
+- **Forward**: `next()` and `skip()`
+- **Backward**: `back()`
+- **Reset**: `reset()` to start over
+
+Navigation can be:
+- **Context-driven**: Automatic based on context (using resolvers)
+- **Component-driven**: Explicit from user actions
+- **Programmatic**: Triggered by your code
+
+```tsx
+const { next, back, skip, canGoBack } = flow.useFlow({ step: 'profile' });
+
+// Move forward with data
+next({ name: 'Alice' });
+
+// Skip a step
+skip();
+
+// Go back if possible
+if (canGoBack) {
+  back();
+}
+```
+
+[Learn more about Navigation →](/core-concepts/navigation)
+
+## How they work together
+
+Here's how these concepts combine in a complete flow:
+
+```tsx
+import { defineFlow, Flow } from '@useflow/react';
+
+// 1. Define context type
+type SurveyContext = {
+  answer1?: string;
+  answer2?: string;
+};
+
+// 2. Define the flow structure
+const surveyFlow = defineFlow({
+  id: 'survey',
+  start: 'intro',
+  steps: {
+    intro: { next: 'question1' },
+    question1: { next: 'question2' },
+    question2: { next: 'results' },
+    results: {}
+  }
+}).with<SurveyContext>({});
+
+// 3. Create a step component
+function Question1Step() {
+  const { next, context } = surveyFlow.useFlow({ step: 'question1' });
+  
+  return (
+    <div>
+      <h1>Question 1</h1>
+      <button onClick={() => next({ answer1: 'Yes' })}>
+        Yes
+      </button>
+    </div>
+  );
+}
+
+// 4. Render the flow
+function SurveyApp() {
+  return (
+    <Flow 
+      flow={surveyFlow} 
+      initialContext={{ answer1: undefined, answer2: undefined }}
+    >
+      {({ renderStep }) => renderStep({
+        intro: <IntroStep />,
+        question1: <Question1Step />,
+        question2: <Question2Step />,
+        results: <ResultsStep />
+      })}
+    </Flow>
+  );
+}
+```
+
+## Architecture overview
+
+useFlow is designed with a **layered architecture**:
+
+### Core layer (`@useflow/core`)
+
+Framework-agnostic core functionality:
+- Type definitions
+- Flow reducer (state management)
+- Persistence system
+- Storage adapters
+
+### React layer (`@useflow/react`)
+
+React-specific implementations:
+- `defineFlow()` function
+- `<Flow>` component
+- `useFlow()` hook
+- `<FlowProvider>` for global config
+
+This separation means:
+- ✅ The core can be used with any framework
+- ✅ React package adds zero overhead to core logic
+- ✅ Type safety is preserved across layers
+
+## Key principles
+
+### 1. **Type Safety First**
+
+Every aspect of useFlow is designed for type safety:
+- Step names are validated at compile time
+- Context updates are type-checked
+- Navigation targets must be valid
+- No runtime surprises
+
+### 2. **Declarative Over Imperative**
+
+Define **what** your flow is, not **how** it works:
+- Flow structure is data, not code
+- Steps declare transitions, not logic
+- Branching is configuration, not conditions
+
+### 3. **Separation of Concerns**
+
+Clear boundaries between:
+- **Flow definition**: Structure and transitions
+- **Step components**: UI and interactions
+- **Context**: Shared state
+- **Navigation**: Movement logic
+
+### 4. **Flexible Persistence**
+
+Built-in support for:
+- Browser storage (localStorage, sessionStorage)
+- Custom storage backends
+- Automatic or manual saving
+- State restoration on mount
+
+## Next steps
+
+Now that you understand the core concepts, dive deeper into each one:
+
+- [**Flows**](/core-concepts/flows) - Define flow structure and transitions
+- [**Steps**](/core-concepts/steps) - Create and organize step components
+- [**Context**](/core-concepts/context) - Manage shared state
+- [**Navigation**](/core-concepts/navigation) - Control flow movement
+
+Or jump to practical guides:
+- [Building Linear Flows](/guides/linear-flows)
+- [Adding Branching Logic](/guides/branching)
+- [Persisting Flow State](/guides/persistence)

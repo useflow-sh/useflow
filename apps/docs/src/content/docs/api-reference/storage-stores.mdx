@@ -1,0 +1,373 @@
+---
+title: Storage Stores
+description: API reference for built-in storage store implementations
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Built-in storage implementations for persisting flow state across different environments.
+
+## Available stores
+
+### Browser stores
+
+<Tabs>
+  <TabItem label="localStorage">
+    ```typescript
+    import { createLocalStorageStore } from "@useflow/react";
+
+    const store = createLocalStorageStore(localStorage, {
+      prefix: "flow"  // Optional: custom key prefix
+    });
+    ```
+    
+    **Characteristics:**
+    - Persists across browser sessions
+    - ~5-10MB storage limit
+    - Synchronous API
+    - Same-origin only
+  </TabItem>
+  
+  <TabItem label="sessionStorage">
+    ```typescript
+    import { createSessionStorageStore } from "@useflow/react";
+
+    const store = createSessionStorageStore(sessionStorage, {
+      prefix: "flow"  // Optional: custom key prefix
+    });
+    ```
+    
+    **Characteristics:**
+    - Cleared when tab closes
+    - ~5-10MB storage limit
+    - Synchronous API
+    - Per-tab isolation
+  </TabItem>
+</Tabs>
+
+### Memory store
+
+```typescript
+import { createMemoryStore } from "@useflow/react";
+
+const store = createMemoryStore();
+```
+
+**Characteristics:**
+- In-memory only (no persistence)
+- Perfect for testing
+- No storage limits
+- Synchronous API
+
+### React native store
+
+```typescript
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createAsyncStorageStore } from "@useflow/react-native";
+
+const store = createAsyncStorageStore(AsyncStorage, {
+  prefix: "flow"  // Optional: custom key prefix
+});
+```
+
+**Characteristics:**
+- Persists on device
+- ~6MB limit on Android, larger on iOS
+- Asynchronous API
+- App-specific storage
+
+## Store interface
+
+All stores implement this interface:
+
+```typescript
+interface StorageStore {
+  get(key: string): Promise<string | null> | string | null;
+  set(key: string, value: string): Promise<void> | void;
+  delete(key: string): Promise<void> | void;
+  clear?(): Promise<void> | void;
+}
+```
+
+## Usage examples
+
+### Basic usage
+
+```typescript
+import { 
+  createLocalStorageStore, 
+  createPersister 
+} from "@useflow/react";
+
+// Create store
+const store = createLocalStorageStore();
+
+// Create persister with store
+const persister = createPersister({ store });
+
+// Use with Flow
+<Flow flow={myFlow} persister={persister}>
+  {({ renderStep }) => renderStep({ /* ... */ })}
+</Flow>
+```
+
+### With custom prefix
+
+```typescript
+const store = createLocalStorageStore(localStorage, {
+  prefix: "myapp"
+});
+
+// Keys will be: "myapp:flowId:variantId:instanceId"
+```
+
+### Testing with memory store
+
+```typescript
+import { createMemoryStore, createPersister } from "@useflow/react";
+
+describe('MyFlow', () => {
+  it('should persist state', () => {
+    const store = createMemoryStore();
+    const persister = createPersister({ store });
+    
+    render(
+      <Flow flow={myFlow} persister={persister}>
+        {/* ... */}
+      </Flow>
+    );
+    
+    // State is saved in memory during test
+  });
+});
+```
+
+### Switching stores by environment
+
+```typescript
+const store = process.env.NODE_ENV === 'test'
+  ? createMemoryStore()
+  : createLocalStorageStore();
+
+const persister = createPersister({ store });
+```
+
+## Storage limits
+
+<Aside type="caution" title="Storage Quotas">
+  Browser storage has limits:
+  - **localStorage**: ~5-10MB total
+  - **sessionStorage**: ~5-10MB total
+  - **AsyncStorage**: ~6MB on Android
+  
+  Large flows with many users can hit these limits.
+</Aside>
+
+### Handling storage errors
+
+```typescript
+<Flow
+  flow={myFlow}
+  persister={persister}
+  onPersistenceError={(error) => {
+    if (error.name === 'QuotaExceededError') {
+      // Storage full - clear old data
+      localStorage.clear();
+    }
+  }}
+>
+  {/* ... */}
+</Flow>
+```
+
+### Monitoring storage usage
+
+```typescript
+// Check localStorage usage
+const getStorageSize = () => {
+  let size = 0;
+  for (const key in localStorage) {
+    if (key.startsWith('flow:')) {
+      size += localStorage[key].length;
+    }
+  }
+  return size;
+};
+
+console.log(`Using ${getStorageSize()} bytes`);
+```
+
+## Custom store implementation
+
+Create your own store by implementing the interface:
+
+### Redis store example
+
+```typescript
+import Redis from 'ioredis';
+
+function createRedisStore(redis: Redis): StorageStore {
+  return {
+    async get(key: string) {
+      return await redis.get(key);
+    },
+    
+    async set(key: string, value: string) {
+      await redis.set(key, value);
+    },
+    
+    async delete(key: string) {
+      await redis.del(key);
+    },
+    
+    async clear() {
+      const keys = await redis.keys('flow:*');
+      if (keys.length > 0) {
+        await redis.del(...keys);
+      }
+    }
+  };
+}
+
+const redis = new Redis();
+const store = createRedisStore(redis);
+const persister = createPersister({ store });
+```
+
+### Database store example
+
+```typescript
+function createDatabaseStore(db: Database): StorageStore {
+  return {
+    async get(key: string) {
+      const row = await db.query(
+        'SELECT value FROM flow_states WHERE key = ?',
+        [key]
+      );
+      return row?.[0]?.value || null;
+    },
+    
+    async set(key: string, value: string) {
+      await db.query(
+        'INSERT OR REPLACE INTO flow_states (key, value) VALUES (?, ?)',
+        [key, value]
+      );
+    },
+    
+    async delete(key: string) {
+      await db.query(
+        'DELETE FROM flow_states WHERE key = ?',
+        [key]
+      );
+    }
+  };
+}
+```
+
+## Store selection guide
+
+| Store | Use When | Avoid When |
+|-------|----------|------------|
+| **localStorage** | Long-term persistence needed | Large data, private data |
+| **sessionStorage** | Tab-specific state | Need cross-tab state |
+| **Memory** | Testing, temporary state | Production persistence |
+| **AsyncStorage** | React Native apps | Web applications |
+| **Custom** | Special requirements | Simple use cases |
+
+## Security considerations
+
+<Aside type="caution">
+  Browser storage is **not secure**:
+  - Accessible via JavaScript
+  - Visible in DevTools
+  - No encryption by default
+  
+  Never store sensitive data like passwords or tokens.
+</Aside>
+
+### Encrypting sensitive data
+
+```typescript
+import { encrypt, decrypt } from 'your-crypto-lib';
+
+const encryptedStore: StorageStore = {
+  async get(key) {
+    const encrypted = localStorage.getItem(key);
+    if (!encrypted) return null;
+    return decrypt(encrypted);
+  },
+  
+  async set(key, value) {
+    const encrypted = encrypt(value);
+    localStorage.setItem(key, encrypted);
+  },
+  
+  async delete(key) {
+    localStorage.removeItem(key);
+  }
+};
+
+const persister = createPersister({ 
+  store: encryptedStore 
+});
+```
+
+## Performance tips
+
+### 1. Use appropriate save modes
+
+```typescript
+<Flow
+  flow={myFlow}
+  persister={persister}
+  saveMode="navigation"  // Only save on navigation, not every change
+  saveDebounce={500}     // Debounce saves by 500ms
+>
+```
+
+### 2. Clean up old data
+
+```typescript
+// Remove old flow states periodically
+const cleanupOldStates = () => {
+  const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  
+  for (const key in localStorage) {
+    if (key.startsWith('flow:')) {
+      try {
+        const data = JSON.parse(localStorage.getItem(key));
+        if (data.savedAt < oneWeekAgo) {
+          localStorage.removeItem(key);
+        }
+      } catch {}
+    }
+  }
+};
+```
+
+### 3. Compress large states
+
+```typescript
+import { compress, decompress } from 'lz-string';
+
+const compressedStore: StorageStore = {
+  get(key) {
+    const compressed = localStorage.getItem(key);
+    return compressed ? decompress(compressed) : null;
+  },
+  
+  set(key, value) {
+    localStorage.setItem(key, compress(value));
+  },
+  
+  delete(key) {
+    localStorage.removeItem(key);
+  }
+};
+```
+
+## Related
+
+- [createPersister()](/api-reference/create-persister) - Create persisters
+- [Persistence Guide](/guides/persistence) - Persistence patterns
+- [Custom Stores](/api-reference/custom-stores) - Advanced implementations

@@ -1,0 +1,313 @@
+---
+title: Should I Use useFlow?
+description: A practical guide to help you decide if useFlow is right for your project
+---
+
+useFlow is purpose-built for **multi-step UI flows** with built-in persistence and analytics. Use this guide to determine if it's the right fit for your project.
+
+## Perfect for useflow
+
+### Multi-step processes
+
+If you're building flows with **2+ steps** where users progress through sequential or branching paths:
+
+- **Onboarding flows** - Welcome → Profile → Preferences → Complete
+- **Checkout processes** - Cart → Shipping → Payment → Confirmation
+- **Application forms** - Personal Info → Employment → Documents → Review
+- **Wizards** - Setup → Configuration → Testing → Deploy
+
+### Need persistence
+
+If users should **continue where they left off** after closing browser/app:
+
+- Long forms that users might abandon and return to
+- Complex multi-session processes
+- Mobile users with interrupted sessions
+- Critical flows where lost progress = lost users
+
+### Want analytics
+
+If you need to **track user behavior** through your flow:
+
+- Measure conversion at each step
+- Identify drop-off points
+- A/B test different flow versions
+- Monitor user journey completion rates
+
+### Type safety matters
+
+If you want **compile-time safety** for your flow logic:
+
+- Catch navigation errors before runtime
+- Autocomplete for step names and context
+- Refactor flows with confidence
+- Large teams need consistent flow patterns
+
+## Consider alternatives
+
+### Single forms
+
+For **one-page forms** without steps:
+
+```tsx
+// ❌ Overkill: Simple login form
+<Flow flow={loginFlow}>
+  {({ renderStep }) => renderStep({
+    login: <LoginForm />
+  })}
+</Flow>
+
+// ✅ Better: Just use a form library
+<form onSubmit={handleLogin}>
+  <input name="email" />
+  <input name="password" />
+  <button>Login</button>
+</form>
+```
+
+**Use instead:** React Hook Form, Formik, or vanilla forms
+
+### Complex state machines
+
+For **intricate business logic** beyond UI flows:
+
+```tsx
+// ❌ Wrong tool: Complex state machine
+const [state, send] = useActor(complexBusinessMachine);
+
+// ✅ Better: Use XState for complex logic
+const [state, send] = useMachine(orderProcessingMachine);
+```
+
+**Use instead:** XState for complex state machines
+
+### Simple page routing
+
+For **basic page navigation**:
+
+```tsx
+// ❌ Overkill: Simple page routing
+<Flow flow={pageFlow}>
+  {({ renderStep }) => renderStep({
+    home: <HomePage />,
+    about: <AboutPage />
+  })}
+</Flow>
+
+// ✅ Better: Use a router
+<Routes>
+  <Route path="/" element={<HomePage />} />
+  <Route path="/about" element={<AboutPage />} />
+</Routes>
+```
+
+**Use instead:** Next.js Router, React Router, or similar
+
+## Decision framework
+
+Ask yourself these questions:
+
+### 1. How many steps?
+
+- **1 step**: Use a form library
+- **2+ steps**: ✅ Consider useFlow
+
+### 2. Do users need to save progress?
+
+- **Not right now**: That's fine! Adding persistence later is one line of code
+- **Yes, definitely**: ✅ Perfect for useFlow
+
+**The reality:** Most multi-step flows eventually need persistence. Users _will_ close the tab, their phone _will_ die, they _will_ expect to continue where they left off. With useFlow, it's trivial to add when (not if) you need it.
+
+### 3. Do you need step analytics?
+
+- **Not tracking yet**: No problem! Analytics hooks are built-in when you're ready
+- **Need conversion data**: ✅ Great fit for useFlow
+
+**The reality:** You'll want to know where users drop off. Even if you don't need analytics today, when product asks "where are users getting stuck?", you'll be glad it's just adding an `onNext` callback.
+
+### 4. How complex is the logic?
+
+- **Simple linear flow**: ✅ Perfect for useFlow
+- **Some branching**: ✅ Great for useFlow
+- **Complex state machine**: Consider XState
+
+### 5. What's your team like?
+
+- **Small team, simple needs**: Any solution works
+- **Large team, needs consistency**: ✅ useFlow provides structure
+
+## Real-world examples
+
+### Great useflow use cases
+
+**E-commerce Checkout**
+
+```tsx
+const checkoutFlow = defineFlow({
+  id: "checkout",
+  start: "cart",
+  steps: {
+    cart: { next: "shipping" },
+    shipping: { next: "payment" },
+    payment: { next: "confirm" },
+    confirm: {},
+  },
+});
+```
+
+**Benefits:**
+
+- ✅ Users don't lose cart on page refresh
+- ✅ Track exactly where users drop off (via analytics hooks)
+- ✅ Type-safe step navigation
+- ✅ Easy to add A/B testing when needed
+
+**User Onboarding**
+
+```tsx
+const onboardingFlow = defineFlow({
+  id: "onboarding",
+  start: "welcome",
+  steps: {
+    welcome: { next: "profile" },
+    profile: { next: "preferences" },
+    preferences: { next: "complete" },
+    complete: {},
+  },
+});
+```
+
+**Benefits:**
+
+- ✅ New users can complete onboarding across sessions
+- ✅ Track which steps cause drop-offs
+- ✅ Skip steps for returning users
+- ✅ Measure onboarding completion rates
+
+### Poor useflow use cases
+
+**Contact Form**
+
+```tsx
+// ❌ Overkill for single form
+<Flow flow={contactFlow}>
+  {({ renderStep }) => renderStep({
+    contact: <ContactForm />
+  })}
+</Flow>
+
+// ✅ Much simpler
+<ContactForm />
+```
+
+**Page Navigation**
+
+```tsx
+// ❌ Wrong tool for routing
+<Flow flow={navigationFlow}>
+  {({ renderStep }) => renderStep({
+    home: <HomePage />,
+    about: <AboutPage />,
+    contact: <ContactPage />
+  })}
+</Flow>
+
+// ✅ Use proper routing
+<Router>
+  <Route path="/" component={HomePage} />
+  <Route path="/about" component={AboutPage} />
+  <Route path="/contact" component={ContactPage} />
+</Router>
+```
+
+## Bundle size considerations
+
+useFlow is **lightweight** - under 5KB gzipped with zero dependencies. 
+
+**The real comparison:** Building equivalent functionality yourself (navigation, persistence, type safety, analytics hooks) would likely result in more code than useFlow itself. You're trading a small, tested library for maintaining your own implementation.
+
+## Need help deciding?
+
+Still unsure? Here are some quick questions:
+
+<details>
+<summary><strong>Can I use useFlow with my existing form library?</strong></summary>
+
+**Yes!** useFlow complements form libraries perfectly:
+
+```tsx
+function ProfileStep() {
+  const { context, setContext, next } = useFlow();
+
+  // Use your favorite form library for validation
+  const form = useForm({
+    defaultValues: context,
+    onSubmit: (values) => {
+      setContext(values); // Save to flow context
+      next(); // Navigate to next step
+    },
+  });
+
+  return <form onSubmit={form.handleSubmit}>{/* ... */}</form>;
+}
+```
+
+</details>
+
+<details>
+<summary><strong>How do I migrate from my existing solution?</strong></summary>
+
+**Start incrementally:**
+
+1. **Identify one multi-step flow** in your app (pick the simplest one first)
+2. **Rewrite it with useFlow** - should be faster and cleaner than original
+3. **Test thoroughly** to ensure identical user experience
+4. **Deploy when confident**, then migrate other flows
+5. **Remove old code** as you replace each flow
+
+No need to rewrite everything at once! Pick flows one by one and migrate as your team has capacity.
+
+</details>
+
+<details>
+<summary><strong>What if I only need 2 steps?</strong></summary>
+
+**2 steps is perfect for useFlow!** You still get:
+
+- ✅ Automatic progress persistence
+- ✅ Navigation management
+- ✅ Analytics hooks
+- ✅ Type safety
+
+Even "simple" 2-step flows become complex when you add validation, back navigation, and persistence.
+
+</details>
+
+<details>
+<summary><strong>Is the learning curve worth it?</strong></summary>
+
+**useFlow is extremely simple:**
+
+- **5 minutes**: Read the Quick Start and understand the concepts
+- **10 minutes**: Build your first working flow
+- **2 minutes**: Add persistence (one line of code)
+- **2 minutes**: Add analytics hooks (one callback)
+
+That's it. There's not much to learn - it's just declarative flow definitions with a few simple hooks.
+
+</details>
+
+## Next steps
+
+Ready to get started?
+
+- [**Quick Start**](/getting-started/quick-start) - Build your first flow in 5 minutes
+- [**Examples**](/recipes/onboarding) - See real-world implementations
+- [**Core Concepts**](/core-concepts/) - Understand the fundamentals
+
+Still evaluating?
+
+- [**Why useFlow?**](/getting-started/why-useflow) - Detailed comparison with alternatives
+- [**TypeScript Guide**](/getting-started/typescript) - See the type safety benefits
+- [**Troubleshooting**](/guides/troubleshooting) - Common questions answered

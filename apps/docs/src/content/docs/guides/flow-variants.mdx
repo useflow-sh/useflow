@@ -1,0 +1,502 @@
+---
+title: Flow Variants
+description: Switch between different flow definitions to enable A/B testing, feature flags, and dynamic flows
+---
+
+import { REPO_EXAMPLES_URL } from '../../../constants';
+
+Flow variants allow you to create multiple versions of the same flow with different structures, steps, or navigation logic. The same step components can be reused across different flow definitions, making it easy to experiment with different user experiences.
+
+## What are flow variants?
+
+Flow variants are different configurations of a flow that share the same `id` but have different `variantId` values. This enables:
+
+- **A/B testing** - Test different onboarding or checkout experiences
+- **Feature flags** - Enable/disable steps based on feature availability
+- **Role-based flows** - Different paths for admins vs users
+- **Progressive disclosure** - Beginner vs expert modes
+- **User preferences** - Express vs detailed flows
+- **Server-driven flows** - Fetch entire flow definitions from your API
+
+## Basic example
+
+Here's how to define two variants of the same onboarding flow:
+
+```tsx
+import { defineFlow } from "@useflow/react";
+
+type OnboardingContext = {
+  email: string;
+  name: string;
+  preferences?: {
+    notifications: boolean;
+    newsletter: boolean;
+  };
+};
+
+// Standard flow with all steps
+const standardFlow = defineFlow({
+  id: "onboarding",
+  variantId: "standard",
+  start: "welcome",
+  steps: {
+    welcome: { next: "account" },
+    account: { next: "verification" },
+    verification: { next: "profile" },
+    profile: { next: "preferences" },
+    preferences: { next: "complete" },
+    complete: {},
+  },
+});
+
+// Express flow with fewer steps
+const expressFlow = defineFlow({
+  id: "onboarding",
+  variantId: "express",
+  start: "welcome",
+  steps: {
+    welcome: { next: "account" },
+    account: { next: "profile" },
+    profile: { next: "complete" },
+    complete: {},
+  },
+});
+```
+
+## Using variants
+
+### Runtime selection
+
+Choose which flow to use based on a condition:
+
+```tsx
+import { Flow } from "@useflow/react";
+
+function App() {
+  // Determine which variant to use
+  const useExpress = user.preferences.expressMode;
+  const selectedFlow = useExpress ? expressFlow : standardFlow;
+
+  return (
+    <Flow flow={selectedFlow} initialContext={{ email: "", name: "" }}>
+      {({ renderStep }) =>
+        renderStep({
+          welcome: <WelcomeStep />,
+          account: <AccountStep />,
+          verification: <VerificationStep />,
+          profile: <ProfileStep />,
+          preferences: <PreferencesStep />,
+          complete: <CompleteStep />,
+        })
+      }
+    </Flow>
+  );
+}
+```
+
+### User toggle
+
+Let users switch between variants:
+
+```tsx
+function App() {
+  const [useExpress, setUseExpress] = useState(false);
+  const selectedFlow = useExpress ? expressFlow : standardFlow;
+
+  return (
+    <div>
+      <label>
+        <input
+          type="checkbox"
+          checked={useExpress}
+          onChange={(e) => setUseExpress(e.target.checked)}
+        />
+        Use express flow
+      </label>
+
+      <Flow flow={selectedFlow} initialContext={{ email: "", name: "" }}>
+        {({ renderStep }) =>
+          renderStep({
+            welcome: <WelcomeStep />,
+            account: <AccountStep />,
+            verification: <VerificationStep />,
+            profile: <ProfileStep />,
+            preferences: <PreferencesStep />,
+            complete: <CompleteStep />,
+          })
+        }
+      </Flow>
+    </div>
+  );
+}
+```
+
+## Reusing components
+
+The key to flow variants is that **step components can be reused** across different flows. Components use the generic `useFlow()` hook instead of flow-specific hooks:
+
+```tsx
+// ✅ Flow-agnostic component - works with any flow
+function AccountStep() {
+  const { next, setContext, context } = useFlow<OnboardingContext>();
+
+  return (
+    <div>
+      <input
+        value={context.email}
+        onChange={(e) => setContext({ email: e.target.value })}
+        placeholder="Email"
+      />
+      <button onClick={() => next()}>Continue</button>
+    </div>
+  );
+}
+```
+
+When you use `renderStep()`, you provide components for **all possible steps** across all variants. Only the steps from the active flow will be rendered:
+
+```tsx
+{({ renderStep }) =>
+  renderStep({
+    welcome: <WelcomeStep />,          // Used by both variants
+    account: <AccountStep />,          // Used by both variants
+    verification: <VerificationStep />, // Only in standard variant
+    profile: <ProfileStep />,          // Used by both variants
+    preferences: <PreferencesStep />,  // Only in standard variant
+    complete: <CompleteStep />,        // Used by both variants
+  })
+}
+```
+
+## Common use cases
+
+### A/B testing
+
+Test different flow structures to optimize conversion:
+
+```tsx
+function App() {
+  // Randomly assign users to a variant
+  const variant = Math.random() > 0.5 ? "control" : "treatment";
+  const selectedFlow = variant === "treatment" ? treatmentFlow : controlFlow;
+
+  return (
+    <Flow
+      flow={selectedFlow}
+      initialContext={{ email: "", name: "" }}
+      onComplete={() => {
+        // Track which variant completed
+        analytics.track("flow_completed", { variant });
+      }}
+    >
+      {({ renderStep }) => renderStep({
+        /* ... */
+      })}
+    </Flow>
+  );
+}
+```
+
+### Feature flags
+
+Enable/disable steps based on feature availability:
+
+```tsx
+function App() {
+  const features = useFeatureFlags();
+  
+  // Choose flow based on feature flags
+  const selectedFlow = features.emailVerification 
+    ? flowWithVerification 
+    : flowWithoutVerification;
+
+  return (
+    <Flow flow={selectedFlow} initialContext={{ email: "", name: "" }}>
+      {({ renderStep }) => renderStep({
+        /* ... */
+      })}
+    </Flow>
+  );
+}
+```
+
+### Role-based flows
+
+Different paths for different user roles:
+
+```tsx
+function App() {
+  const user = useCurrentUser();
+  
+  // Admin gets full flow, regular users get simplified flow
+  const selectedFlow = user.role === "admin" ? adminFlow : userFlow;
+
+  return (
+    <Flow flow={selectedFlow} initialContext={{}}>
+      {({ renderStep }) => renderStep({
+        /* ... */
+      })}
+    </Flow>
+  );
+}
+```
+
+### User preferences
+
+Let users choose their experience level:
+
+```tsx
+const beginnerFlow = defineFlow({
+  id: "tutorial",
+  variantId: "beginner",
+  start: "intro",
+  steps: {
+    intro: { next: "basics" },
+    basics: { next: "practice" },
+    practice: { next: "tips" },
+    tips: { next: "complete" },
+    complete: {},
+  },
+});
+
+const expertFlow = defineFlow({
+  id: "tutorial",
+  variantId: "expert",
+  start: "overview",
+  steps: {
+    overview: { next: "complete" },
+    complete: {},
+  },
+});
+```
+
+## Remote flows
+
+Flow definitions are JSON-serializable, so you can fetch them from your API:
+
+```tsx
+import { defineFlow } from "@useflow/react";
+
+function App() {
+  const [flow, setFlow] = useState(null);
+
+  useEffect(() => {
+    // Fetch flow definition from your backend
+    fetch("/api/flows/onboarding")
+      .then((r) => r.json())
+      .then((flowConfig) => {
+        const remoteFlow = defineFlow(flowConfig);
+        setFlow(remoteFlow);
+      });
+  }, []);
+
+  if (!flow) return <div>Loading...</div>;
+
+  return (
+    <Flow flow={flow} initialContext={{}}>
+      {({ renderStep }) => renderStep({
+        /* ... */
+      })}
+    </Flow>
+  );
+}
+```
+
+Your API can return different flow definitions based on:
+- User ID (personalized flows)
+- Tenant ID (multi-tenant apps)
+- A/B test assignment
+- Feature flags
+- User preferences
+
+:::tip[Resolver Functions]
+While flow definitions are JSON-serializable, **resolver functions** for context-driven branching must be defined in your code. Remote flows can specify which resolvers to use by name, and you map them in your application.
+:::
+
+## Persistence with variants
+
+Each variant maintains **separate saved state**. When a user switches variants, their progress is preserved for each:
+
+```tsx
+import { createPersister, createLocalStorageStore } from "@useflow/react";
+
+const persister = createPersister({ 
+  store: createLocalStorageStore() 
+});
+
+function App() {
+  const [useExpress, setUseExpress] = useState(false);
+  const selectedFlow = useExpress ? expressFlow : standardFlow;
+
+  return (
+    <Flow 
+      flow={selectedFlow} 
+      persister={persister}
+      initialContext={{}}
+    >
+      {({ renderStep }) => renderStep({
+        /* ... */
+      })}
+    </Flow>
+  );
+}
+```
+
+Storage keys include the variant ID:
+- `onboarding:standard:state` - State for standard variant
+- `onboarding:express:state` - State for express variant
+
+Users can switch between variants and continue where they left off in each.
+
+[Learn more about persistence →](/guides/persistence)
+
+## Type safety
+
+TypeScript automatically infers the union of all step names when you use multiple flows:
+
+```tsx
+const standardFlow = defineFlow({
+  id: "onboarding",
+  variantId: "standard",
+  start: "welcome",
+  steps: {
+    welcome: { next: "account" },
+    account: { next: "verification" },
+    verification: { next: "complete" },
+    complete: {},
+  },
+});
+
+const expressFlow = defineFlow({
+  id: "onboarding",
+  variantId: "express",
+  start: "welcome",
+  steps: {
+    welcome: { next: "account" },
+    account: { next: "complete" },
+    complete: {},
+  },
+});
+
+// TypeScript knows about all steps from both flows
+const selectedFlow = useExpress ? expressFlow : standardFlow;
+
+<Flow flow={selectedFlow} initialContext={{}}>
+  {({ renderStep }) =>
+    renderStep({
+      welcome: <WelcomeStep />,
+      account: <AccountStep />,
+      verification: <VerificationStep />, // Required even though only in standard
+      complete: <CompleteStep />,
+    })
+  }
+</Flow>
+```
+
+## Best practices
+
+### 1. Share the same flow ID
+
+Variants of the same flow should use the same `id` but different `variantId`:
+
+```tsx
+// ✅ Good - Same flow, different variants
+const standard = defineFlow({ id: "onboarding", variantId: "standard", /* ... */ });
+const express = defineFlow({ id: "onboarding", variantId: "express", /* ... */ });
+
+// ❌ Avoid - Different flow IDs break persistence switching
+const standard = defineFlow({ id: "onboarding-standard", /* ... */ });
+const express = defineFlow({ id: "onboarding-express", /* ... */ });
+```
+
+### 2. Use semantic variant IDs
+
+Choose descriptive variant names:
+
+```tsx
+// ✅ Good - Clear meaning
+variantId: "express"
+variantId: "detailed" 
+variantId: "admin"
+variantId: "mobile"
+
+// ❌ Avoid - Generic names
+variantId: "variant1"
+variantId: "v2"
+variantId: "test"
+```
+
+### 3. Provide components for all steps
+
+When using multiple variants, provide components for all possible steps:
+
+```tsx
+// If flow A has steps [a, b, c] and flow B has steps [a, b, d]
+// You must provide components for [a, b, c, d]
+{({ renderStep }) =>
+  renderStep({
+    a: <StepA />,
+    b: <StepB />,
+    c: <StepC />, // Only used by flow A
+    d: <StepD />, // Only used by flow B
+  })
+}
+```
+
+### 4. Keep context types compatible
+
+Ensure all variants use compatible context types:
+
+```tsx
+// ✅ Good - Compatible context types
+type OnboardingContext = {
+  email: string;
+  name: string;
+  // Optional fields work across variants
+  verificationCode?: string;
+  preferences?: PreferencesData;
+};
+
+const standardFlow = defineFlow({ /* ... */ });
+const expressFlow = defineFlow({ /* ... */ });
+```
+
+### 5. Track variant usage
+
+Use analytics to understand which variants perform best:
+
+```tsx
+<Flow
+  flow={selectedFlow}
+  initialContext={{}}
+  onComplete={() => {
+    analytics.track("flow_completed", {
+      flowId: selectedFlow.id,
+      variantId: selectedFlow.variantId,
+    });
+  }}
+  onNext={({ from, to }) => {
+    analytics.track("step_transition", {
+      flowId: selectedFlow.id,
+      variantId: selectedFlow.variantId,
+      from,
+      to,
+    });
+  }}
+>
+  {({ renderStep }) => renderStep({
+    /* ... */
+  })}
+</Flow>
+```
+
+## Examples
+
+Check out the [Flow Variants demo]({REPO_EXAMPLES_URL}/react-examples/src/flows/variants) in our examples repository to see flow variants in action.
+
+## Next steps
+
+- [Branching](/guides/branching) - Conditional navigation within flows
+- [Persistence](/guides/persistence) - Save and restore flow progress
+- [Callbacks](/guides/callbacks) - React to flow events
+- [Migrations](/guides/migrations) - Handle flow structure changes

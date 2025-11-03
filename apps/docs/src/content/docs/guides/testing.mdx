@@ -1,0 +1,747 @@
+---
+title: Testing
+description: Learn how to test flows, steps, navigation, and persistence with Vitest, Jest, and React Testing Library
+---
+
+import { Aside, Tabs, TabItem, Steps, Code } from '@astrojs/starlight/components';
+
+Testing flows ensures your user journeys work correctly and remain stable as your application evolves. This guide covers testing patterns for flows, steps, navigation, branching, and persistence.
+
+## Setup
+
+useFlow works with standard React testing tools:
+
+<Tabs>
+<TabItem label="Vitest" icon="seti:vitest">
+```bash
+npm install -D vitest @testing-library/react @testing-library/user-event happy-dom
+```
+</TabItem>
+<TabItem label="Jest" icon="seti:jest">
+```bash
+npm install -D jest @testing-library/react @testing-library/jest-dom
+```
+</TabItem>
+</Tabs>
+
+## Basic flow testing
+
+### Testing flow rendering
+
+Test that flows render the correct initial step:
+
+```tsx title="OnboardingFlow.test.tsx"
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect } from "vitest";
+import { Flow } from "@useflow/react";
+import { onboardingFlow } from "./flow";
+
+describe("OnboardingFlow", () => {
+  it("should render the initial step", () => {
+    render(
+      <Flow flow={onboardingFlow}>
+        {({ renderStep }) =>
+          renderStep({
+            welcome: <div>Welcome Step</div>,
+            profile: <div>Profile Step</div>,
+            complete: <div>Complete Step</div>,
+          })
+        }
+      </Flow>
+    );
+
+    expect(screen.getByText("Welcome Step")).toBeInTheDocument();
+    expect(screen.queryByText("Profile Step")).not.toBeInTheDocument();
+  });
+});
+```
+
+### Testing navigation
+
+Test forward and backward navigation:
+
+```tsx
+import { render, screen, fireEvent } from "@testing-library/react";
+import { useFlow } from "@useflow/react";
+
+function NavigationTest() {
+  const { stepId, next, back } = useFlow();
+  return (
+    <div>
+      <div data-testid="current-step">{stepId}</div>
+      <button onClick={() => next()}>Next</button>
+      <button onClick={back}>Back</button>
+    </div>
+  );
+}
+
+it("should navigate forward", () => {
+  render(
+    <Flow flow={onboardingFlow}>
+      {({ renderStep }) => (
+        <>
+          {renderStep({
+            welcome: <div>Welcome</div>,
+            profile: <div>Profile</div>,
+          })}
+          <NavigationTest />
+        </>
+      )}
+    </Flow>
+  );
+
+  expect(screen.getByTestId("current-step")).toHaveTextContent("welcome");
+
+  fireEvent.click(screen.getByText("Next"));
+
+  expect(screen.getByTestId("current-step")).toHaveTextContent("profile");
+});
+
+it("should navigate backward", () => {
+  render(
+    <Flow flow={onboardingFlow}>
+      {({ renderStep }) => (
+        <>
+          {renderStep({
+            welcome: <div>Welcome</div>,
+            profile: <div>Profile</div>,
+          })}
+          <NavigationTest />
+        </>
+      )}
+    </Flow>
+  );
+
+  // Navigate forward first
+  fireEvent.click(screen.getByText("Next"));
+  expect(screen.getByTestId("current-step")).toHaveTextContent("profile");
+
+  // Then navigate back
+  fireEvent.click(screen.getByText("Back"));
+  expect(screen.getByTestId("current-step")).toHaveTextContent("welcome");
+});
+```
+
+## Testing context
+
+### Testing context updates
+
+Test that context updates correctly:
+
+```tsx
+function ContextTest() {
+  const { context, setContext } = useFlow<{ name: string }>();
+  return (
+    <div>
+      <div data-testid="name">{context.name}</div>
+      <button onClick={() => setContext({ name: "John" })}>Set Name</button>
+    </div>
+  );
+}
+
+it("should update context", () => {
+  render(
+    <Flow flow={myFlow} initialContext={{ name: "" }}>
+      {({ renderStep }) => (
+        <>
+          {renderStep({ welcome: <div>Welcome</div> })}
+          <ContextTest />
+        </>
+      )}
+    </Flow>
+  );
+
+  expect(screen.getByTestId("name")).toHaveTextContent("");
+
+  fireEvent.click(screen.getByText("Set Name"));
+
+  expect(screen.getByTestId("name")).toHaveTextContent("John");
+});
+```
+
+### Testing context persistence across steps
+
+Test that context persists when navigating:
+
+```tsx
+it("should persist context across steps", () => {
+  function Step1() {
+    const { setContext, next } = useFlow();
+    return (
+      <button
+        onClick={() => {
+          setContext({ email: "test@example.com" });
+          next();
+        }}
+      >
+        Continue
+      </button>
+    );
+  }
+
+  function Step2() {
+    const { context } = useFlow<{ email: string }>();
+    return <div data-testid="email">{context.email}</div>;
+  }
+
+  render(
+    <Flow flow={myFlow} initialContext={{ email: "" }}>
+      {({ renderStep }) =>
+        renderStep({
+          step1: <Step1 />,
+          step2: <Step2 />,
+        })
+      }
+    </Flow>
+  );
+
+  fireEvent.click(screen.getByText("Continue"));
+
+  expect(screen.getByTestId("email")).toHaveTextContent("test@example.com");
+});
+```
+
+## Testing branching
+
+### Testing context-driven branching
+
+Test that resolve functions route correctly:
+
+```tsx
+type BranchingContext = {
+  userType: "business" | "personal";
+};
+
+const branchingFlow = defineFlow({
+  id: "branching",
+  start: "userType",
+  steps: {
+    userType: {
+      next: ["business", "personal"],
+    },
+    business: { next: "complete" },
+    personal: { next: "complete" },
+    complete: {},
+  },
+}).with<BranchingContext>((steps) => ({
+  resolvers: {
+    userType: (ctx) =>
+      ctx.userType === "business" ? steps.business : steps.personal,
+  },
+}));
+```
+
+### Testing component-driven branching
+
+Test explicit navigation targets:
+
+```tsx
+it("should navigate to explicit target", () => {
+  function SetupStep() {
+    const { next } = useFlow();
+    return (
+      <div>
+        <button onClick={() => next("advanced")}>Advanced</button>
+        <button onClick={() => next("quick")}>Quick</button>
+      </div>
+    );
+  }
+
+  render(
+    <Flow flow={setupFlow}>
+      {({ renderStep }) =>
+        renderStep({
+          setup: <SetupStep />,
+          advanced: <div>Advanced Setup</div>,
+          quick: <div>Quick Setup</div>,
+        })
+      }
+    </Flow>
+  );
+
+  fireEvent.click(screen.getByText("Advanced"));
+
+  expect(screen.getByText("Advanced Setup")).toBeInTheDocument();
+});
+```
+
+## Testing callbacks
+
+### Testing event callbacks
+
+Test that callbacks fire with correct data:
+
+```tsx
+import { vi } from "vitest";
+
+it("should call onNext callback", () => {
+  const onNext = vi.fn();
+
+  function TestStep() {
+    const { next } = useFlow();
+    return <button onClick={() => next()}>Next</button>;
+  }
+
+  render(
+    <Flow flow={myFlow} onNext={onNext}>
+      {({ renderStep }) =>
+        renderStep({
+          first: <TestStep />,
+          second: <div>Second</div>,
+        })
+      }
+    </Flow>
+  );
+
+  fireEvent.click(screen.getByText("Next"));
+
+  expect(onNext).toHaveBeenCalledWith(
+    expect.objectContaining({
+      from: "first",
+      to: "second",
+    })
+  );
+});
+
+it("should call onComplete callback", () => {
+  const onComplete = vi.fn();
+
+  function FinalStep() {
+    const { next } = useFlow();
+    return <button onClick={() => next()}>Finish</button>;
+  }
+
+  render(
+    <Flow flow={myFlow} onComplete={onComplete}>
+      {({ renderStep }) =>
+        renderStep({
+          final: <FinalStep />,
+        })
+      }
+    </Flow>
+  );
+
+  fireEvent.click(screen.getByText("Finish"));
+
+  expect(onComplete).toHaveBeenCalledWith(
+    expect.objectContaining({
+      context: expect.any(Object),
+    })
+  );
+});
+```
+
+## Testing persistence
+
+### Testing save/restore
+
+<Aside type="tip">
+Use `createMemoryStore()` for testing persistence without affecting actual browser storage.
+</Aside>
+
+Test that state persists and restores:
+
+```tsx
+import { createMemoryStore, createPersister } from "@useflow/react";
+
+it("should save and restore state", async () => {
+  const store = createMemoryStore();
+  const persister = createPersister({ store });
+
+  // First render: Navigate and save
+  const { unmount } = render(
+    <Flow flow={myFlow} persister={persister}>
+      {({ renderStep }) => (
+        <>
+          {renderStep({
+            step1: <div>Step 1</div>,
+            step2: <div>Step 2</div>,
+          })}
+          <NavigationTest />
+        </>
+      )}
+    </Flow>
+  );
+
+  fireEvent.click(screen.getByText("Next"));
+  expect(screen.getByTestId("current-step")).toHaveTextContent("step2");
+
+  // Wait for save to complete
+  await waitFor(() => {
+    expect(persister.save).toHaveBeenCalled();
+  });
+
+  unmount();
+
+  // Second render: Should restore to step2
+  render(
+    <Flow flow={myFlow} persister={persister}>
+      {({ renderStep }) => (
+        <>
+          {renderStep({
+            step1: <div>Step 1</div>,
+            step2: <div>Step 2</div>,
+          })}
+          <NavigationTest />
+        </>
+      )}
+    </Flow>
+  );
+
+  await waitFor(() => {
+    expect(screen.getByTestId("current-step")).toHaveTextContent("step2");
+  });
+});
+```
+
+### Testing custom stores
+
+Test custom store implementations:
+
+```tsx
+it("should use custom store", async () => {
+  const mockStore = {
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue(undefined),
+    remove: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const persister = createPersister({ store: mockStore });
+
+  render(
+    <Flow flow={myFlow} persister={persister}>
+      {({ renderStep }) =>
+        renderStep({
+          step1: <div>Step 1</div>,
+        })
+      }
+    </Flow>
+  );
+
+  await waitFor(() => {
+    expect(mockStore.get).toHaveBeenCalledWith(myFlow.id, expect.any(Object));
+  });
+});
+```
+
+## Testing with user events
+
+Use `@testing-library/user-event` for realistic interactions:
+
+```tsx
+import userEvent from "@testing-library/user-event";
+
+it("should handle form input and navigation", async () => {
+  const user = userEvent.setup();
+
+  function ProfileStep() {
+    const { context, setContext, next } = useFlow();
+    return (
+      <div>
+        <input
+          placeholder="Name"
+          value={context.name || ""}
+          onChange={(e) => setContext({ name: e.target.value })}
+        />
+        <button onClick={() => next()}>Continue</button>
+      </div>
+    );
+  }
+
+  function CompleteStep() {
+    const { context } = useFlow<{ name: string }>();
+    return <div>Welcome, {context.name}!</div>;
+  }
+
+  render(
+    <Flow flow={myFlow} initialContext={{ name: "" }}>
+      {({ renderStep }) =>
+        renderStep({
+          profile: <ProfileStep />,
+          complete: <CompleteStep />,
+        })
+      }
+    </Flow>
+  );
+
+  const input = screen.getByPlaceholderText("Name");
+  await user.type(input, "Alice");
+
+  expect(input).toHaveValue("Alice");
+
+  await user.click(screen.getByText("Continue"));
+
+  expect(screen.getByText("Welcome, Alice!")).toBeInTheDocument();
+});
+```
+
+## Integration testing
+
+### Testing complete flows
+
+Test entire user journeys:
+
+```tsx
+it("should complete full onboarding flow", async () => {
+  const user = userEvent.setup();
+  const onComplete = vi.fn();
+
+  render(
+    <Flow flow={onboardingFlow} onComplete={onComplete}>
+      {({ renderStep }) =>
+        renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          preferences: <PreferencesStep />,
+          complete: <CompleteStep />,
+        })
+      }
+    </Flow>
+  );
+
+  // Welcome step
+  expect(screen.getByText(/welcome/i)).toBeInTheDocument();
+  await user.click(screen.getByText(/get started/i));
+
+  // Profile step
+  await user.type(screen.getByPlaceholderText("Name"), "Alice");
+  await user.type(screen.getByPlaceholderText("Email"), "alice@example.com");
+  await user.click(screen.getByText(/continue/i));
+
+  // Preferences step
+  await user.click(screen.getByLabelText(/email notifications/i));
+  await user.click(screen.getByText(/finish/i));
+
+  // Complete
+  expect(onComplete).toHaveBeenCalledWith(
+    expect.objectContaining({
+      context: expect.objectContaining({
+        name: "Alice",
+        email: "alice@example.com",
+        emailNotifications: true,
+      }),
+    })
+  );
+});
+```
+
+## Testing utilities
+
+### Custom render helper
+
+Create a helper for common test setup:
+
+```tsx title="test-utils.tsx"
+import { render } from "@testing-library/react";
+import { createMemoryStore, createPersister } from "@useflow/react";
+import type { FlowPersister } from "@useflow/react";
+import { Flow } from "@useflow/react";
+
+export function renderFlow(
+  flow: any,
+  steps: Record<string, JSX.Element>,
+  options: {
+    initialContext?: any;
+    persister?: FlowPersister;
+    callbacks?: {
+      onNext?: (...args: any[]) => void;
+      onComplete?: (...args: any[]) => void;
+    };
+  } = {}
+) {
+  const { initialContext, persister, callbacks } = options;
+
+  return render(
+    <Flow
+      flow={flow}
+      initialContext={initialContext}
+      persister={persister}
+      {...callbacks}
+    >
+      {({ renderStep }) => renderStep(steps)}
+    </Flow>
+  );
+}
+
+// Usage
+renderFlow(
+  myFlow,
+  {
+    step1: <Step1 />,
+    step2: <Step2 />,
+  },
+  {
+    initialContext: { name: "" },
+    callbacks: {
+      onComplete: vi.fn(),
+    },
+  }
+);
+```
+
+### Mock persister helper
+
+Create mock persisters for testing:
+
+```tsx title="test-helpers.ts"
+import { vi } from "vitest";
+import { createMemoryStore } from "@useflow/react";
+import type { FlowPersister } from "@useflow/react";
+
+export function createMockPersister(overrides = {}): FlowPersister {
+  return {
+    save: vi.fn().mockResolvedValue(null),
+    restore: vi.fn().mockResolvedValue(null),
+    remove: vi.fn().mockResolvedValue(undefined),
+    store: createMemoryStore(),
+    ...overrides,
+  };
+}
+
+// Usage
+const persister = createMockPersister({
+  restore: vi.fn().mockResolvedValue({
+    stepId: "profile",
+    context: { name: "Alice" },
+  }),
+});
+```
+
+## Best practices
+
+<Steps>
+
+1. **Test User Journeys, Not Implementation**
+   
+   Focus on user behavior rather than internal functions:
+
+   <Tabs>
+   <TabItem label="✅ Good">
+   ```tsx
+   it("should allow user to skip profile step", async () => {
+     const user = userEvent.setup();
+     render(<OnboardingFlow />);
+
+     await user.click(screen.getByText(/skip/i));
+     expect(screen.getByText(/preferences/i)).toBeInTheDocument();
+   });
+   ```
+   </TabItem>
+   <TabItem label="❌ Bad">
+   ```tsx
+   it("should call skip() function", () => {
+     const { skip } = renderHook(() => useFlow());
+     skip();
+     expect(skip).toHaveBeenCalled();
+   });
+   ```
+   </TabItem>
+   </Tabs>
+
+2. **Use Realistic Test Data**
+   
+   Use data that reflects production scenarios:
+
+   <Tabs>
+   <TabItem label="✅ Good">
+   ```tsx
+   initialContext={{
+     email: "user@example.com",
+     phone: "+1234567890",
+     preferences: {
+       notifications: true,
+       newsletter: false
+     }
+   }}
+   ```
+   </TabItem>
+   <TabItem label="❌ Bad">
+   ```tsx
+   initialContext={{
+     email: "test",
+     phone: "123"
+   }}
+   ```
+   </TabItem>
+   </Tabs>
+
+3. **Test Error States**
+   
+   Always test validation and error handling:
+
+   ```tsx
+   it("should show validation error for invalid email", async () => {
+     const user = userEvent.setup();
+     render(<ProfileStep />);
+
+     await user.type(screen.getByPlaceholderText("Email"), "invalid");
+     await user.click(screen.getByText(/continue/i));
+
+     expect(screen.getByText(/invalid email/i)).toBeInTheDocument();
+   });
+   ```
+
+4. **Clean Up After Tests**
+   
+   Prevent state leakage between tests:
+
+   ```tsx
+   import { cleanup } from "@testing-library/react";
+   import { afterEach } from "vitest";
+
+   afterEach(() => {
+     cleanup();
+     localStorage.clear();
+     sessionStorage.clear();
+   });
+   ```
+
+5. **Use Descriptive Test Names**
+   
+   Make tests self-documenting:
+
+   <Tabs>
+   <TabItem label="✅ Good">
+   ```tsx
+   it("should route business users to company details step");
+   ```
+   </TabItem>
+   <TabItem label="❌ Bad">
+   ```tsx
+   it("should navigate correctly");
+   ```
+   </TabItem>
+   </Tabs>
+
+</Steps>
+
+## Snapshot testing
+
+<Aside type="caution">
+Snapshot tests are fragile and should only be used for stable UI components that rarely change.
+</Aside>
+
+Use snapshots for stable UI:
+
+```tsx
+it("should match welcome step snapshot", () => {
+  const { container } = render(
+    <Flow flow={myFlow}>
+      {({ renderStep }) =>
+        renderStep({
+          welcome: <WelcomeStep />,
+        })
+      }
+    </Flow>
+  );
+
+  expect(container).toMatchSnapshot();
+});
+```
+
+## Next steps
+
+- [TypeScript](/getting-started/typescript) - Type-safe testing
+- [Callbacks](/guides/callbacks) - Test flow callbacks
+- [Persistence](/guides/persistence) - Test persistence
+- [Branching](/guides/branching) - Test branching logic

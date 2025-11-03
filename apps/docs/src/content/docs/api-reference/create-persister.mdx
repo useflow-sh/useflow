@@ -1,0 +1,338 @@
+---
+title: createPersister()
+description: API reference for the createPersister function
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Creates a persister instance for saving and restoring flow state. Adds features like TTL, versioning, and validation on top of storage stores.
+
+## Import
+
+```typescript
+import { createPersister } from "@useflow/react";
+```
+
+## Signature
+
+```typescript
+function createPersister(options: PersisterOptions): FlowPersister
+```
+
+## Parameters
+
+### `options`
+
+Configuration object for the persister:
+
+```typescript
+type PersisterOptions = {
+  store: StorageStore;           // Required: Storage backend
+  ttl?: number;                 // Optional: Time to live in ms
+  prefix?: string;              // Optional: Key prefix (default: "flow")
+  validate?: (state: any) => boolean;  // Optional: State validation
+  serialize?: (state: any) => string;  // Optional: Custom serializer
+  deserialize?: (data: string) => any; // Optional: Custom deserializer
+}
+```
+
+## Storage stores
+
+### Built-in stores
+
+```typescript
+import { 
+  createLocalStorageStore,
+  createSessionStorageStore,
+  createMemoryStore 
+} from "@useflow/react";
+
+// Browser localStorage
+const localStore = createLocalStorageStore();
+
+// Browser sessionStorage  
+const sessionStore = createSessionStorageStore();
+
+// In-memory (for testing)
+const memoryStore = createMemoryStore();
+```
+
+### Custom store interface
+
+```typescript
+type StorageStore = {
+  get: (key: string) => Promise<string | null> | string | null;
+  set: (key: string, value: string) => Promise<void> | void;
+  delete: (key: string) => Promise<void> | void;
+  clear?: () => Promise<void> | void;
+}
+```
+
+## Examples
+
+### Basic persistence
+
+```typescript
+import { createPersister, createLocalStorageStore } from "@useflow/react";
+
+const persister = createPersister({
+  store: createLocalStorageStore()
+});
+
+// Use with Flow component
+<Flow 
+  flow={myFlow} 
+  persister={persister}
+  initialContext={{}}
+>
+  {({ renderStep }) => renderStep({ /* ... */ })}
+</Flow>
+```
+
+### With ttl (time to live)
+
+```typescript
+const persister = createPersister({
+  store: createLocalStorageStore(),
+  ttl: 7 * 24 * 60 * 60 * 1000  // 7 days
+});
+
+// State older than 7 days will be ignored
+```
+
+### With custom validation
+
+```typescript
+const persister = createPersister({
+  store: createLocalStorageStore(),
+  validate: (state) => {
+    // Ensure required fields exist
+    return state?.stepId && state?.context?.userId;
+  }
+});
+
+// Invalid states will be ignored on restore
+```
+
+### With custom key prefix
+
+```typescript
+const persister = createPersister({
+  store: createLocalStorageStore(),
+  prefix: "myapp-flow"  // Keys: "myapp-flow:flowId:instanceId"
+});
+```
+
+### With custom serialization
+
+```typescript
+import { compress, decompress } from 'lz-string';
+
+const persister = createPersister({
+  store: createLocalStorageStore(),
+  serialize: (state) => compress(JSON.stringify(state)),
+  deserialize: (data) => JSON.parse(decompress(data))
+});
+
+// State will be compressed before saving
+```
+
+## Custom storage backend
+
+Create a custom store for any backend:
+
+### API backend
+
+```typescript
+const apiStore: StorageStore = {
+  get: async (key) => {
+    const response = await fetch(`/api/flow-state/${key}`);
+    if (!response.ok) return null;
+    return response.text();
+  },
+  
+  set: async (key, value) => {
+    await fetch(`/api/flow-state/${key}`, {
+      method: 'PUT',
+      body: value
+    });
+  },
+  
+  delete: async (key) => {
+    await fetch(`/api/flow-state/${key}`, {
+      method: 'DELETE'
+    });
+  }
+};
+
+const persister = createPersister({ store: apiStore });
+```
+
+### IndexedDB
+
+```typescript
+const indexedDBStore: StorageStore = {
+  get: async (key) => {
+    const db = await openDB();
+    return db.get('flows', key);
+  },
+  
+  set: async (key, value) => {
+    const db = await openDB();
+    await db.put('flows', value, key);
+  },
+  
+  delete: async (key) => {
+    const db = await openDB();
+    await db.delete('flows', key);
+  }
+};
+
+const persister = createPersister({ store: indexedDBStore });
+```
+
+## Persister methods
+
+The returned persister object has these methods:
+
+### `save()`
+
+```typescript
+await persister.save(
+  flowId: string,
+  state: FlowState,
+  options?: {
+    version?: string;
+    instanceId?: string;
+    variantId?: string;
+  }
+): Promise<PersistedFlowState | null>
+```
+
+### `restore()`
+
+```typescript
+await persister.restore(
+  flowId: string,
+  options?: {
+    version?: string;
+    migrate?: MigrateFunction;
+    instanceId?: string;
+    variantId?: string;
+  }
+): Promise<PersistedFlowState | null>
+```
+
+### `remove()`
+
+```typescript
+await persister.remove(
+  flowId: string,
+  options?: {
+    instanceId?: string;
+    variantId?: string;
+  }
+): Promise<void>
+```
+
+### `clear()`
+
+```typescript
+await persister.clear(): Promise<void>
+```
+
+## Storage keys
+
+Keys are generated using this pattern:
+
+```
+[prefix]:[flowId]:[variantId]:[instanceId]
+```
+
+Examples:
+- `flow:onboarding::` - Default
+- `flow:onboarding:v2:` - With variant
+- `flow:onboarding::user123` - With instance
+- `myapp:checkout:v2:session456` - All options
+
+## Best practices
+
+<Aside type="tip">
+  **TTL Recommendations:**
+  - Onboarding: 7-30 days
+  - Checkout: 1-3 days
+  - Long applications: 30-90 days
+  - Session-only: Use sessionStorage instead
+</Aside>
+
+### Handle storage errors
+
+```typescript
+<Flow
+  flow={myFlow}
+  persister={persister}
+  onPersistenceError={(error) => {
+    console.error('Storage failed:', error);
+    // Fallback or notify user
+  }}
+>
+  {/* ... */}
+</Flow>
+```
+
+### Clean up old data
+
+```typescript
+// Remove specific flow state
+await persister.remove('onboarding', { instanceId: 'user123' });
+
+// Clear all persisted data
+await persister.clear();
+```
+
+### Instance IDs for multiple flows
+
+```typescript
+// Different persistence for each user
+<Flow
+  flow={checkoutFlow}
+  persister={persister}
+  instanceId={userId}  // Separate storage per user
+>
+  {/* ... */}
+</Flow>
+```
+
+## Migration support
+
+Handle breaking changes in your flow:
+
+```typescript
+const migration: MigrateFunction = (oldState, fromVersion) => {
+  if (fromVersion === "v1") {
+    // Migrate v1 → v2
+    return {
+      ...oldState,
+      context: {
+        ...oldState.context,
+        newField: 'default'
+      }
+    };
+  }
+  return oldState;
+};
+
+// Flow will use migration function on restore
+<Flow
+  flow={myFlow}
+  persister={persister}
+>
+  {/* ... */}
+</Flow>
+```
+
+## Related
+
+- [Persistence Guide](/guides/persistence) - Complete persistence patterns
+- [Storage Stores](/api-reference/storage-stores) - Built-in store details
+- [Custom Stores](/api-reference/custom-stores) - Building custom backends

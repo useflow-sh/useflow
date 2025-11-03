@@ -1,0 +1,740 @@
+---
+title: Steps & Transitions
+description: Build step components and understand navigation patterns in useFlow
+---
+
+**Steps** are the individual stages in your flow. Each step is a React component that renders UI and allows users to interact with your flow.
+
+## Step components
+
+A step component is just a regular React component that uses the `useFlow()` hook to access flow state and navigation:
+
+```tsx
+import { useFlow } from '@useflow/react';
+import { Button } from './ui/button';
+
+function WelcomeStep() {
+  const { next, context } = useFlow();
+  
+  return (
+    <div>
+      <h1>Welcome!</h1>
+      <p>Let's get started with your onboarding.</p>
+      <Button onClick={() => next()}>
+        Continue
+      </Button>
+    </div>
+  );
+}
+```
+
+### Accessing flow state
+
+The `useFlow()` hook gives you access to:
+
+```tsx
+function MyStep() {
+  const {
+    // Navigation
+    next,        // Move forward
+    skip,        // Skip this step
+    back,        // Go back
+    reset,       // Start over
+    
+    // State
+    context,     // Current context data
+    stepId,      // Current step ID
+    canGoBack,   // Whether back is available
+    status,      // Flow status: 'active' | 'complete'
+    
+    // Metadata
+    history,     // Navigation history
+    path,        // Path taken through flow
+    steps,       // All step definitions
+    nextSteps,   // Possible next steps from here
+    
+    // Persistence
+    isRestoring, // Whether restoring saved state
+    save,        // Manually save (when saveMode="manual")
+  } = useFlow();
+  
+  return <div>...</div>;
+}
+```
+
+## Step patterns
+
+### Linear navigation
+
+Simple forward progression - just call `next()`:
+
+```tsx
+function ProfileStep() {
+  const { next } = useFlow();
+  const [name, setName] = useState('');
+  
+  return (
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      next({ name }); // Save name and move forward
+    }}>
+      <input 
+        value={name} 
+        onChange={(e) => setName(e.target.value)} 
+      />
+      <button type="submit">Continue</button>
+    </form>
+  );
+}
+```
+
+### Form validation
+
+Validate before allowing navigation:
+
+```tsx
+function ProfileStep() {
+  const { next, context } = useFlow();
+  const [name, setName] = useState(context.name || '');
+  const [email, setEmail] = useState(context.email || '');
+  
+  const isValid = name.length > 0 && email.includes('@');
+  
+  return (
+    <div>
+      <input 
+        value={name} 
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Name"
+      />
+      <input 
+        value={email} 
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+      />
+      <button 
+        onClick={() => next({ name, email })}
+        disabled={!isValid}
+      >
+        Continue
+      </button>
+    </div>
+  );
+}
+```
+
+### Backward navigation
+
+Allow users to go back:
+
+```tsx
+function PreferencesStep() {
+  const { next, back, canGoBack } = useFlow();
+  const [theme, setTheme] = useState('light');
+  
+  return (
+    <div>
+      <h2>Choose your preferences</h2>
+      
+      <select value={theme} onChange={(e) => setTheme(e.target.value)}>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+      
+      <div>
+        {canGoBack && (
+          <button onClick={() => back()}>Back</button>
+        )}
+        <button onClick={() => next({ theme })}>Continue</button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Skipping steps
+
+Allow users to skip optional steps:
+
+```tsx
+function PreferencesStep() {
+  const { next, skip } = useFlow();
+  const [preferences, setPreferences] = useState({});
+  
+  return (
+    <div>
+      <h2>Optional: Set your preferences</h2>
+      
+      {/* Form fields */}
+      
+      <div>
+        <button onClick={() => skip({ skippedPreferences: true })}>
+          Skip for now
+        </button>
+        <button onClick={() => next({ preferences })}>
+          Save preferences
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+:::tip[Skip vs Next]
+Both `skip()` and `next()` move forward in the flow. The difference is **semantic**:
+- `next()` = user completed the step normally
+- `skip()` = user chose to skip the step
+
+This distinction is tracked in the navigation history with different action types.
+:::
+
+### Branching - component-driven
+
+Explicitly choose which path to take:
+
+```tsx
+function SetupPreferenceStep() {
+  const { next } = useFlow();
+  
+  return (
+    <div>
+      <h2>How would you like to set up?</h2>
+      
+      <button onClick={() => next('quick')}>
+        Quick Setup (Skip preferences)
+      </button>
+      
+      <button onClick={() => next('advanced')}>
+        Advanced Setup (Configure everything)
+      </button>
+    </div>
+  );
+}
+```
+
+### Loading states
+
+Show loading UI while restoring:
+
+```tsx
+function MyStep() {
+  const { isRestoring, next } = useFlow();
+  
+  if (isRestoring) {
+    return <Spinner />;
+  }
+  
+  return (
+    <div>
+      <h1>Content</h1>
+      <button onClick={() => next()}>Continue</button>
+    </div>
+  );
+}
+```
+
+### Context updates
+
+Update context in multiple ways:
+
+```tsx
+function MyStep() {
+  const { next, context } = useFlow();
+  
+  // 1. Merge object (shallow merge)
+  next({ name: 'Alice' });
+  
+  // 2. Updater function (full control)
+  next((ctx) => ({
+    ...ctx,
+    count: ctx.count + 1,
+    timestamp: Date.now()
+  }));
+  
+  // 3. Two-argument form (target + update)
+  next('targetStep', { name: 'Alice' });
+  
+  return <div>...</div>;
+}
+```
+
+## Rendering steps
+
+There are two ways to render steps in your flow:
+
+### 1. Inline with `renderStep()`
+
+Map step IDs to components:
+
+```tsx
+<Flow flow={myFlow} initialContext={{}}>
+  {({ renderStep }) => renderStep({
+    welcome: <WelcomeStep />,
+    profile: <ProfileStep />,
+    preferences: <PreferencesStep />,
+    complete: <CompleteStep />
+  })}
+</Flow>
+```
+
+**Pros:**
+- Simple and declarative
+- Easy to pass props to steps
+- Good for small flows
+
+**When to use:**
+- Small flows (< 10 steps)
+- When steps need different props
+- When you want explicit control
+
+### 2. Component mapping
+
+Create a reusable mapping:
+
+```tsx
+const stepComponents = {
+  welcome: WelcomeStep,
+  profile: ProfileStep,
+  preferences: PreferencesStep,
+  complete: CompleteStep
+};
+
+<Flow flow={myFlow} initialContext={{}}>
+  {({ stepId }) => {
+    const StepComponent = stepComponents[stepId];
+    return <StepComponent />;
+  }}
+</Flow>
+```
+
+**Pros:**
+- More flexible
+- Easier to test individual steps
+- Better for large flows
+
+**When to use:**
+- Large flows (10+ steps)
+- When steps don't need props
+- When you want maximum reusability
+
+## Step organization
+
+### Single file per step
+
+Organize steps in their own files:
+
+```
+src/flows/onboarding/
+├── flow.ts
+├── components/
+│   ├── WelcomeStep.tsx
+│   ├── ProfileStep.tsx
+│   ├── PreferencesStep.tsx
+│   └── CompleteStep.tsx
+└── FlowDemo.tsx
+```
+
+### Shared steps
+
+Reuse steps across flows:
+
+```
+src/shared-steps/
+├── WelcomeStep.tsx      # Generic welcome
+├── ProfileStep.tsx      # Collect name/email
+├── PreferencesStep.tsx  # Theme/notifications
+└── CompleteStep.tsx     # Generic completion
+```
+
+Then import in your flows:
+
+```tsx
+import { WelcomeStep } from '@/shared-steps/WelcomeStep';
+import { ProfileStep } from '@/shared-steps/ProfileStep';
+
+<Flow flow={myFlow} initialContext={{}}>
+  {({ renderStep }) => renderStep({
+    welcome: <WelcomeStep />,
+    profile: <ProfileStep />,
+    complete: <CompleteStep />
+  })}
+</Flow>
+```
+
+### Step variants
+
+Create variants of the same step:
+
+```tsx
+// BaseProfileStep.tsx
+function ProfileStep({ includeAvatar = false }) {
+  const { next } = useFlow();
+  const [name, setName] = useState('');
+  
+  return (
+    <div>
+      <input value={name} onChange={(e) => setName(e.target.value)} />
+      {includeAvatar && <AvatarUpload />}
+      <button onClick={() => next({ name })}>Continue</button>
+    </div>
+  );
+}
+
+// Usage
+renderStep({
+  profile: <ProfileStep includeAvatar={true} />,
+})
+```
+
+## Type safety
+
+### Type-safe hook (recommended)
+
+Use the custom hook from `defineFlow` for type-safe navigation:
+
+```tsx
+const myFlow = defineFlow({
+  id: 'onboarding',
+  start: 'welcome',
+  steps: {
+    welcome: { next: 'profile' },
+    profile: { next: ['business', 'personal'] },
+    business: { next: 'complete' },
+    personal: { next: 'complete' },
+    complete: {}
+  }
+});
+
+function ProfileStep() {
+  // Type-safe: knows valid next steps are 'business' | 'personal'
+  const { next } = myFlow.useFlow({ step: 'profile' });
+  
+  next('business');  // ✅ Valid
+  next('personal');  // ✅ Valid
+  next('welcome');   // ❌ TypeScript error
+}
+```
+
+### Generic hook
+
+Use the generic `useFlow()` for more flexibility:
+
+```tsx
+function ProfileStep() {
+  // Less type safety, but more flexible
+  const { next, context } = useFlow<{ name: string }>();
+  
+  // context is typed as { name: string }
+  console.log(context.name);
+  
+  next({ name: 'Alice' });
+}
+```
+
+## Step lifecycle
+
+Understanding the step lifecycle helps debug and optimize:
+
+### 1. Step mount
+
+When a step is rendered for the first time:
+
+```tsx
+function MyStep() {
+  const { stepId } = useFlow();
+  
+  useEffect(() => {
+    console.log(`Step ${stepId} mounted`);
+    
+    // Track analytics
+    trackPageView(stepId);
+    
+    return () => {
+      console.log(`Step ${stepId} unmounted`);
+    };
+  }, [stepId]);
+  
+  return <div>...</div>;
+}
+```
+
+### 2. Context updates
+
+When context changes (from another step or within this step):
+
+```tsx
+function MyStep() {
+  const { context } = useFlow();
+  
+  useEffect(() => {
+    console.log('Context updated:', context);
+  }, [context]);
+  
+  return <div>...</div>;
+}
+```
+
+### 3. Step transition
+
+When navigating away from the step:
+
+```tsx
+function MyStep() {
+  const { next } = useFlow();
+  
+  const handleNext = () => {
+    // Do something before leaving
+    console.log('Leaving step');
+    
+    next({ someData: 'value' });
+  };
+  
+  return <button onClick={handleNext}>Continue</button>;
+}
+```
+
+## History & path
+
+Track navigation through your flow:
+
+### History
+
+Complete record of all step visits:
+
+```tsx
+function MyStep() {
+  const { history } = useFlow();
+  
+  // history is an array of:
+  // { 
+  //   stepId: string, 
+  //   startedAt: number, 
+  //   completedAt?: number, 
+  //   action?: 'next' | 'skip' | 'back' 
+  // }
+  
+  const visitedSteps = history.map(h => h.stepId);
+  const timeOnEachStep = history.map(h => ({
+    step: h.stepId,
+    duration: h.completedAt ? h.completedAt - h.startedAt : null
+  }));
+  
+  return <div>You've visited: {visitedSteps.join(' → ')}</div>;
+}
+```
+
+### Path
+
+The route taken to reach the current step (used for back navigation):
+
+```tsx
+function MyStep() {
+  const { path, back } = useFlow();
+  
+  // path is the linear path to get here
+  // (may be shorter than history if user went back)
+  
+  const pathSteps = path.map(p => p.stepId);
+  
+  return (
+    <div>
+      <p>Path: {pathSteps.join(' → ')}</p>
+      {path.length > 1 && (
+        <button onClick={() => back()}>
+          Back to {path[path.length - 2].stepId}
+        </button>
+      )}
+    </div>
+  );
+}
+```
+
+## Complete example
+
+Here's a complete step with all features:
+
+```tsx
+import { useFlow } from '@useflow/react';
+import { useEffect, useState } from 'react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+
+type ProfileContext = {
+  name: string;
+  email: string;
+};
+
+function ProfileStep() {
+  const { 
+    next, 
+    back, 
+    skip,
+    context, 
+    stepId,
+    canGoBack,
+    isRestoring,
+    history 
+  } = useFlow<ProfileContext>();
+  
+  const [name, setName] = useState(context.name || '');
+  const [email, setEmail] = useState(context.email || '');
+  
+  // Track page view on mount
+  useEffect(() => {
+    console.log(`Entered step: ${stepId}`);
+    // trackPageView(stepId);
+  }, [stepId]);
+  
+  // Show loading while restoring
+  if (isRestoring) {
+    return <div>Loading...</div>;
+  }
+  
+  // Validation
+  const isValid = name.length > 0 && email.includes('@');
+  
+  // Show how long user spent on previous steps
+  const previousDuration = history
+    .slice(0, -1) // Exclude current step
+    .reduce((total, h) => {
+      const duration = h.completedAt ? h.completedAt - h.startedAt : 0;
+      return total + duration;
+    }, 0);
+  
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2>Profile Information</h2>
+        <p className="text-sm text-gray-500">
+          Time spent so far: {Math.round(previousDuration / 1000)}s
+        </p>
+      </div>
+      
+      <div>
+        <label>Name</label>
+        <Input 
+          value={name} 
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter your name"
+        />
+      </div>
+      
+      <div>
+        <label>Email</label>
+        <Input 
+          value={email} 
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
+        />
+      </div>
+      
+      <div className="flex gap-2">
+        {canGoBack && (
+          <Button variant="outline" onClick={() => back()}>
+            Back
+          </Button>
+        )}
+        
+        <Button 
+          variant="ghost"
+          onClick={() => skip({ skippedProfile: true })}
+        >
+          Skip
+        </Button>
+        
+        <Button 
+          onClick={() => next({ name, email })}
+          disabled={!isValid}
+        >
+          Continue
+        </Button>
+      </div>
+    </div>
+  );
+}
+```
+
+## Best practices
+
+### 1. Keep steps focused
+
+Each step should have a single purpose:
+
+```tsx
+// ❌ Avoid: One step doing too much
+function MegaStep() {
+  return (
+    <>
+      <ProfileForm />
+      <PreferencesForm />
+      <PaymentForm />
+    </>
+  );
+}
+
+// ✅ Better: Separate steps
+function ProfileStep() { /* ... */ }
+function PreferencesStep() { /* ... */ }
+function PaymentStep() { /* ... */ }
+```
+
+### 2. Initialize from context
+
+Always initialize local state from context:
+
+```tsx
+// ✅ Good: Initialize from context
+function MyStep() {
+  const { context } = useFlow();
+  const [name, setName] = useState(context.name || '');
+  // ...
+}
+
+// ❌ Bad: Ignoring context
+function MyStep() {
+  const [name, setName] = useState(''); // Loses data on revisit
+  // ...
+}
+```
+
+### 3. Validate before navigation
+
+Don't let users proceed with invalid data:
+
+```tsx
+function MyStep() {
+  const [email, setEmail] = useState('');
+  const isValid = email.includes('@');
+  
+  return (
+    <button 
+      onClick={() => next({ email })}
+      disabled={!isValid}
+    >
+      Continue
+    </button>
+  );
+}
+```
+
+### 4. Use semantic actions
+
+Choose the right navigation method:
+
+```tsx
+// User completed the step
+next({ data: value });
+
+// User chose to skip
+skip({ skippedStep: true });
+
+// User went back
+back();
+```
+
+## Next steps
+
+- [**Context**](/core-concepts/context) - Manage shared state across steps
+- [**Navigation**](/core-concepts/navigation) - Advanced navigation patterns
+- [**Linear Flows Guide**](/guides/linear-flows) - Build simple linear flows
+- [**Branching Guide**](/guides/branching) - Implement conditional logic

@@ -1,0 +1,723 @@
+---
+title: Checkout Flow
+description: Build a complete e-commerce checkout flow with cart, shipping, payment, and confirmation
+---
+
+import { Aside, FileTree, Badge, Steps, LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Create a production-ready checkout flow with cart management, address validation, payment processing, and order confirmation.
+
+## What you'll build
+
+This recipe demonstrates:
+- Multi-step checkout process
+- Cart state management
+- Address validation
+- Payment integration
+- Order summary
+- Error handling
+- Conditional navigation based on cart contents
+
+## Project structure
+
+<FileTree>
+- src/
+  - flows/
+    - checkout/
+      - **flow.ts** Flow definition and context type
+      - components/
+        - CartStep.tsx
+        - ShippingStep.tsx
+        - PaymentStep.tsx
+        - ReviewStep.tsx
+        - ConfirmationStep.tsx
+      - **CheckoutFlow.tsx** Main checkout component
+  - App.tsx
+</FileTree>
+
+## Flow definition
+
+```typescript title="flow.ts"
+import { defineFlow } from "@useflow/react";
+
+export type CheckoutContext = {
+  // Cart
+  items: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }>;
+  subtotal: number;
+  shipping: number;
+  tax: number;
+  total: number;
+  
+  // Shipping
+  shippingAddress?: {
+    fullName: string;
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  shippingMethod?: "standard" | "express" | "overnight";
+  
+  // Payment
+  billingAddressSameAsShipping?: boolean;
+  billingAddress?: {
+    fullName: string;
+    addressLine1: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  };
+  paymentMethod?: {
+    type: "card" | "paypal";
+    last4?: string;
+  };
+  
+  // Order
+  orderId?: string;
+  orderDate?: number;
+};
+
+export const checkoutFlow = defineFlow({
+  id: "checkout",
+  version: "v1",
+  start: "cart",
+  steps: {
+    cart: {
+      next: "shipping"
+    },
+    shipping: {
+      next: "payment"
+    },
+    payment: {
+      next: "review"
+    },
+    review: {
+      next: "confirmation"
+    },
+    confirmation: {}
+  }
+});
+```
+
+## Step components
+
+### Cart step
+
+```tsx title="CartStep.tsx"
+import { checkoutFlow } from "./flow";
+
+export function CartStep() {
+  const { context, setContext, next } = checkoutFlow.useFlow({
+    step: "cart"
+  });
+
+  const updateQuantity = (itemId: string, newQuantity: number) => {
+    const updatedItems = context.items.map(item =>
+      item.id === itemId ? { ...item, quantity: newQuantity } : item
+    );
+    
+    const subtotal = updatedItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    
+    setContext({
+      items: updatedItems,
+      subtotal
+    });
+  };
+
+  const removeItem = (itemId: string) => {
+    const updatedItems = context.items.filter(item => item.id !== itemId);
+    const subtotal = updatedItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    
+    setContext({
+      items: updatedItems,
+      subtotal
+    });
+  };
+
+  const canCheckout = context.items.length > 0;
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6">Shopping Cart</h2>
+
+      {context.items.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 mb-4">Your cart is empty</p>
+          <button className="text-blue-500 hover:underline">
+            Continue Shopping
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Cart Items */}
+          <div className="space-y-4 mb-6">
+            {context.items.map(item => (
+              <div
+                key={item.id}
+                className="flex items-center gap-4 p-4 border rounded-lg"
+              >
+                <div className="flex-1">
+                  <h3 className="font-semibold">{item.name}</h3>
+                  <p className="text-gray-600">${item.price.toFixed(2)}</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    disabled={item.quantity <= 1}
+                    className="px-2 py-1 border rounded"
+                  >
+                    −
+                  </button>
+                  <span className="w-8 text-center">{item.quantity}</span>
+                  <button
+                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                    className="px-2 py-1 border rounded"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <div className="font-semibold w-24 text-right">
+                  ${(item.price * item.quantity).toFixed(2)}
+                </div>
+
+                <button
+                  onClick={() => removeItem(item.id)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Cart Summary */}
+          <div className="border-t pt-4 mb-6">
+            <div className="flex justify-between mb-2">
+              <span>Subtotal:</span>
+              <span>${context.subtotal.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => next()}
+            disabled={!canCheckout}
+            className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300"
+          >
+            Proceed to Shipping
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+### Shipping step
+
+```tsx title="ShippingStep.tsx"
+import { useState } from "react";
+import { checkoutFlow } from "./flow";
+
+export function ShippingStep() {
+  const { context, setContext, next, back } = checkoutFlow.useFlow({
+    step: "shipping"
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateAddress = () => {
+    const newErrors: Record<string, string> = {};
+    const addr = context.shippingAddress;
+
+    if (!addr?.fullName) newErrors.fullName = "Full name is required";
+    if (!addr?.addressLine1) newErrors.addressLine1 = "Address is required";
+    if (!addr?.city) newErrors.city = "City is required";
+    if (!addr?.state) newErrors.state = "State is required";
+    if (!addr?.zipCode) newErrors.zipCode = "ZIP code is required";
+    
+    const zipRegex = /^\d{5}(-\d{4})?$/;
+    if (addr?.zipCode && !zipRegex.test(addr.zipCode)) {
+      newErrors.zipCode = "Invalid ZIP code";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return false;
+    }
+
+    setErrors({});
+    return true;
+  };
+
+  const handleContinue = () => {
+    if (!validateAddress()) return;
+    if (!context.shippingMethod) {
+      setErrors({ shippingMethod: "Please select a shipping method" });
+      return;
+    }
+
+    // Calculate shipping cost
+    const shippingCosts = {
+      standard: 5.99,
+      express: 12.99,
+      overnight: 24.99
+    };
+
+    const shipping = shippingCosts[context.shippingMethod];
+    const tax = (context.subtotal + shipping) * 0.08; // 8% tax
+    const total = context.subtotal + shipping + tax;
+
+    setContext({ shipping, tax, total });
+    next();
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6">Shipping Information</h2>
+
+      {/* Shipping Address Form */}
+      <div className="space-y-4 mb-6">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Full Name *
+          </label>
+          <input
+            type="text"
+            value={context.shippingAddress?.fullName || ""}
+            onChange={(e) =>
+              setContext({
+                shippingAddress: {
+                  ...context.shippingAddress!,
+                  fullName: e.target.value
+                }
+              })
+            }
+            className={`w-full px-3 py-2 border rounded ${
+              errors.fullName ? "border-red-500" : ""
+            }`}
+          />
+          {errors.fullName && (
+            <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Address Line 1 *
+          </label>
+          <input
+            type="text"
+            value={context.shippingAddress?.addressLine1 || ""}
+            onChange={(e) =>
+              setContext({
+                shippingAddress: {
+                  ...context.shippingAddress!,
+                  addressLine1: e.target.value
+                }
+              })
+            }
+            className={`w-full px-3 py-2 border rounded ${
+              errors.addressLine1 ? "border-red-500" : ""
+            }`}
+          />
+          {errors.addressLine1 && (
+            <p className="text-red-500 text-sm mt-1">{errors.addressLine1}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">City *</label>
+            <input
+              type="text"
+              value={context.shippingAddress?.city || ""}
+              onChange={(e) =>
+                setContext({
+                  shippingAddress: {
+                    ...context.shippingAddress!,
+                    city: e.target.value
+                  }
+                })
+              }
+              className={`w-full px-3 py-2 border rounded ${
+                errors.city ? "border-red-500" : ""
+              }`}
+            />
+            {errors.city && (
+              <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">State *</label>
+            <input
+              type="text"
+              value={context.shippingAddress?.state || ""}
+              onChange={(e) =>
+                setContext({
+                  shippingAddress: {
+                    ...context.shippingAddress!,
+                    state: e.target.value
+                  }
+                })
+              }
+              className={`w-full px-3 py-2 border rounded ${
+                errors.state ? "border-red-500" : ""
+              }`}
+            />
+            {errors.state && (
+              <p className="text-red-500 text-sm mt-1">{errors.state}</p>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">ZIP Code *</label>
+          <input
+            type="text"
+            value={context.shippingAddress?.zipCode || ""}
+            onChange={(e) =>
+              setContext({
+                shippingAddress: {
+                  ...context.shippingAddress!,
+                  zipCode: e.target.value
+                }
+              })
+            }
+            className={`w-full px-3 py-2 border rounded ${
+              errors.zipCode ? "border-red-500" : ""
+            }`}
+          />
+          {errors.zipCode && (
+            <p className="text-red-500 text-sm mt-1">{errors.zipCode}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Shipping Method */}
+      <div className="mb-6">
+        <h3 className="font-semibold mb-3">Shipping Method *</h3>
+        <div className="space-y-2">
+          {[
+            { value: "standard", label: "Standard (5-7 days)", price: 5.99 },
+            { value: "express", label: "Express (2-3 days)", price: 12.99 },
+            { value: "overnight", label: "Overnight", price: 24.99 }
+          ].map(method => (
+            <label
+              key={method.value}
+              className={`flex items-center justify-between p-3 border rounded cursor-pointer ${
+                context.shippingMethod === method.value
+                  ? "border-blue-500 bg-blue-50"
+                  : ""
+              }`}
+            >
+              <div className="flex items-center">
+                <input
+                  type="radio"
+                  name="shipping"
+                  value={method.value}
+                  checked={context.shippingMethod === method.value}
+                  onChange={(e) =>
+                    setContext({
+                      shippingMethod: e.target.value as any
+                    })
+                  }
+                  className="mr-3"
+                />
+                <span>{method.label}</span>
+              </div>
+              <span className="font-semibold">${method.price.toFixed(2)}</span>
+            </label>
+          ))}
+        </div>
+        {errors.shippingMethod && (
+          <p className="text-red-500 text-sm mt-1">{errors.shippingMethod}</p>
+        )}
+      </div>
+
+      {/* Navigation */}
+      <div className="flex gap-3">
+        <button
+          onClick={back}
+          className="px-6 py-2 border rounded-lg hover:bg-gray-50"
+        >
+          Back to Cart
+        </button>
+        <button
+          onClick={handleContinue}
+          className="flex-1 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        >
+          Continue to Payment
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Payment step
+
+```tsx title="PaymentStep.tsx"
+import { checkoutFlow } from "./flow";
+
+export function PaymentStep() {
+  const { context, setContext, next, back } = checkoutFlow.useFlow({
+    step: "payment"
+  });
+
+  const handlePayment = async () => {
+    try {
+      // Integrate with payment provider (Stripe, PayPal, etc.)
+      const paymentResult = await processPayment({
+        amount: context.total,
+        shippingAddress: context.shippingAddress
+      });
+
+      setContext({
+        paymentMethod: {
+          type: "card",
+          last4: paymentResult.last4
+        }
+      });
+
+      next();
+    } catch (error) {
+      alert("Payment failed. Please try again.");
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6">Payment Information</h2>
+
+      {/* Billing Address */}
+      <div className="mb-6">
+        <label className="flex items-center mb-4">
+          <input
+            type="checkbox"
+            checked={context.billingAddressSameAsShipping}
+            onChange={(e) =>
+              setContext({
+                billingAddressSameAsShipping: e.target.checked
+              })
+            }
+            className="mr-2"
+          />
+          <span>Billing address same as shipping</span>
+        </label>
+      </div>
+
+      {/* Payment Form */}
+      <div className="border rounded-lg p-6 mb-6">
+        <p className="text-sm text-gray-600 mb-4">
+          Payment form integration (Stripe Elements, etc.)
+        </p>
+        {/* Stripe Elements or other payment form goes here */}
+      </div>
+
+      {/* Order Summary */}
+      <div className="bg-gray-50 rounded-lg p-4 mb-6">
+        <h3 className="font-semibold mb-3">Order Summary</h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span>Subtotal:</span>
+            <span>${context.subtotal.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Shipping:</span>
+            <span>${context.shipping.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Tax:</span>
+            <span>${context.tax.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between font-bold text-lg pt-2 border-t">
+            <span>Total:</span>
+            <span>${context.total.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex gap-3">
+        <button
+          onClick={back}
+          className="px-6 py-2 border rounded-lg hover:bg-gray-50"
+        >
+          Back
+        </button>
+        <button
+          onClick={handlePayment}
+          className="flex-1 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+        >
+          Place Order - ${context.total.toFixed(2)}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Mock payment function
+async function processPayment(data: any) {
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  return { last4: "4242" };
+}
+```
+
+### Confirmation step
+
+```tsx title="ConfirmationStep.tsx"
+import { checkoutFlow } from "./flow";
+
+export function ConfirmationStep() {
+  const { context } = checkoutFlow.useFlow({
+    step: "confirmation"
+  });
+
+  return (
+    <div className="max-w-2xl mx-auto text-center">
+      <div className="text-6xl mb-4">✅</div>
+      
+      <h2 className="text-3xl font-bold mb-4">
+        Order Confirmed!
+      </h2>
+      
+      <p className="text-gray-600 mb-6">
+        Thank you for your purchase. Your order has been received and is being
+        processed.
+      </p>
+
+      {/* Order Details */}
+      <div className="bg-gray-50 rounded-lg p-6 mb-6 text-left">
+        <div className="flex justify-between mb-4">
+          <span className="font-semibold">Order Number:</span>
+          <span>{context.orderId || "ORD-" + Date.now()}</span>
+        </div>
+        
+        <div className="border-t pt-4">
+          <h3 className="font-semibold mb-2">Shipping To:</h3>
+          <address className="text-sm not-italic text-gray-600">
+            {context.shippingAddress?.fullName}<br />
+            {context.shippingAddress?.addressLine1}<br />
+            {context.shippingAddress?.city}, {context.shippingAddress?.state}{" "}
+            {context.shippingAddress?.zipCode}
+          </address>
+        </div>
+
+        <div className="border-t mt-4 pt-4">
+          <h3 className="font-semibold mb-2">Order Total:</h3>
+          <div className="text-2xl font-bold text-green-600">
+            ${context.total.toFixed(2)}
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={() => window.location.href = "/orders"}
+        className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+      >
+        View Order Details
+      </button>
+    </div>
+  );
+}
+```
+
+## Main component
+
+```tsx title="CheckoutFlow.tsx"
+import { Flow } from "@useflow/react";
+import { createSessionStorageStore, createPersister } from "@useflow/react";
+import { checkoutFlow } from "./flow";
+
+// Use sessionStorage for checkout (cleared when tab closes)
+const store = createSessionStorageStore(sessionStorage);
+const persister = createPersister({
+  store,
+  ttl: 60 * 60 * 1000, // 1 hour
+});
+
+export function CheckoutFlow({ initialCart }: { initialCart: any[] }) {
+  return (
+    <Flow
+      flow={checkoutFlow}
+      persister={persister}
+      initialContext={{
+        items: initialCart,
+        subtotal: initialCart.reduce(
+          (sum, item) => sum + item.price * item.quantity,
+          0
+        ),
+        shipping: 0,
+        tax: 0,
+        total: 0
+      }}
+      onComplete={(event) => {
+        // Track order completion
+        analytics.track("purchase", {
+          orderId: event.context.orderId,
+          revenue: event.context.total,
+          items: event.context.items
+        });
+      }}
+    >
+      {({ renderStep }) => (
+        <div className="min-h-screen bg-gray-50 py-8">
+          {renderStep({
+            cart: <CartStep />,
+            shipping: <ShippingStep />,
+            payment: <PaymentStep />,
+            review: <ReviewStep />,
+            confirmation: <ConfirmationStep />
+          })}
+        </div>
+      )}
+    </Flow>
+  );
+}
+```
+
+## Key features
+
+### Cart management
+- Add/remove items
+- Update quantities
+- Calculate totals dynamically
+
+### Address validation
+- Required field checking
+- ZIP code format validation
+- Error state management
+
+### Payment integration
+- Stripe/PayPal integration ready
+- Secure payment handling
+- Order confirmation
+
+### Session persistence
+- Uses sessionStorage (cleared on tab close)
+- Appropriate for checkout flows
+- 1-hour TTL
+
+## Next steps
+
+- [Onboarding Flow](/recipes/onboarding)
+- [Form Validation](/recipes/form-validation)
+- [Persistence Guide](/guides/persistence)
+- [Testing Guide](/guides/testing)
+

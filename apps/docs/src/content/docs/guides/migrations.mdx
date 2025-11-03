@@ -1,0 +1,776 @@
+---
+title: Migrations
+description: Learn how to handle schema changes and migrate persisted flow state between versions
+---
+
+Migrations allow you to safely update your flow's structure while preserving user progress. When you make breaking changes to context fields, step names, or flow structure, migrations transform old saved state to work with the new version.
+
+## What are migrations?
+
+When you persist flow state and later change your flow's schema, users with old saved state will encounter errors. Migrations solve this by transforming old state to match the new schema:
+
+```tsx
+type OnboardingContext = {
+  emailAddress: string;
+};
+
+const flow = defineFlow({
+  id: "onboarding",
+  version: "v2", // Increment version on breaking changes
+  start: "welcome",
+  steps: { /* updated steps */ }
+}).with<OnboardingContext>(() => ({
+  migration: (state, fromVersion) => {
+    // Transform old state to new structure
+    if (fromVersion === "v1") {
+      return {
+        ...state,
+        context: {
+          ...state.context,
+          emailAddress: state.context.email // Renamed field
+        }
+      };
+    }
+    return null; // Unknown version, discard
+  }
+}));
+```
+
+## When to use migrations
+
+You need migrations when making **breaking changes** to persisted flows:
+
+| Change | Needs Migration? | Why |
+|--------|------------------|-----|
+| Add new optional context field | ❌ No | Old state still valid |
+| Rename context field | ✅ Yes | Old state has old field name |
+| Remove required context field | ✅ Yes | Old state has extra data |
+| Rename step | ✅ Yes | stepId/history contain old name |
+| Remove step | ✅ Yes | User might be on removed step |
+| Change flow structure | ✅ Yes | Navigation paths changed |
+| Add new step | ❌ Usually no | Depends on where it's added |
+| Update step component UI | ❌ No | UI changes don't affect state |
+
+## Basic migration
+
+### Context field rename
+
+Rename a context field while preserving data:
+
+```typescript
+// Before (v1)
+type ContextV1 = {
+  email: string;
+  name: string;
+};
+
+// After (v2)
+type ContextV2 = {
+  emailAddress: string; // Renamed from 'email'
+  fullName: string;     // Renamed from 'name'
+};
+
+const flow = defineFlow({
+  id: "onboarding",
+  version: "v2",
+  start: "welcome",
+  steps: {
+    welcome: { next: "profile" },
+    profile: { next: "complete" },
+    complete: {}
+  }
+}).with<ContextV2>(() => ({
+  migration: (state, fromVersion) => {
+    if (fromVersion === "v1") {
+      return {
+        ...state,
+        context: {
+          emailAddress: state.context.email,
+          fullName: state.context.name
+        }
+      };
+    }
+    return null;
+  }
+}));
+```
+
+### Add required field
+
+Add a new required field with a default value:
+
+```typescript
+// Before (v1)
+type ContextV1 = {
+  name: string;
+};
+
+// After (v2)
+type ContextV2 = {
+  name: string;
+  phoneNumber: string; // New required field
+};
+
+const flow = defineFlow({
+  id: "onboarding",
+  version: "v2",
+  start: "welcome",
+  steps: { /* ... */ }
+}).with<MyContext>(() => ({
+  migration: (state, fromVersion) => {
+    if (fromVersion === "v1") {
+      return {
+        ...state,
+        context: {
+          ...state.context,
+          phoneNumber: "" // Add with default value
+        }
+      };
+    }
+    return null;
+  }
+}));
+```
+
+### Remove field
+
+Remove an obsolete field:
+
+```typescript
+// Before (v1)
+type ContextV1 = {
+  name: string;
+  legacyField: string; // Being removed
+};
+
+// After (v2)
+type ContextV2 = {
+  name: string;
+};
+
+const flow = defineFlow({
+  id: "onboarding",
+  version: "v2",
+  start: "welcome",
+  steps: { /* ... */ }
+}).with<MyContext>(() => ({
+  migration: (state, fromVersion) => {
+    if (fromVersion === "v1") {
+      const { legacyField, ...rest } = state.context;
+      return {
+        ...state,
+        context: rest
+      };
+    }
+    return null;
+  }
+}));
+```
+
+## Step migrations
+
+### Rename step
+
+Rename a step and update state references:
+
+```typescript
+const flow = defineFlow({
+  id: "onboarding",
+  version: "v2",
+  start: "welcome",
+  steps: {
+    welcome: { next: "profile" }, // Renamed from 'userProfile'
+    profile: { next: "complete" }, // Renamed from 'userProfile'
+    complete: {}
+  }
+}).with<MyContext>((steps) => ({
+  migration: (state, fromVersion) => {
+    if (fromVersion === "v1") {
+      return {
+        ...state,
+        // Update current step if it's the renamed one
+        stepId: state.stepId === "userProfile" ? steps.profile : state.stepId,
+        
+        // Update history
+        history: state.history.map(entry => ({
+          ...entry,
+          stepId: entry.stepId === "userProfile" ? steps.profile : entry.stepId
+        })),
+        
+        // Update path
+        path: state.path.map(stepId =>
+          stepId === "userProfile" ? steps.profile : stepId
+        )
+      };
+    }
+    return null;
+  }
+}));
+```
+
+### Remove step
+
+Handle users who were on a removed step:
+
+```typescript
+const flow = defineFlow({
+  id: "onboarding",
+  version: "v2",
+  start: "welcome",
+  steps: {
+    welcome: { next: "profile" },
+    // Removed: emailVerification step
+    profile: { next: "complete" },
+    complete: {}
+  }
+}).with<MyContext>((steps) => ({
+  migration: (state, fromVersion) => {
+    if (fromVersion === "v1") {
+      // If user was on removed step, move them to the next logical step
+      if (state.stepId === "emailVerification") {
+        return {
+          ...state,
+          stepId: steps.profile, // Skip to next step
+          // Optionally clean history
+          history: state.history.filter(
+            entry => entry.stepId !== "emailVerification"
+          )
+        };
+      }
+      return state;
+    }
+    return null;
+  }
+}));
+```
+
+### Add intermediate step
+
+Handle adding a step in the middle of a flow:
+
+```typescript
+// v1: welcome → profile → complete
+// v2: welcome → verification → profile → complete
+
+const flow = defineFlow({
+  id: "onboarding",
+  version: "v2",
+  start: "welcome",
+  steps: {
+    welcome: { next: "verification" },
+    verification: { next: "profile" }, // New step
+    profile: { next: "complete" },
+    complete: {}
+  }
+}).with<MyContext>(() => ({
+  migration: (state, fromVersion) => {
+    if (fromVersion === "v1") {
+      // Users who haven't reached profile yet should see verification
+      // Users who passed profile already can skip it
+      return state; // Usually no change needed
+    }
+    return null;
+  }
+}));
+```
+
+## Advanced patterns
+
+### Multi-version migration chain
+
+Handle multiple version upgrades:
+
+```typescript
+const flow = defineFlow({
+  id: "onboarding",
+  version: "v3",
+  start: "welcome",
+  steps: { /* ... */ }
+}).with<MyContext>(() => ({
+  migration: (state, fromVersion) => {
+    let migratedState = state;
+
+    // v1 → v2: Rename email field
+    if (fromVersion === "v1") {
+      migratedState = {
+        ...migratedState,
+        context: {
+          ...migratedState.context,
+          emailAddress: migratedState.context.email
+        }
+      };
+    }
+
+    // v2 → v3: Add phone number
+    if (fromVersion === "v1" || fromVersion === "v2") {
+      migratedState = {
+        ...migratedState,
+        context: {
+          ...migratedState.context,
+          phoneNumber: ""
+        }
+      };
+    }
+
+    return migratedState;
+  }
+}));
+```
+
+### Conditional migration
+
+Apply different migrations based on state:
+
+```typescript
+migrate: (state, fromVersion) => {
+  if (fromVersion === "v1") {
+    // Different migration based on user type
+    if (state.context.accountType === "business") {
+      return {
+        ...state,
+        context: {
+          ...state.context,
+          companyName: state.context.businessName,
+          companySize: "unknown"
+        }
+      };
+    } else {
+      return {
+        ...state,
+        context: {
+          ...state.context,
+          firstName: state.context.name.split(" ")[0],
+          lastName: state.context.name.split(" ")[1] || ""
+        }
+      };
+    }
+  }
+  return null;
+}
+```
+
+### Data transformation
+
+Transform data structure while migrating:
+
+```typescript
+// v1: preferences as array
+type ContextV1 = {
+  preferences: string[];
+};
+
+// v2: preferences as object
+type ContextV2 = {
+  preferences: {
+    notifications: boolean;
+    newsletter: boolean;
+    updates: boolean;
+  };
+};
+
+migrate: (state, fromVersion) => {
+  if (fromVersion === "v1") {
+    const prefArray = state.context.preferences || [];
+    return {
+      ...state,
+      context: {
+        ...state.context,
+        preferences: {
+          notifications: prefArray.includes("notifications"),
+          newsletter: prefArray.includes("newsletter"),
+          updates: prefArray.includes("updates")
+        }
+      }
+    };
+  }
+  return null;
+}
+```
+
+### Discard invalid state
+
+Return `null` to discard incompatible state:
+
+```typescript
+migrate: (state, fromVersion) => {
+  // v1 is too old, can't migrate reliably
+  if (fromVersion === "v1") {
+    console.warn("v1 state is too old to migrate, discarding");
+    return null; // User starts fresh
+  }
+
+  // v2 can be migrated
+  if (fromVersion === "v2") {
+    return {
+      ...state,
+      context: {
+        ...state.context,
+        newField: "default"
+      }
+    };
+  }
+
+  // Unknown version
+  return null;
+}
+```
+
+## Testing migrations
+
+### Unit testing
+
+Test migrations thoroughly:
+
+```typescript
+import { describe, it, expect } from "vitest";
+
+describe("onboarding flow migrations", () => {
+  it("should migrate v1 to v2", () => {
+    const oldState = {
+      stepId: "profile",
+      context: {
+        email: "user@example.com",
+        name: "John Doe"
+      },
+      path: ["welcome", "profile"],
+      history: [
+        { stepId: "welcome" },
+        { stepId: "profile" }
+      ],
+      status: "active" as const
+    };
+
+    const migrated = flow.runtimeConfig.migrate?.(oldState, "v1");
+
+    expect(migrated).toEqual({
+      ...oldState,
+      context: {
+        emailAddress: "user@example.com",
+        fullName: "John Doe"
+      }
+    });
+  });
+
+  it("should discard unknown versions", () => {
+    const oldState = {
+      stepId: "welcome",
+      context: {},
+      path: [],
+      history: [],
+      status: "active" as const
+    };
+
+    const migrated = flow.runtimeConfig.migrate?.(oldState, "v999");
+
+    expect(migrated).toBeNull();
+  });
+
+  it("should migrate step renames", () => {
+    const oldState = {
+      stepId: "userProfile",
+      context: {},
+      path: ["welcome", "userProfile"],
+      history: [
+        { stepId: "welcome" },
+        { stepId: "userProfile" }
+      ],
+      status: "active" as const
+    };
+
+    const migrated = flow.runtimeConfig.migrate?.(oldState, "v1");
+
+    expect(migrated?.stepId).toBe("profile");
+    expect(migrated?.path).toContain("profile");
+    expect(migrated?.history[1].stepId).toBe("profile");
+  });
+});
+```
+
+### Integration testing
+
+Test migrations in the context of the full flow:
+
+```typescript
+import { render, screen, waitFor } from "@testing-library/react";
+import { createMemoryStore, createPersister } from "@useflow/react";
+
+it("should restore migrated state", async () => {
+  const store = createMemoryStore();
+  const persister = createPersister({ store });
+
+  // Save old version state
+  await persister.save("onboarding", {
+    stepId: "profile",
+    context: {
+      email: "user@example.com" // v1 field name
+    },
+    path: ["welcome", "profile"],
+    history: [],
+    status: "active",
+    __meta: {
+      savedAt: Date.now(),
+      version: "v1"
+    }
+  });
+
+  // Render with new version flow
+  render(
+    <Flow flow={flow} persister={persister}>
+      {({ renderStep, context }) => (
+        <div>
+          <div data-testid="email">{context.emailAddress}</div>
+          {renderStep({
+            welcome: <div>Welcome</div>,
+            profile: <div>Profile</div>,
+            complete: <div>Complete</div>
+          })}
+        </div>
+      )}
+    </Flow>
+  );
+
+  // Should migrate and restore
+  await waitFor(() => {
+    expect(screen.getByTestId("email")).toHaveTextContent("user@example.com");
+  });
+});
+```
+
+## Best practices
+
+### 1. Always increment version
+
+Update version number for breaking changes:
+
+```typescript
+// ✅ Good: Version incremented
+const flow = defineFlow({
+  version: "v2", // Was "v1"
+  // ... breaking changes
+});
+
+// ❌ Bad: No version change
+const flow = defineFlow({
+  version: "v1", // Still v1 despite breaking changes
+  // ... breaking changes
+});
+```
+
+### 2. Use semantic versioning
+
+Use clear version numbers:
+
+```typescript
+// ✅ Good: Clear versioning
+version: "v1"  → "v2"  → "v3"
+version: "1.0" → "2.0" → "3.0"
+
+// ❌ Confusing: Ambiguous
+version: "old" → "new" → "newer"
+```
+
+### 3. Document breaking changes
+
+Comment your migrations:
+
+```typescript
+migrate: (state, fromVersion) => {
+  // v1 → v2: Renamed 'email' to 'emailAddress'
+  // Breaking change: All persisted flows with v1 need migration
+  if (fromVersion === "v1") {
+    return {
+      ...state,
+      context: {
+        emailAddress: state.context.email
+      }
+    };
+  }
+  return null;
+}
+```
+
+### 4. Handle unknown versions gracefully
+
+Always handle unexpected versions:
+
+```typescript
+migrate: (state, fromVersion) => {
+  if (!fromVersion) {
+    // No version info - very old state
+    return null;
+  }
+
+  if (fromVersion === "v1") {
+    // Migrate v1
+  }
+
+  // Unknown future version or very old version
+  console.warn(`Unknown version: ${fromVersion}`);
+  return null;
+}
+```
+
+### 5. Test migrations thoroughly
+
+Test all migration paths:
+
+```typescript
+describe("migrations", () => {
+  it("should migrate v1 → v2")
+  it("should migrate v2 → v3")
+  it("should migrate v1 → v3 (multi-hop)")
+  it("should discard unknown versions")
+  it("should handle missing version")
+  it("should preserve all state fields")
+});
+```
+
+### 6. Provide user feedback
+
+Inform users when migration happens:
+
+```tsx
+<Flow
+  flow={flow}
+  persister={persister}
+  onRestore={(state) => {
+    if (state.__meta?.version !== flow.config.version) {
+      toast.info("We've updated! Your progress has been preserved.");
+    }
+  }}
+>
+```
+
+### 7. Keep old code during transition
+
+Don't immediately delete old field support:
+
+```typescript
+// Support both old and new field names temporarily
+const email = context.emailAddress || context.email;
+```
+
+## Migration strategies
+
+### Gradual migration
+
+Support multiple versions during transition:
+
+```typescript
+version: "v2.1", // Use minor versions
+
+migrate: (state, fromVersion) => {
+  // Support v2.0 and v2.1
+  if (fromVersion?.startsWith("v2")) {
+    return state; // Compatible
+  }
+  
+  // Migrate v1
+  if (fromVersion === "v1") {
+    return migrateV1ToV2(state);
+  }
+  
+  return null;
+}
+```
+
+### Feature flags with migrations
+
+Use feature flags to test migrations:
+
+```typescript
+const isNewSchemaEnabled = useFeatureFlag("new-schema");
+
+const flow = defineFlow({
+  version: isNewSchemaEnabled ? "v2" : "v1",
+  // ...
+}).with(() => ({
+  migration: isNewSchemaEnabled ? migrateV1ToV2 : undefined
+}));
+```
+
+## Complete example
+
+<details>
+<summary>View the complete real-world migration example</summary>
+
+```typescript title="flow.ts"
+import { defineFlow } from "@useflow/react";
+
+/**
+ * Onboarding Flow - Version History
+ * 
+ * v1 (Initial):
+ * - Context: { email, name }
+ * - Steps: welcome → profile → complete
+ * 
+ * v2 (Renamed fields):
+ * - Context: { emailAddress, fullName }
+ * - Steps: welcome → profile → complete
+ * 
+ * v3 (Added verification):
+ * - Context: { emailAddress, fullName, phoneNumber }
+ * - Steps: welcome → verification → profile → complete
+ */
+
+export type OnboardingContext = {
+  emailAddress: string;
+  fullName: string;
+  phoneNumber: string;
+};
+
+export const onboardingFlow = defineFlow({
+  id: "onboarding",
+  version: "v3",
+  start: "welcome",
+  steps: {
+    welcome: { next: "verification" },
+    verification: { next: "profile" },
+    profile: { next: "complete" },
+    complete: {}
+  }
+}).with<OnboardingContext>((steps) => ({
+  migration: (state, fromVersion) => {
+    let migratedState = state;
+
+    // v1 → v2: Rename fields
+    if (fromVersion === "v1") {
+      migratedState = {
+        ...migratedState,
+        context: {
+          ...migratedState.context,
+          emailAddress: migratedState.context.email,
+          fullName: migratedState.context.name
+        }
+      };
+    }
+
+    // v2 → v3: Add phone number and verification step
+    if (fromVersion === "v1" || fromVersion === "v2") {
+      migratedState = {
+        ...migratedState,
+        context: {
+          ...migratedState.context,
+          phoneNumber: ""
+        },
+        // If user already completed welcome, they should see verification
+        stepId: migratedState.stepId === "profile" 
+          ? steps.verification 
+          : migratedState.stepId
+      };
+    }
+
+    return migratedState;
+  }
+}));
+```
+
+</details>
+
+## Next steps
+
+- [Persistence](/guides/persistence) - Save and restore state
+- [Testing](/guides/testing) - Test migrations
+- [TypeScript](/getting-started/typescript) - Type-safe migrations
+- [Global Configuration](/guides/global-configuration) - Configure persistence globally
+

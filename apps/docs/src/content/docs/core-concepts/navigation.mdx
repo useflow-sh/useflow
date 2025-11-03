@@ -1,0 +1,849 @@
+---
+title: Navigation
+description: Control flow movement with type-safe navigation methods
+---
+
+**Navigation** is how users move through your flow. useFlow provides several navigation methods that are type-safe, flexible, and work seamlessly with your flow definition.
+
+## Navigation methods
+
+### `next()` - Move Forward
+
+The primary way to progress through a flow:
+
+```tsx
+function MyStep() {
+  const { next } = useFlow();
+  
+  return (
+    <button onClick={() => next()}>
+      Continue
+    </button>
+  );
+}
+```
+
+#### With context updates
+
+Update context while navigating:
+
+```tsx
+function ProfileStep() {
+  const { next, context } = useFlow();
+  const [name, setName] = useState('');
+  
+  return (
+    <>
+      {/* Object update - merges with existing context (partial update) */}
+      <button onClick={() => next({ name })}>
+        Continue (keeps other fields)
+      </button>
+      
+      {/* Function update - full control over context */}
+      <button onClick={() => next(() => ({ 
+        name  // Replaces entire context with just name!
+      }))}>
+        Continue (clears other fields)
+      </button>
+      
+      {/* Function update - preserve existing context */}
+      <button onClick={() => next((ctx) => ({ 
+        ...ctx,  // Spread to keep existing fields
+        name,
+        updatedAt: Date.now() 
+      }))}>
+        Continue (keeps other fields + timestamp)
+      </button>
+    </>
+  );
+}
+```
+
+#### With explicit target
+
+For branching flows, specify the destination:
+
+```tsx
+function ChoiceStep() {
+  const { next } = useFlow();
+  
+  return (
+    <div>
+      <button onClick={() => next('option1')}>
+        Choose Option 1
+      </button>
+      <button onClick={() => next('option2')}>
+        Choose Option 2
+      </button>
+    </div>
+  );
+}
+```
+
+#### Target + context
+
+Combine both:
+
+```tsx
+function ChoiceStep() {
+  const { next, context } = useFlow();
+  
+  return (
+    <>
+      {/* Object update with target - merges with existing */}
+      <button onClick={() => next('business', { userType: 'business' })}>
+        Business Account (keeps other data)
+      </button>
+      
+      {/* Function update with target - full control */}
+      <button onClick={() => next('personal', () => ({ 
+        userType: 'personal'  // Warning: replaces entire context!
+      }))}>
+        Personal Account (clears other data)
+      </button>
+      
+      {/* Function with spread to preserve context */}
+      <button onClick={() => next('personal', (ctx) => ({ 
+        ...ctx,
+        userType: 'personal',
+        previousType: ctx.userType 
+      }))}>
+        Personal Account (keeps other data)
+      </button>
+    </>
+  );
+}
+```
+
+### `skip()` - Skip Optional Steps
+
+Semantically different from `next()` - indicates the user chose to skip:
+
+```tsx
+function OptionalStep() {
+  const { next, skip } = useFlow();
+  
+  return (
+    <div>
+      <button onClick={() => next({ preferences: data })}>
+        Save Preferences
+      </button>
+      <button onClick={() => skip({ skippedPreferences: true })}>
+        Skip for now
+      </button>
+    </div>
+  );
+}
+```
+
+:::tip[Skip vs Next]
+Both move forward, but `skip()` records the action as `"skip"` in the history, while `next()` records it as `"next"`. This helps analytics and debugging.
+:::
+
+### `back()` - Navigate Backward
+
+Go back to the previous step:
+
+```tsx
+function MyStep() {
+  const { next, back, path } = useFlow();
+  
+  // Check if we can go back by looking at path length
+  const canGoBack = path.length > 1;
+  
+  return (
+    <div>
+      {canGoBack && (
+        <button onClick={() => back()}>
+          Back
+        </button>
+      )}
+      <button onClick={() => next()}>
+        Continue
+      </button>
+    </div>
+  );
+}
+```
+
+#### How back works
+
+`back()` uses the **path** (not history) to determine the previous step:
+
+```tsx
+// Flow: welcome → profile → preferences → complete
+
+// User navigates: welcome → profile → preferences
+// Path: [welcome, profile, preferences]
+// back() goes to: profile
+
+// If user then goes back again:
+// Path: [welcome, profile]
+// back() goes to: welcome
+```
+
+#### Back limitations
+
+`back()` only works within the current flow session:
+- ❌ Cannot go back from the first step
+- ❌ Cannot go back after page reload (unless you track path in persistence)
+- ✅ Works during active session
+
+### `reset()` - Start Over
+
+Reset the flow to the beginning:
+
+```tsx
+function CompleteStep() {
+  const { reset, context } = useFlow();
+  
+  return (
+    <div>
+      <h1>Completed!</h1>
+      <p>Welcome, {context.name}</p>
+      <button onClick={() => reset()}>
+        Start Over
+      </button>
+    </div>
+  );
+}
+```
+
+`reset()` returns to the start step with fresh initial context.
+
+## Navigation patterns
+
+### Linear navigation
+
+Simple forward progression:
+
+```tsx
+const flow = defineFlow({
+  id: 'linear',
+  start: 'step1',
+  steps: {
+    step1: { next: 'step2' },
+    step2: { next: 'step3' },
+    step3: { next: 'complete' },
+    complete: {}
+  }
+});
+
+function Step1() {
+  const { next } = flow.useFlow({ step: 'step1' });
+  return <button onClick={() => next()}>Next</button>;
+}
+```
+
+### Branching - component-driven
+
+Component explicitly chooses the path:
+
+```tsx
+const flow = defineFlow({
+  id: 'branching',
+  start: 'choice',
+  steps: {
+    choice: { next: ['option1', 'option2'] },
+    option1: { next: 'complete' },
+    option2: { next: 'complete' },
+    complete: {}
+  }
+});
+
+function ChoiceStep() {
+  const { next } = flow.useFlow({ step: 'choice' });
+  
+  // Component decides which path
+  return (
+    <div>
+      <button onClick={() => next('option1')}>Option 1</button>
+      <button onClick={() => next('option2')}>Option 2</button>
+    </div>
+  );
+}
+```
+
+### Branching - context-driven
+
+Flow automatically decides based on context:
+
+```tsx
+const flow = defineFlow({
+  id: 'auto-branch',
+  start: 'userType',
+  steps: {
+    userType: { next: ['business', 'personal'] },
+    business: { next: 'complete' },
+    personal: { next: 'complete' },
+    complete: {}
+  }
+}).with((steps) => ({
+  resolvers: {
+    userType: (ctx) => 
+      ctx.userType === 'business' ? steps.business : steps.personal
+  }
+}));
+
+function UserTypeStep() {
+  const { next } = flow.useFlow({ step: 'userType' });
+  
+  // Just update context, resolver handles branching
+  return (
+    <div>
+      <button onClick={() => next({ userType: 'business' })}>
+        Business
+      </button>
+      <button onClick={() => next({ userType: 'personal' })}>
+        Personal
+      </button>
+    </div>
+  );
+}
+```
+
+### Conditional skip
+
+Skip steps based on conditions:
+
+```tsx
+function PreferencesStep() {
+  const { next, skip, context } = useFlow();
+  
+  // Skip if user is in express mode
+  if (context.mode === 'express') {
+    useEffect(() => {
+      skip({ skippedPreferences: true });
+    }, []);
+    return <div>Skipping preferences...</div>;
+  }
+  
+  return <div>Configure preferences...</div>;
+}
+```
+
+## Navigation state
+
+### Checking if back navigation is available
+
+You can check if back navigation is available by examining the path:
+
+```tsx
+function MyStep() {
+  const { back, path } = useFlow();
+  
+  // Can go back if we're not on the first step
+  const canGoBack = path.length > 1;
+  
+  return (
+    <div>
+      <button onClick={() => back()} disabled={!canGoBack}>
+        Back
+      </button>
+    </div>
+  );
+}
+```
+
+Back navigation is available when:
+- Path has more than 1 entry (not on first step)
+- Flow status is "active"
+
+### `nextSteps`
+
+See possible next destinations:
+
+```tsx
+function MyStep() {
+  const { nextSteps } = useFlow();
+  
+  if (!nextSteps) {
+    return <div>Final step!</div>;
+  }
+  
+  if (nextSteps.length === 1) {
+    return <div>Next: {nextSteps[0]}</div>;
+  }
+  
+  return (
+    <div>
+      Choose next step:
+      {nextSteps.map(step => (
+        <button key={step} onClick={() => next(step)}>
+          Go to {step}
+        </button>
+      ))}
+    </div>
+  );
+}
+```
+
+### `status`
+
+Flow completion status:
+
+```tsx
+function MyStep() {
+  const { status, context } = useFlow();
+  
+  if (status === 'complete') {
+    return <div>Flow completed with: {JSON.stringify(context)}</div>;
+  }
+  
+  return <div>Flow in progress...</div>;
+}
+```
+
+Status values:
+- `"active"` - Flow in progress
+- `"complete"` - Flow finished (reached terminal step)
+
+## Type safety
+
+### Type-safe navigation
+
+Using the flow's custom hook provides type-safe navigation:
+
+```tsx
+const flow = defineFlow({
+  id: 'myFlow',
+  start: 'step1',
+  steps: {
+    step1: { next: 'step2' },
+    step2: { next: ['option1', 'option2'] },
+    option1: { next: 'complete' },
+    option2: { next: 'complete' },
+    complete: {}
+  }
+});
+
+function Step1() {
+  const { next } = flow.useFlow({ step: 'step1' });
+  
+  next();         // ✅ Valid - goes to 'step2'
+  next('step2');  // ✅ Valid - explicit target
+  next('option1'); // ❌ TypeScript error - not a valid next step
+}
+
+function Step2() {
+  const { next } = flow.useFlow({ step: 'step2' });
+  
+  next('option1');  // ✅ Valid
+  next('option2');  // ✅ Valid
+  next('complete'); // ❌ TypeScript error
+  next();          // ❌ TypeScript error - must specify target
+}
+```
+
+### Type-safe context updates
+
+Context updates are type-checked:
+
+```tsx
+type MyContext = {
+  name: string;
+  age: number;
+};
+
+function MyStep() {
+  const { next } = useFlow<MyContext>();
+  
+  next({ name: 'Alice', age: 30 });  // ✅ Valid
+  next({ name: 'Bob' });             // ✅ Valid (partial update)
+  next({ invalid: true });           // ❌ TypeScript error
+}
+```
+
+## Navigation callbacks
+
+React to navigation events:
+
+### `onTransition`
+
+Triggered on any navigation (next, skip, or back):
+
+```tsx
+<Flow
+  flow={myFlow}
+  initialContext={{}}
+  onTransition={({ from, to, direction, oldContext, newContext }) => {
+    console.log(`Navigated from ${from} to ${to} (${direction})`);
+    
+    // Track all navigation
+    trackEvent('navigation', { 
+      from, 
+      to, 
+      direction, // "forward" | "backward"
+      context: newContext 
+    });
+  }}
+>
+  {({ renderStep }) => renderStep({ /* ... */ })}
+</Flow>
+```
+
+### `onNext`
+
+Triggered specifically when `next()` is called:
+
+```tsx
+<Flow
+  flow={myFlow}
+  initialContext={{}}
+  onNext={({ from, to, oldContext, newContext }) => {
+    console.log(`Navigated from ${from} to ${to}`);
+    console.log('Context changed:', oldContext, '→', newContext);
+    
+    // Track step completion
+    trackEvent('step_completed', { step: from, nextStep: to });
+  }}
+>
+  {({ renderStep }) => renderStep({ /* ... */ })}
+</Flow>
+```
+
+### `onSkip`
+
+Triggered when `skip()` is called:
+
+```tsx
+<Flow
+  flow={myFlow}
+  initialContext={{}}
+  onSkip={({ from, to, newContext }) => {
+    console.log(`Skipped ${from}, went to ${to}`);
+    
+    // Track which steps users skip
+    trackEvent('step_skipped', { step: from });
+  }}
+>
+  {({ renderStep }) => renderStep({ /* ... */ })}
+</Flow>
+```
+
+### `onBack`
+
+Triggered when `back()` is called:
+
+```tsx
+<Flow
+  flow={myFlow}
+  initialContext={{}}
+  onBack={({ from, to }) => {
+    console.log(`Went back from ${from} to ${to}`);
+    trackEvent('step_back', { from, to });
+  }}
+>
+  {({ renderStep }) => renderStep({ /* ... */ })}
+</Flow>
+```
+
+### `onComplete`
+
+Triggered when flow completes:
+
+```tsx
+<Flow
+  flow={myFlow}
+  initialContext={{}}
+  onComplete={async ({ context }) => {
+    console.log('Flow completed!', context);
+    
+    // Submit to API
+    await submitOnboarding(context);
+    
+    // Redirect
+    router.push('/dashboard');
+  }}
+>
+  {({ renderStep }) => renderStep({ /* ... */ })}
+</Flow>
+```
+
+## Advanced navigation
+
+### Programmatic navigation
+
+Navigate outside of step components:
+
+```tsx
+function App() {
+  return (
+    <Flow flow={myFlow} initialContext={{}}>
+      {({ renderStep, next, stepId }) => (
+        <div>
+          {/* External navigation controls */}
+          <button onClick={() => next()}>Skip to next</button>
+          
+          {/* Current step */}
+          <div>{renderStep({ /* ... */ })}</div>
+          
+          {/* Step indicator */}
+          <div>Current: {stepId}</div>
+        </div>
+      )}
+    </Flow>
+  );
+}
+```
+
+### Keyboard navigation
+
+Add keyboard shortcuts:
+
+```tsx
+function MyStep() {
+  const { next, back, path } = useFlow();
+  
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        next();
+      } else if (e.key === 'Escape' && path.length > 1) {
+        back();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [next, back, path]);
+  
+  return <div>Press Enter to continue, Esc to go back</div>;
+}
+```
+
+### Auto-navigation
+
+Automatically navigate after a condition:
+
+```tsx
+function ProcessingStep() {
+  const { next } = useFlow();
+  const [isProcessing, setIsProcessing] = useState(true);
+  
+  useEffect(() => {
+    async function process() {
+      await someAsyncOperation();
+      setIsProcessing(false);
+      next({ processed: true });
+    }
+    process();
+  }, [next]);
+  
+  if (isProcessing) {
+    return <Spinner />;
+  }
+  
+  return <div>Processing complete!</div>;
+}
+```
+
+### Conditional navigation
+
+Navigate based on validation:
+
+```tsx
+function FormStep() {
+  const { next } = useFlow();
+  const [data, setData] = useState({});
+  const [errors, setErrors] = useState({});
+  
+  const handleSubmit = async () => {
+    const validationErrors = validate(data);
+    
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    
+    try {
+      await saveData(data);
+      next(data);
+    } catch (error) {
+      setErrors({ submit: error.message });
+    }
+  };
+  
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+      {/* Form fields */}
+      <button type="submit">Continue</button>
+    </form>
+  );
+}
+```
+
+## Navigation history
+
+Track user journey through the flow:
+
+### History vs path
+
+**History** - Complete record of all step visits:
+```tsx
+// User path: A → B → C → B (back) → C
+// History: [A, B, C, B, C]
+```
+
+**Path** - Linear route to current step:
+```tsx
+// User path: A → B → C → B (back) → C
+// Path: [A, B, C]
+```
+
+### Using history
+
+```tsx
+function MyStep() {
+  const { history } = useFlow();
+  
+  // Get all visited steps
+  const visitedSteps = history.map(h => h.stepId);
+  
+  // Calculate time spent on each step
+  const durations = history
+    .filter(h => h.completedAt)
+    .map(h => ({
+      step: h.stepId,
+      duration: h.completedAt! - h.startedAt,
+      action: h.action // 'next' | 'skip' | 'back'
+    }));
+  
+  // Count steps where user went back
+  const backCount = history.filter(h => h.action === 'back').length;
+  
+  return (
+    <div>
+      <p>Total steps visited: {history.length}</p>
+      <p>Went back {backCount} times</p>
+    </div>
+  );
+}
+```
+
+### Using path
+
+```tsx
+function Breadcrumbs() {
+  const { path, stepId } = useFlow();
+  
+  return (
+    <div className="breadcrumbs">
+      {path.map((entry, index) => (
+        <span key={entry.stepId}>
+          {entry.stepId}
+          {index < path.length - 1 && ' → '}
+        </span>
+      ))}
+    </div>
+  );
+}
+```
+
+## Best practices
+
+### 1. Validate before navigation
+
+Always validate data before moving forward:
+
+```tsx
+function MyStep() {
+  const { next } = useFlow();
+  const [data, setData] = useState({});
+  
+  const isValid = () => {
+    return data.name && data.email?.includes('@');
+  };
+  
+  return (
+    <button 
+      onClick={() => next(data)} 
+      disabled={!isValid()}
+    >
+      Continue
+    </button>
+  );
+}
+```
+
+### 2. Provide back navigation
+
+When possible, allow users to go back:
+
+```tsx
+function MyStep() {
+  const { next, back, path } = useFlow();
+  
+  // Check if we can go back
+  const canGoBack = path.length > 1;
+  
+  return (
+    <div className="navigation">
+      {canGoBack && <button onClick={back}>Back</button>}
+      <button onClick={next}>Continue</button>
+    </div>
+  );
+}
+```
+
+### 3. Use semantic actions
+
+Choose the right navigation method:
+
+```tsx
+// ✅ Good: Semantic actions
+next({ data });           // User completed step
+skip({ skipped: true });  // User chose to skip
+back();                   // User went back
+
+// ❌ Bad: Using next() for everything
+next({ skipped: true });  // Unclear if completed or skipped
+```
+
+### 4. Handle terminal steps
+
+Check for terminal steps:
+
+```tsx
+function MyStep() {
+  const { next, nextSteps } = useFlow();
+  
+  if (!nextSteps) {
+    // Terminal step - no next
+    return <div>This is the end!</div>;
+  }
+  
+  return <button onClick={next}>Continue</button>;
+}
+```
+
+### 5. Track navigation events
+
+Use callbacks for analytics:
+
+```tsx
+<Flow
+  flow={myFlow}
+  initialContext={{}}
+  onNext={({ from, to }) => {
+    trackEvent('flow_step_completed', { from, to });
+  }}
+  onSkip={({ from }) => {
+    trackEvent('flow_step_skipped', { step: from });
+  }}
+  onComplete={({ context }) => {
+    trackEvent('flow_completed', { 
+      duration: Date.now() - context.startedAt 
+    });
+  }}
+>
+  {({ renderStep }) => renderStep({ /* ... */ })}
+</Flow>
+```
+
+## Next steps
+
+- [**Flows**](/core-concepts/flows) - Define flow structure and transitions
+- [**Context**](/core-concepts/context) - Manage shared state
+- [**Branching Guide**](/guides/branching) - Implement conditional navigation
+- [**Linear Flows Guide**](/guides/linear-flows) - Build simple flows

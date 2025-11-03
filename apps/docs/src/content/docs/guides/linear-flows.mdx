@@ -1,0 +1,690 @@
+---
+title: Linear Flows
+description: Build simple step-by-step flows with linear progression
+---
+
+**Linear flows** are the simplest type of flow - users progress through steps in a fixed, sequential order. They're perfect for onboarding, tutorials, wizards, and simple multi-step forms.
+
+## What is a linear flow?
+
+A linear flow has:
+
+- **One path** through the flow
+- **No branching** - each step has exactly one next step
+- **Fixed order** - users follow the same sequence
+
+```
+welcome → profile → preferences → complete
+```
+
+## Creating a linear flow
+
+### 1. Define the flow
+
+```tsx
+import { defineFlow } from "@useflow/react";
+
+const onboardingFlow = defineFlow({
+  id: "onboarding",
+  start: "welcome",
+  steps: {
+    welcome: { next: "profile" },
+    profile: { next: "preferences" },
+    preferences: { next: "complete" },
+    complete: {}, // Terminal step (no next)
+  },
+});
+```
+
+### 2. Define context type
+
+```tsx
+type OnboardingContext = {
+  name: string;
+  email: string;
+  theme?: "light" | "dark";
+  notifications: boolean;
+};
+```
+
+### 3. Create step components
+
+```tsx
+function WelcomeStep() {
+  const { next } = onboardingFlow.useFlow({ step: "welcome" });
+
+  return (
+    <div>
+      <h1>Welcome!</h1>
+      <p>Let's get you set up in just a few steps.</p>
+      <button onClick={() => next()}>Get Started</button>
+    </div>
+  );
+}
+
+function ProfileStep() {
+  const { next, back, context } = onboardingFlow.useFlow({ step: "profile" });
+  const [name, setName] = useState(context.name || "");
+  const [email, setEmail] = useState(context.email || "");
+
+  const isValid = name.length > 0 && email.includes("@");
+
+  return (
+    <div>
+      <h2>Create Your Profile</h2>
+
+      <label>
+        Name:
+        <input value={name} onChange={(e) => setName(e.target.value)} />
+      </label>
+
+      <label>
+        Email:
+        <input value={email} onChange={(e) => setEmail(e.target.value)} />
+      </label>
+
+      <div>
+        <button onClick={() => back()}>Back</button>
+        <button onClick={() => next({ name, email })} disabled={!isValid}>
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PreferencesStep() {
+  const { next, back } = onboardingFlow.useFlow({ step: "preferences" });
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [notifications, setNotifications] = useState(false);
+
+  return (
+    <div>
+      <h2>Preferences</h2>
+
+      <label>
+        Theme:
+        <select value={theme} onChange={(e) => setTheme(e.target.value as any)}>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
+
+      <label>
+        <input
+          type="checkbox"
+          checked={notifications}
+          onChange={(e) => setNotifications(e.target.checked)}
+        />
+        Enable notifications
+      </label>
+
+      <div>
+        <button onClick={() => back()}>Back</button>
+        <button onClick={() => next({ theme, notifications })}>Complete</button>
+      </div>
+    </div>
+  );
+}
+
+function CompleteStep() {
+  const { context, reset } = onboardingFlow.useFlow({ step: "complete" });
+
+  return (
+    <div>
+      <h1>All Set!</h1>
+      <p>Welcome, {context.name}!</p>
+      <p>Email: {context.email}</p>
+      <p>Theme: {context.theme}</p>
+      <p>Notifications: {context.notifications ? "Enabled" : "Disabled"}</p>
+
+      <button onClick={() => reset()}>Start Over</button>
+    </div>
+  );
+}
+```
+
+### 4. Render the flow
+
+```tsx
+import { Flow } from "@useflow/react";
+
+function OnboardingApp() {
+  return (
+    <Flow
+      flow={onboardingFlow}
+      initialContext={{
+        name: "",
+        email: "",
+        notifications: false,
+      }}
+    >
+      {({ renderStep }) =>
+        renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          preferences: <PreferencesStep />,
+          complete: <CompleteStep />,
+        })
+      }
+    </Flow>
+  );
+}
+```
+
+## Common patterns
+
+### Form validation
+
+Prevent navigation until data is valid:
+
+```tsx
+function ProfileStep() {
+  const { next } = onboardingFlow.useFlow({ step: "profile" });
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!name) newErrors.name = "Name is required";
+    if (!email) newErrors.email = "Email is required";
+    else if (!email.includes("@")) newErrors.email = "Invalid email";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validate()) {
+      next({ name, email });
+    }
+  };
+
+  return (
+    <div>
+      <input value={name} onChange={(e) => setName(e.target.value)} />
+      {errors.name && <span className="error">{errors.name}</span>}
+
+      <input value={email} onChange={(e) => setEmail(e.target.value)} />
+      {errors.email && <span className="error">{errors.email}</span>}
+
+      <button onClick={handleNext}>Continue</button>
+    </div>
+  );
+}
+```
+
+### Optional steps
+
+Allow users to skip non-essential steps:
+
+```tsx
+function PreferencesStep() {
+  const { next, skip } = onboardingFlow.useFlow({ step: "preferences" });
+  const [preferences, setPreferences] = useState({});
+
+  return (
+    <div>
+      <h2>Set Your Preferences (Optional)</h2>
+
+      {/* Preference inputs */}
+
+      <button onClick={() => skip({ skippedPreferences: true })}>
+        Skip for now
+      </button>
+      <button onClick={() => next({ preferences })}>Save Preferences</button>
+    </div>
+  );
+}
+```
+
+### Progress indicator
+
+Show users where they are in the flow:
+
+```tsx
+function ProgressBar() {
+  const { stepId, steps } = useFlow();
+
+  const stepOrder = ["welcome", "profile", "preferences", "complete"];
+  const currentIndex = stepOrder.indexOf(stepId);
+  const progress = ((currentIndex + 1) / stepOrder.length) * 100;
+
+  return (
+    <div className="progress-bar">
+      <div className="progress-fill" style={{ width: `${progress}%` }} />
+      <p>
+        Step {currentIndex + 1} of {stepOrder.length}
+      </p>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <Flow flow={onboardingFlow} initialContext={{}}>
+      {({ renderStep }) => (
+        <div>
+          <ProgressBar />
+          {renderStep({
+            welcome: <WelcomeStep />,
+            profile: <ProfileStep />,
+            preferences: <PreferencesStep />,
+            complete: <CompleteStep />,
+          })}
+        </div>
+      )}
+    </Flow>
+  );
+}
+```
+
+### Breadcrumb navigation
+
+Let users see and navigate the path:
+
+```tsx
+function Breadcrumbs() {
+  const { path, stepId } = useFlow();
+
+  return (
+    <nav className="breadcrumbs">
+      {path.map((entry, index) => (
+        <span key={entry.stepId}>
+          <span className={entry.stepId === stepId ? "active" : ""}>
+            {entry.stepId}
+          </span>
+          {index < path.length - 1 && " → "}
+        </span>
+      ))}
+    </nav>
+  );
+}
+```
+
+### Async validation
+
+Validate data against an API:
+
+```tsx
+function EmailStep() {
+  const { next } = onboardingFlow.useFlow({ step: "email" });
+  const [email, setEmail] = useState("");
+  const [isChecking, setIsChecking] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleNext = async () => {
+    setIsChecking(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/check-email", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        next({ email });
+      } else {
+        const data = await response.json();
+        setError(data.message);
+      }
+    } catch (err) {
+      setError("Failed to validate email");
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  return (
+    <div>
+      <input value={email} onChange={(e) => setEmail(e.target.value)} />
+      {error && <span className="error">{error}</span>}
+
+      <button onClick={handleNext} disabled={isChecking}>
+        {isChecking ? "Checking..." : "Continue"}
+      </button>
+    </div>
+  );
+}
+```
+
+## Persistence
+
+Save progress automatically:
+
+```tsx
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+
+const store = createLocalStorageStore({
+  storage: localStorage,
+  prefix: "my-app",
+});
+
+const persister = createPersister({
+  store,
+  flowId: "onboarding",
+  instanceId: "user-123",
+});
+
+function App() {
+  return (
+    <Flow
+      flow={onboardingFlow}
+      initialContext={{}}
+      persister={{
+        ...persister,
+        saveMode: "auto", // Save on every step change
+      }}
+    >
+      {({ renderStep, isRestoring }) => {
+        if (isRestoring) {
+          return <div>Restoring your progress...</div>;
+        }
+
+        return renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          preferences: <PreferencesStep />,
+          complete: <CompleteStep />,
+        });
+      }}
+    </Flow>
+  );
+}
+```
+
+[Learn more about Persistence →](/guides/persistence)
+
+## Best practices
+
+### 1. Keep steps focused
+
+Each step should have one clear purpose:
+
+```tsx
+// ✅ Good: Focused steps
+steps: {
+  email: { next: 'password' },
+  password: { next: 'profile' },
+  profile: { next: 'complete' }
+}
+
+// ❌ Bad: Too much in one step
+steps: {
+  everything: { next: 'complete' }, // email, password, AND profile
+  complete: {}
+}
+```
+
+### 2. Validate early
+
+Validate as users type, not just on submit:
+
+```tsx
+function ProfileStep() {
+  const [email, setEmail] = useState("");
+  const emailError = !email.includes("@") ? "Invalid email" : "";
+
+  return (
+    <div>
+      <input value={email} onChange={(e) => setEmail(e.target.value)} />
+      {emailError && <span className="error">{emailError}</span>}
+      <button disabled={!!emailError}>Continue</button>
+    </div>
+  );
+}
+```
+
+### 3. Save state in context
+
+Initialize from context to preserve data on back navigation:
+
+```tsx
+function ProfileStep() {
+  const { context, next } = useFlow();
+
+  // ✅ Good: Initialize from context
+  const [name, setName] = useState(context.name || "");
+
+  // ❌ Bad: Hardcoded initial state
+  const [name2, setName2] = useState("");
+}
+```
+
+### 4. Provide clear navigation
+
+Always show users how to move forward and backward:
+
+```tsx
+function MyStep() {
+  const { next, back, canGoBack } = useFlow();
+
+  return (
+    <div className="navigation">
+      {canGoBack && <button onClick={back}>Back</button>}
+      <button onClick={next}>Continue</button>
+    </div>
+  );
+}
+```
+
+## Complete example
+
+<details>
+<summary>View the complete working example</summary>
+
+```tsx
+import { defineFlow, Flow } from "@useflow/react";
+import { useState } from "react";
+
+// 1. Define context type
+type OnboardingContext = {
+  name: string;
+  email: string;
+  theme?: "light" | "dark";
+  notifications: boolean;
+};
+
+// 2. Define flow
+const onboardingFlow = defineFlow({
+  id: "onboarding",
+  start: "welcome",
+  steps: {
+    welcome: { next: "profile" },
+    profile: { next: "preferences" },
+    preferences: { next: "complete" },
+    complete: {},
+  },
+});
+
+// 3. Step components
+function WelcomeStep() {
+  const { next } = onboardingFlow.useFlow({ step: "welcome" });
+
+  return (
+    <div className="step">
+      <h1>Welcome to Our App!</h1>
+      <p>Let's get you set up in just 3 quick steps.</p>
+      <button onClick={() => next()}>Get Started</button>
+    </div>
+  );
+}
+
+function ProfileStep() {
+  const { next, back, context } = onboardingFlow.useFlow({ step: "profile" });
+  const [name, setName] = useState(context.name || "");
+  const [email, setEmail] = useState(context.email || "");
+
+  const isValid = name.length > 0 && email.includes("@");
+
+  return (
+    <div className="step">
+      <h2>Create Your Profile</h2>
+
+      <div className="form-group">
+        <label htmlFor="name">Name *</label>
+        <input
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter your name"
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="email">Email *</label>
+        <input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+        />
+      </div>
+
+      <div className="button-group">
+        <button onClick={() => back()}>Back</button>
+        <button onClick={() => next({ name, email })} disabled={!isValid}>
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PreferencesStep() {
+  const { next, back, skip } = onboardingFlow.useFlow({ step: "preferences" });
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [notifications, setNotifications] = useState(false);
+
+  return (
+    <div className="step">
+      <h2>Customize Your Experience</h2>
+
+      <div className="form-group">
+        <label htmlFor="theme">Theme</label>
+        <select
+          id="theme"
+          value={theme}
+          onChange={(e) => setTheme(e.target.value as any)}
+        >
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label>
+          <input
+            type="checkbox"
+            checked={notifications}
+            onChange={(e) => setNotifications(e.target.checked)}
+          />
+          <span>Enable email notifications</span>
+        </label>
+      </div>
+
+      <div className="button-group">
+        <button onClick={() => back()}>Back</button>
+        <button
+          onClick={() => skip({ skippedPreferences: true })}
+          variant="secondary"
+        >
+          Skip
+        </button>
+        <button onClick={() => next({ theme, notifications })}>Complete</button>
+      </div>
+    </div>
+  );
+}
+
+function CompleteStep() {
+  const { context, reset } = onboardingFlow.useFlow({ step: "complete" });
+
+  return (
+    <div className="step">
+      <h1>You're All Set!</h1>
+      <div className="summary">
+        <p>
+          <strong>Name:</strong> {context.name}
+        </p>
+        <p>
+          <strong>Email:</strong> {context.email}
+        </p>
+        <p>
+          <strong>Theme:</strong> {context.theme || "Not set"}
+        </p>
+        <p>
+          <strong>Notifications:</strong>{" "}
+          {context.notifications ? "Enabled" : "Disabled"}
+        </p>
+      </div>
+      <button onClick={() => reset()}>Start Over</button>
+    </div>
+  );
+}
+
+// 4. Main app
+export function OnboardingApp() {
+  return (
+    <Flow
+      flow={onboardingFlow}
+      initialContext={{
+        name: "",
+        email: "",
+        notifications: false,
+      }}
+      onComplete={({ context }) => {
+        console.log("Onboarding complete!", context);
+        // Redirect to app, save to API, etc.
+      }}
+    >
+      {({ renderStep, stepId }) => (
+        <div className="app">
+          {/* Progress indicator */}
+          <ProgressBar currentStep={stepId} />
+
+          {/* Current step */}
+          <div className="step-container">
+            {renderStep({
+              welcome: <WelcomeStep />,
+              profile: <ProfileStep />,
+              preferences: <PreferencesStep />,
+              complete: <CompleteStep />,
+            })}
+          </div>
+        </div>
+      )}
+    </Flow>
+  );
+}
+
+function ProgressBar({ currentStep }: { currentStep: string }) {
+  const steps = ["welcome", "profile", "preferences", "complete"];
+  const currentIndex = steps.indexOf(currentStep);
+  const progress = ((currentIndex + 1) / steps.length) * 100;
+
+  return (
+    <div className="progress-container">
+      <div className="progress-bar">
+        <div className="progress-fill" style={{ width: `${progress}%` }} />
+      </div>
+      <p className="progress-text">
+        Step {currentIndex + 1} of {steps.length}
+      </p>
+    </div>
+  );
+}
+```
+
+</details>
+
+## Next steps
+
+- [**Branching Guide**](/guides/branching) - Add conditional logic
+- [**Persistence Guide**](/guides/persistence) - Save user progress
+- [**Context**](/core-concepts/context) - Manage shared state
+- [**Navigation**](/core-concepts/navigation) - Control flow movement

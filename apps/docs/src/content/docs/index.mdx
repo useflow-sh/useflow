@@ -1,40 +1,294 @@
 ---
-title: Welcome to Starlight
-description: Get started building your docs site with Starlight.
-template: splash # Remove or comment out this line to display the site sidebar on this page.
+title: useFlow
+description: Type-safe, declarative multi-step flows for React applications with built-in persistence
+template: splash
 hero:
-  tagline: Congrats on setting up a new Starlight project!
-  image:
-    file: ../../assets/houston.webp
+  tagline: Easiest way to build complex app flows.
   actions:
-    - text: Example Guide
-      link: /guides/example/
+    - text: Get Started
+      link: /getting-started/overview
       icon: right-arrow
-    - text: Read the Starlight docs
-      link: https://starlight.astro.build
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/useflow-sh/useflow
       icon: external
       variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid, Steps, Code, Tabs, TabItem } from "@astrojs/starlight/components";
 
-## Next steps
+## Build multi-step flows without the complexity
 
 <CardGrid stagger>
-	<Card title="Update content" icon="pencil">
-		Edit `src/content/docs/index.mdx` to see this page change.
-	</Card>
-	<Card title="Change page layout" icon="document">
-		Delete `template: splash` in `src/content/docs/index.mdx` to display a
-		sidebar on this page.
-	</Card>
-	<Card title="Add new content" icon="add-document">
-		Add Markdown or MDX files to `src/content/docs` to create new pages.
-	</Card>
-	<Card title="Configure your site" icon="setting">
-		Edit your `sidebar` and other config in `astro.config.mjs`.
-	</Card>
-	<Card title="Read the docs" icon="open-book">
-		Learn more in [the Starlight Docs](https://starlight.astro.build/).
-	</Card>
+  <Card title="Declarative" icon="document">
+    Define your flow structure once. No more `if/else` chains scattered across components.
+  </Card>
+  <Card title="Built-in Persistence" icon="seti:db">
+    Enable with 2 lines of code. Sers continue exactly where they left off.
+  </Card>
+  <Card title="Type-Safe" icon="seti:typescript">
+    Full TypeScript support. Your IDE knows every step, catches navigation errors at compile time.
+  </Card>
+  <Card title="Lightweight" icon="rocket">
+    Under 5KB gzipped. Zero dependencies. Just React.
+  </Card>
+</CardGrid>
+
+## See it in action
+
+Build a complete onboarding flow in 3 simple steps:
+
+<Steps>
+
+1. ### Define your flow with branching
+
+   ```tsx
+   import { defineFlow } from "@useflow/react";
+
+   type OnboardingContext = {
+     email?: string;
+     accountType?: "business" | "personal";
+     company?: string;
+   };
+
+   const onboardingFlow = defineFlow({
+     id: "onboarding",
+     start: "welcome",
+     steps: {
+       welcome: { next: "userType" },
+       userType: { next: ["business", "personal"] }, // Branching!
+       business: { next: "complete" },
+       personal: { next: "complete" },
+       complete: {}
+     }
+   }).with<OnboardingContext>((steps) => ({
+     resolvers: {
+       // Automatic routing based on context
+       userType: (ctx) => 
+         ctx.accountType === "business" 
+           ? steps.business 
+           : steps.personal
+     }
+   }));
+   ```
+
+2. ### Create your step components
+
+   ```tsx
+   import { useFlow } from "@useflow/react";
+
+   function UserTypeStep() {
+     const { context, setContext, next } = useFlow();
+     
+     const handleSubmit = () => {
+       next(); // Automatically routes based on accountType
+     };
+
+     return (
+       <div>
+         <h1>Get Started</h1>
+         <input
+           type="email"
+           placeholder="Email address"
+           value={context.email || ""}
+           onChange={(e) => setContext({ email: e.target.value })}
+         />
+         <select 
+           value={context.accountType || ""}
+           onChange={(e) => setContext({ accountType: e.target.value })}
+         >
+           <option value="">Choose account type</option>
+           <option value="personal">Personal</option>
+           <option value="business">Business</option>
+         </select>
+         <button 
+           onClick={handleSubmit}
+           disabled={!context.email || !context.accountType}
+         >
+           Continue
+         </button>
+       </div>
+     );
+   }
+
+   function BusinessStep() {
+     const { context, setContext, next, back } = useFlow();
+     
+     return (
+       <div>
+         <h1>Business Details</h1>
+         <p>Welcome {context.email}!</p>
+         <input
+           placeholder="Company name"
+           value={context.company || ""}
+           onChange={(e) => setContext({ company: e.target.value })}
+         />
+         <button onClick={back}>Back</button>
+         <button onClick={next}>Continue</button>
+       </div>
+     );
+   }
+   ```
+
+3. ### Add persistence with 2 lines
+
+   ```tsx
+   import { Flow, createLocalStorageStore, createPersister } from "@useflow/react";
+
+   const persister = createPersister({ 
+     store: createLocalStorageStore() 
+   });
+
+   <Flow flow={onboardingFlow} persister={persister}>
+     {({ renderStep }) => renderStep({
+       welcome: <WelcomeStep />,
+       userType: <UserTypeStep />,
+       business: <BusinessStep />,
+       personal: <PersonalStep />,
+       complete: <CompleteStep />
+     })}
+   </Flow>
+   ```
+
+</Steps>
+
+**That's it!** Users can now close their browser and return exactly where they left off. No manual state management, no localStorage code, no routing logic.
+
+## Perfect for
+
+- 🚀 **Onboarding flows** - User registration with multiple steps
+- 🛒 **Checkout processes** - Cart, shipping, payment, confirmation  
+- 📝 **Surveys & forms** - Long questionnaires users can resume
+- ⚙️ **Configuration wizards** - Complex setup broken into steps
+- 📋 **Application processes** - Job applications, loan applications
+
+## Why not just use...?
+
+<Tabs>
+  <TabItem label="useState">
+    ```tsx
+    // Week 1: "This is simple!"
+    const [step, setStep] = useState('welcome');
+    const [formData, setFormData] = useState({});
+    
+    // Week 2: "We need persistence"
+    const [step, setStep] = useState(() => 
+      localStorage.getItem('onboarding-step') || 'welcome'
+    );
+    const [formData, setFormData] = useState(() => 
+      JSON.parse(localStorage.getItem('onboarding-data') || '{}')
+    );
+    
+    useEffect(() => {
+      localStorage.setItem('onboarding-step', step);
+      localStorage.setItem('onboarding-data', JSON.stringify(formData));
+    }, [step, formData]);
+    
+    // Week 3: "We need branching logic"
+    const handleNext = () => {
+      if (step === 'welcome') setStep('profile');
+      else if (step === 'profile') {
+        if (formData.accountType === 'business') {
+          setStep('companyInfo');
+        } else {
+          setStep('preferences');
+        }
+      }
+      else if (step === 'companyInfo') setStep('preferences');
+      else if (step === 'preferences') setStep('complete');
+    };
+    
+    // Week 4: "We need back button"
+    const [stepHistory, setStepHistory] = useState(['welcome']);
+    const handleBack = () => {
+      const newHistory = stepHistory.slice(0, -1);
+      setStepHistory(newHistory);
+      setStep(newHistory[newHistory.length - 1]);
+    };
+    
+    // Week 5: "We need analytics"
+    const handleNext = () => {
+      const nextStep = getNextStep(step, formData);
+      analytics.track('step_completed', { 
+        from: step, 
+        to: nextStep,
+        ...formData 
+      });
+      setStepHistory([...stepHistory, nextStep]);
+      setStep(nextStep);
+    };
+    
+    // Week 6: "Product wants to add email verification"
+    // Now updating logic in 5 different places...
+    // 300+ lines of tangled state management
+    ```
+    **Reality:** What starts as 3 lines becomes 300+ lines of fragile, interconnected logic.
+  </TabItem>
+  <TabItem label="React Router">
+    Each step as a route sounds good until:
+    - No shared state without Context/Redux
+    - No built-in persistence
+    - Browser back button breaks flow logic
+    - Still building all navigation logic yourself
+    
+    **Better for:** Page navigation, not multi-step processes.
+  </TabItem>
+  <TabItem label="Form Libraries">
+    React Hook Form, Formik, etc. are great for forms, but:
+    - Don't handle step navigation
+    - No progress persistence
+    - No flow branching logic
+    
+    **Best approach:** Use them *with* useFlow for validation.
+  </TabItem>
+  <TabItem label="XState">
+    General state machine library:
+    - Steep learning curve (actors, events, guards)
+    - No built-in persistence
+    - Designed for complex state logic
+    - Not purpose-built for multi-step UI flows
+    
+    **Better for:** Complex state machines with parallel states and intricate business logic.
+  </TabItem>
+</Tabs>
+
+**useFlow gives you everything out of the box:** navigation, persistence, branching, TypeScript safety, and it's under 5KB.
+
+## Coming soon
+
+<CardGrid>
+  <Card title="Remote Configuration" icon="setting">
+    Modify flows without deploying. Pdate step order and branching logic from your backend.
+  </Card>
+  <Card title="A/B Testing" icon="random">
+    Test flow variants. See which path converts best.
+  </Card>
+  <Card title="Built-in Analytics" icon="seti:default">
+    Track completion rates and drop-offs. Own your analytics.
+  </Card>
+</CardGrid>
+
+## Get started
+
+<CardGrid>
+  <Card title="Quick Start" icon="rocket">
+    [Build your first flow →](/getting-started/quick-start)
+    
+    Ship a working flow in minutes
+  </Card>
+  <Card title="Why useFlow?" icon="information">
+    [Learn more →](/getting-started/why-useflow)
+    
+    Benefits and comparisons
+  </Card>
+  <Card title="Examples" icon="open-book">
+    [Browse recipes →](/recipes/onboarding)
+    
+    Production-ready patterns
+  </Card>
+  <Card title="API Reference" icon="document">
+    [View docs →](/api-reference/define-flow)
+    
+    Complete API reference
+  </Card>
 </CardGrid>

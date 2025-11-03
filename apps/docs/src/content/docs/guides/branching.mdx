@@ -1,0 +1,599 @@
+---
+title: Branching Flows
+description: Learn how to implement conditional navigation and create dynamic flow paths based on user choices or context
+---
+
+import { Aside, Tabs, TabItem, Badge, LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Branching flows allow users to take different paths through your flow based on their choices or context. useFlow supports two powerful branching patterns: **context-driven** (automatic) and **component-driven** (manual) branching.
+
+## How branching works
+
+In useFlow, branching is achieved by defining multiple possible next steps for a step, then choosing between them either automatically (with a resolve function) or explicitly (in your component):
+
+```typescript
+{
+  myStep: {
+    next: ["optionA", "optionB", "optionC"]
+    // Choose via resolve function OR component calls next(target)
+  }
+}
+```
+
+## Context-driven branching
+
+Context-driven branching uses a **resolve function** to automatically determine the next step based on the current context. The flow decides where to go without the component needing to know about routing logic.
+
+### When to use
+
+- **Business logic determines the path** (user role, subscription tier, feature flags)
+- **Conditional steps** that should be shown/hidden based on data
+- **Separation of concerns** - keep routing logic out of UI components
+- **Server-driven flows** where the backend determines the path
+
+### Basic example
+
+```typescript
+import { defineFlow } from "@useflow/react";
+
+type FlowContext = {
+  userType?: "business" | "personal";
+  companyName?: string;
+};
+
+export const flow = defineFlow({
+  id: "onboarding",
+  start: "userType",
+  steps: {
+    userType: {
+      next: ["businessDetails", "preferences"]
+    },
+    businessDetails: {
+      next: "preferences"
+    },
+    preferences: {
+      next: "complete"
+    },
+    complete: {}
+  }
+}).with<FlowContext>((steps) => ({
+  resolvers: {
+    userType: (ctx) => 
+      ctx.userType === "business" 
+        ? steps.businessDetails  // Show business step
+        : steps.preferences      // Skip to preferences
+  }
+}));
+```
+
+### Component implementation
+
+The component just calls `next()` with no arguments - the resolve function handles routing:
+
+```tsx title="UserTypeStep.tsx"
+export function UserTypeStep() {
+  const { context, next, setContext } = flow.useFlow({
+    step: "userType"
+  });
+
+  return (
+    <div>
+      <h1>Select Account Type</h1>
+      
+      <button onClick={() => setContext({ userType: "business" })}>
+        Business
+      </button>
+      
+      <button onClick={() => setContext({ userType: "personal" })}>
+        Personal
+      </button>
+
+      <button 
+        onClick={() => next()}  {/* Resolve function decides where to go */}
+        disabled={!context.userType}
+      >
+        Continue
+      </button>
+    </div>
+  );
+}
+```
+
+### Type safety
+
+The resolve function is fully type-safe and must return one of the configured next steps:
+
+```typescript
+resolvers: {
+  userType: (ctx: FlowContext) => {
+    if (ctx.userType === "business") {
+      return steps.businessDetails;  // ✅ Valid
+    }
+    return steps.complete;           // ❌ Error: not in next array
+  }
+}
+```
+
+## Component-driven branching
+
+Component-driven branching puts routing control in the component's hands. The component explicitly chooses which step to navigate to by passing a target to `next()`.
+
+### When to use
+
+- **User makes explicit navigation choice** (skip vs continue, save draft vs publish)
+- **UI-driven routing** where the button clicked determines the path
+- **Dynamic branching** based on form validation or user interaction
+- **Multi-path flows** with clear user choice points
+
+### Basic example
+
+```typescript
+export const flow = defineFlow({
+  id: "setup",
+  start: "setupPreference",
+  steps: {
+    setupPreference: {
+      // Component decides: advanced path or quick path
+      next: ["detailedPreferences", "complete"]
+    },
+    detailedPreferences: {
+      next: "complete"
+    },
+    complete: {}
+  }
+});
+```
+
+### Component implementation
+
+The component explicitly calls `next(target)` with the desired destination:
+
+```tsx title="SetupPreferenceStep.tsx"
+export function SetupPreferenceStep() {
+  const { context, next, setContext } = flow.useFlow({
+    step: "setupPreference"
+  });
+
+  const handleAdvancedSetup = () => {
+    setContext({ setupMode: "advanced" });
+    next("detailedPreferences");  // Explicit navigation
+  };
+
+  const handleQuickSetup = () => {
+    setContext({ setupMode: "quick" });
+    next("complete");  // Skip preferences
+  };
+
+  return (
+    <div>
+      <h1>Choose Setup Mode</h1>
+      
+      <button onClick={handleAdvancedSetup}>
+        Advanced Setup
+      </button>
+      
+      <button onClick={handleQuickSetup}>
+        Quick Setup (Skip Details)
+      </button>
+    </div>
+  );
+}
+```
+
+### Type safety
+
+When a step has multiple next options, the `next()` function is typed to only accept valid targets:
+
+```tsx
+// next() signature for setupPreference step:
+// next(target: "detailedPreferences" | "complete") => void
+
+next("detailedPreferences");  // ✅ Valid
+next("complete");              // ✅ Valid  
+next("invalid");               // ❌ TypeScript error
+```
+
+## Combining both patterns
+
+You can use both patterns in the same flow for maximum flexibility:
+
+```typescript
+export const flow = defineFlow({
+  id: "complex-onboarding",
+  start: "welcome",
+  steps: {
+    welcome: { next: "userType" },
+    
+    // Context-driven: resolve function decides
+    userType: {
+      next: ["businessDetails", "setupPreference"]
+    },
+    
+    businessDetails: { next: "setupPreference" },
+    
+    // Component-driven: component decides  
+    setupPreference: {
+      next: ["preferences", "complete"]
+    },
+    
+    preferences: { next: "complete" },
+    complete: {}
+  }
+}).with((steps) => ({
+  resolvers: {
+    // Automatic routing based on context
+    userType: (ctx) =>
+      ctx.userType === "business"
+        ? steps.businessDetails
+        : steps.setupPreference
+  }
+}));
+```
+
+**Flow Paths:**
+- Business + Advanced: `welcome → userType → businessDetails → setupPreference → preferences → complete`
+- Business + Quick: `welcome → userType → businessDetails → setupPreference → complete`
+- Personal + Advanced: `welcome → userType → setupPreference → preferences → complete`  
+- Personal + Quick: `welcome → userType → setupPreference → complete`
+
+## Multi-way branching
+
+Both patterns support branching to 3+ destinations:
+
+### Context-driven multi-way
+
+```typescript
+type SubscriptionTier = "free" | "pro" | "enterprise";
+
+defineFlow({
+  steps: {
+    tierCheck: {
+      next: ["freeFeatures", "proFeatures", "enterpriseFeatures"]
+    },
+    // ...
+  }
+}).with<{ tier: SubscriptionTier }>((steps) => ({
+  resolvers: {
+    tierCheck: (ctx) => {
+      switch (ctx.tier) {
+        case "free": return steps.freeFeatures;
+        case "pro": return steps.proFeatures;
+        case "enterprise": return steps.enterpriseFeatures;
+      }
+    }
+  }
+}));
+```
+
+### Component-driven multi-way
+
+```tsx
+export function ActionStep() {
+  const { next } = flow.useFlow({ step: "action" });
+
+  return (
+    <div>
+      <button onClick={() => next("saveDraft")}>Save Draft</button>
+      <button onClick={() => next("preview")}>Preview</button>
+      <button onClick={() => next("publish")}>Publish Now</button>
+    </div>
+  );
+}
+```
+
+## Complex branching patterns
+
+### Nested branching
+
+Create multi-level decision trees:
+
+```typescript
+export const flow = defineFlow({
+  steps: {
+    // First branch: user type
+    userType: {
+      next: ["businessSetup", "personalSetup"]
+    },
+    
+    // Second branch: business size (if business)
+    businessSetup: {
+      next: ["enterpriseOnboarding", "smbOnboarding"]
+    },
+    
+    enterpriseOnboarding: { next: "complete" },
+    smbOnboarding: { next: "complete" },
+    
+    // Second branch: account privacy (if personal)
+    personalSetup: {
+      next: ["publicProfile", "privateProfile"]
+    },
+    
+    publicProfile: { next: "complete" },
+    privateProfile: { next: "complete" },
+    
+    complete: {}
+  }
+}).with((steps) => ({
+  resolvers: {
+    userType: (ctx) =>
+      ctx.userType === "business" 
+        ? steps.businessSetup 
+        : steps.personalSetup,
+    
+    businessSetup: (ctx) =>
+      ctx.employeeCount && ctx.employeeCount > 100
+        ? steps.enterpriseOnboarding
+        : steps.smbOnboarding
+  }
+}));
+```
+
+### Conditional skip pattern
+
+Skip optional steps based on context:
+
+```typescript
+defineFlow({
+  steps: {
+    emailEntry: {
+      next: ["verification", "complete"]
+    },
+    verification: {
+      next: "complete"
+    },
+    complete: {}
+  }
+}).with((steps) => ({
+  resolvers: {
+    emailEntry: (ctx) =>
+      ctx.emailVerificationRequired
+        ? steps.verification
+        : steps.complete  // Skip verification
+  }
+}));
+```
+
+### Role-based flows
+
+Different paths for different user roles:
+
+```typescript
+defineFlow({
+  steps: {
+    roleCheck: {
+      next: ["adminDashboard", "userDashboard", "guestView"]
+    },
+    adminDashboard: { next: "complete" },
+    userDashboard: { next: "complete" },
+    guestView: { next: "complete" },
+    complete: {}
+  }
+}).with<{ role: "admin" | "user" | "guest" }>((steps) => ({
+  resolvers: {
+    roleCheck: (ctx) => {
+      switch (ctx.role) {
+        case "admin": return steps.adminDashboard;
+        case "user": return steps.userDashboard;
+        case "guest": return steps.guestView;
+      }
+    }
+  }
+}));
+```
+
+## Best practices
+
+### Choose the right pattern
+
+| Pattern | Best For | Example |
+|---------|----------|---------|
+| **Context-Driven** | Business logic, automatic decisions | User role routing, feature flags |
+| **Component-Driven** | User choice, explicit actions | "Skip" vs "Continue", "Save" vs "Publish" |
+
+### Keep resolve functions pure
+
+<Aside type="caution" title="Important">
+  Resolve functions should be deterministic and side-effect free
+</Aside>
+
+```typescript
+// ✅ Good: Pure function
+resolvers: {
+  step: (ctx) => ctx.isPremium ? steps.premium : steps.basic
+}
+
+// ❌ Bad: Side effects
+resolvers: {
+  step: (ctx) => {
+    analytics.track("step_resolved");  // Side effect!
+    return steps.next;
+  }
+}
+```
+
+### Validate context before branching
+
+<Aside type="tip">
+  Always ensure required context exists before making branching decisions
+</Aside>
+
+```typescript
+resolvers: {
+  subscription: (ctx) => {
+    if (!ctx.subscriptionTier) {
+      console.warn("Missing subscription tier, defaulting to free");
+      return steps.free;
+    }
+    
+    return ctx.subscriptionTier === "pro" 
+      ? steps.pro 
+      : steps.free;
+  }
+}
+```
+
+### Document complex branching
+
+Add comments explaining flow paths:
+
+```typescript
+/**
+ * Flow Paths:
+ * - New User → welcome → signup → verification → setup → complete
+ * - Returning User → welcome → login → dashboard → complete  
+ * - Guest → welcome → guestView → complete
+ */
+export const flow = defineFlow({
+  // ...
+});
+```
+
+### Use TypeScript for safety
+
+Leverage TypeScript to catch routing errors at compile time:
+
+```typescript
+// Define context type with all possible branch conditions
+type FlowContext = {
+  userType?: "business" | "personal";
+  tier?: "free" | "pro" | "enterprise";
+  verified?: boolean;
+};
+
+// TypeScript ensures resolve returns valid step
+resolvers: {
+  tierCheck: (ctx: FlowContext) => {
+    // ctx is typed, autocomplete works
+    // Return value must be from next array
+  }
+}
+```
+
+## Complete example
+
+<details>
+<summary>View the complete working code for an onboarding flow with branching</summary>
+
+```typescript title="flow.ts"
+import { defineFlow } from "@useflow/react";
+
+type OnboardingContext = {
+  name: string;
+  userType?: "business" | "personal";
+  setupMode?: "advanced" | "quick";
+  companyName?: string;
+  industry?: string;
+  theme?: "light" | "dark";
+  notifications: boolean;
+};
+
+export const onboardingFlow = defineFlow({
+  id: "onboarding",
+  start: "welcome",
+  steps: {
+    welcome: {
+      next: "profile"
+    },
+    profile: {
+      next: "userType"
+    },
+    // Context-driven: automatic routing based on userType
+    userType: {
+      next: ["businessDetails", "setupPreference"]
+    },
+    businessDetails: {
+      next: "setupPreference"
+    },
+    // Component-driven: user chooses advanced vs quick
+    setupPreference: {
+      next: ["preferences", "complete"]
+    },
+    preferences: {
+      next: "complete"
+    },
+    complete: {}
+  }
+}).with<OnboardingContext>((steps) => ({
+  resolvers: {
+    userType: (ctx) =>
+      ctx.userType === "business"
+        ? steps.businessDetails
+        : steps.setupPreference
+  }
+}));
+```
+
+```tsx title="SetupPreferenceStep.tsx"
+export function SetupPreferenceStep() {
+  const { context, next, back, setContext } = onboardingFlow.useFlow({
+    step: "setupPreference"
+  });
+
+  const handleContinue = () => {
+    const target = context.setupMode === "advanced" 
+      ? "preferences"   // Show preferences
+      : "complete";     // Skip to end
+
+    next(target);
+  };
+
+  return (
+    <div>
+      <h1>Choose Setup Mode</h1>
+      
+      <div>
+        <label>
+          <input
+            type="radio"
+            checked={context.setupMode === "advanced"}
+            onChange={() => setContext({ setupMode: "advanced" })}
+          />
+          Advanced Setup - Customize all preferences
+        </label>
+        
+        <label>
+          <input
+            type="radio"
+            checked={context.setupMode === "quick"}
+            onChange={() => setContext({ setupMode: "quick" })}
+          />
+          Quick Setup - Use recommended defaults
+        </label>
+      </div>
+
+      <button onClick={back}>Back</button>
+      <button onClick={handleContinue} disabled={!context.setupMode}>
+        Continue
+      </button>
+    </div>
+  );
+}
+```
+
+</details>
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Global Configuration"
+    description="Configure branching behavior globally"
+    href="/guides/global-configuration"
+  />
+  <LinkCard
+    title="Callbacks"
+    description="Handle branching events with callbacks"
+    href="/guides/callbacks"
+  />
+  <LinkCard
+    title="Testing"
+    description="Test branching logic effectively"
+    href="/guides/testing"
+  />
+  <LinkCard
+    title="Flow Variants"
+    description="Switch between different flow definitions"
+    href="/guides/flow-variants"
+  />
+</CardGrid>
+

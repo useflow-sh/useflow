@@ -1,0 +1,301 @@
+---
+title: Why useFlow?
+description: Understand the problems useFlow solves and when to use it
+---
+
+Building multi-step flows in React is surprisingly complex. useFlow eliminates that complexity with a declarative, type-safe approach that includes persistence and analytics out of the box.
+
+## The hidden complexity of multi-step flows
+
+Every React app eventually needs multi-step flows - onboarding, checkout, surveys. They seem simple at first, but quickly become a maintenance nightmare:
+
+### The manual approach starts simple...
+
+```tsx
+// Week 1: "This is fine!"
+function OnboardingFlow() {
+  const [step, setStep] = useState("welcome");
+  const [data, setData] = useState({});
+
+  if (step === "welcome") return <Welcome onNext={() => setStep("profile")} />;
+  if (step === "profile") return <Profile onNext={() => setStep("complete")} />;
+  // ...easy enough
+}
+```
+
+### ...then reality hits
+
+```tsx
+// Week 3: "We need persistence so users don't lose progress"
+function OnboardingFlow() {
+  const [step, setStep] = useState(() => {
+    const saved = localStorage.getItem("onboarding-step");
+    return saved || "welcome";
+  });
+  const [data, setData] = useState(() => {
+    const saved = localStorage.getItem("onboarding-data");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Manual save on every change
+  useEffect(() => {
+    localStorage.setItem("onboarding-step", step);
+    localStorage.setItem("onboarding-data", JSON.stringify(data));
+  }, [step, data]);
+
+  // Week 4: "We need back navigation"
+  const [history, setHistory] = useState([]);
+
+  // Week 5: "We need branching based on user type"
+  // Week 6: "We need analytics tracking"
+  // Week 7: "Why is this 500 lines of code??"
+
+  // ... hundreds more lines of tangled logic
+}
+```
+
+### The real cost
+
+**What starts as 20 lines becomes 500+ lines of:**
+
+- ❌ **Lost user progress** - No built-in persistence means angry users
+- ❌ **No analytics visibility** - Can't see where users drop off
+- ❌ **Debugging nightmares** - No history of what happened
+- ❌ **Prop drilling hell** - Passing callbacks through every component
+- ❌ **Type safety? Forget it** - Strings everywhere, runtime errors
+- ❌ **Testing complexity** - Mocking all that state logic
+- ❌ **New developer confusion** - "Where does this flow go?"
+
+## The useflow solution
+
+**Same functionality, 80% less code, with superpowers built-in:**
+
+```tsx
+import { defineFlow, Flow } from '@useflow/react';
+import { createLocalStorageStore, createPersister } from '@useflow/react';
+
+// 1. Declarative flow definition (type-safe!)
+const onboardingFlow = defineFlow({
+  id: "onboarding",
+  start: "welcome",
+  steps: {
+    welcome: { next: "profile" },
+    profile: { next: "preferences" },
+    preferences: { next: "complete" },
+    complete: {}
+  }
+});
+
+// 2. Automatic everything
+function App() {
+  return (
+    <Flow
+      flow={onboardingFlow}
+      persister={createPersister({ store: createLocalStorageStore() })} // ✅ Persistence in 1 line!
+      onNext={({ from, to }) => {              // ✅ Analytics in 1 line!
+        analytics.track('flow_step', { from, to });
+      }}
+    >
+      {({ renderStep }) => renderStep({
+        welcome: <WelcomeStep />,
+        profile: <ProfileStep />,
+        preferences: <PreferencesStep />,
+        complete: <CompleteStep />
+  })}
+</Flow>
+```
+
+## What you get out of the box
+
+### Never lose user progress again
+
+```tsx
+<Flow
+  flow={myFlow}
+  persister={createPersister({ store: createLocalStorageStore() })}  // One line!
+>
+```
+
+**Real impact:** Users can close their browser, lose connection, or come back days later - they continue exactly where they left off. This alone can increase completion rates by 40%.
+
+### Analytics without the instrumentation
+
+```tsx
+<Flow
+  flow={myFlow}
+  onNext={({ from, to, context }) => {
+    // Track with ANY analytics platform
+    analytics.track('step_completed', { from, to, ...context });
+  }}
+  onComplete={({ context, startedAt }) => {
+    analytics.track('flow_completed', {
+      duration: Date.now() - startedAt,
+      ...context
+    });
+  }}
+>
+```
+
+**Real impact:** Know exactly where users drop off. See which paths convert best. Make data-driven improvements.
+
+### Type safety that actually helps
+
+```tsx
+// TypeScript knows your entire flow structure
+const { next } = flow.useFlow({ step: "profile" });
+next("preferences"); // ✅ IDE autocompletes valid steps
+next("welcome"); // ❌ Compile error - invalid navigation
+
+// Context is fully typed
+setContext({ name: "Alice" }); // ✅ Valid
+setContext({ invalid: "field" }); // ❌ TypeScript error
+```
+
+**Real impact:** Catch navigation bugs at compile time. Refactor with confidence. Onboard new developers faster.
+
+### Complete history for debugging
+
+```tsx
+const { history, path } = useFlow();
+
+// See everything that happened
+console.log(history);
+// [
+//   { step: "welcome", action: "next", timestamp: ... },
+//   { step: "profile", action: "back", timestamp: ... },
+//   { step: "welcome", action: "next", timestamp: ... },
+// ]
+```
+
+**Real impact:** When users report issues, you can see exactly what happened. No more "unable to reproduce" tickets.
+
+### Branching without the complexity
+
+```tsx
+defineFlow({
+  steps: {
+    userType: { next: ["business", "personal"] },
+    business: { next: "complete" },
+    personal: { next: "complete" },
+    complete: {},
+  }
+}).with((steps) => ({
+  resolvers: {
+    userType: (ctx) =>
+      ctx.type === "business" ? steps.business : steps.personal,
+  }
+}));
+```
+
+No nested ifs, no complex state machines. Just declare the branches.
+
+## When to use useflow
+
+### Perfect for
+
+- **Onboarding flows** - Welcome → Profile → Preferences → Complete
+- **Checkout processes** - Cart → Shipping → Payment → Confirmation
+- **Surveys & questionnaires** - Dynamic questions with branching
+- **Multi-step forms** - Break complex forms into manageable steps
+- **Wizards & tutorials** - Guide users through features
+- **Application processes** - Loan/job applications with validation
+
+### Consider alternatives for
+
+- **Single forms** - If it's just one form with no steps, a form library alone is enough
+- **Complex state machines** - For intricate non-UI state logic, consider XState
+
+## Alternatives
+
+### Building from scratch
+
+**From scratch:**
+
+- 🔴 200+ lines of boilerplate
+- 🔴 No built-in persistence
+- 🔴 Manual type definitions
+- 🔴 Reinvent navigation, history, branching
+
+**useFlow:**
+
+- ✅ 20 lines to get started
+- ✅ Persistence included
+- ✅ Type inference
+- ✅ Battle-tested patterns
+
+### Xstate
+
+**XState:**
+
+- Complex state machine library
+- Steep learning curve
+- Overkill for linear/branching flows
+- Better for complex state logic
+
+**useFlow:**
+
+- Built specifically for multi-step UI flows
+- Simple, declarative API
+- Type-safe by default
+- 5 minute learning curve
+
+### With form libraries (not mutually exclusive!)
+
+**useFlow + react-hook-form/TanStack Form:**
+
+useFlow **complements** form libraries perfectly. Use your favorite form library for validation and field management, while useFlow handles the multi-step flow:
+
+```tsx
+// Use TanStack Form for the form logic
+function ProfileStep() {
+  const { context, setContext, next, back } = useFlow();
+  const form = useForm({
+    defaultValues: {
+      name: context.name || "",
+      email: context.email || "",
+    },
+    onSubmit: async (values) => {
+      // Update flow context with validated form data
+      setContext({
+        name: values.name,
+        email: values.email,
+      });
+
+      // Then navigate to next step
+      next();
+    },
+  });
+
+  return (
+    <form onSubmit={form.handleSubmit}>
+      {/* TanStack Form handles validation */}
+      <form.Field name="name" />
+      <form.Field name="email" />
+
+      {/* useFlow handles multi-step navigation */}
+      <button onClick={back}>Previous Step</button>
+      <button type="submit">Next Step</button>
+    </form>
+  );
+}
+```
+
+- **Form libraries:** Handle field validation, form state, submissions
+- **useFlow:** Handles step navigation, flow persistence, shared context
+- **Together:** Complete multi-step form solution with data flowing between steps
+
+## Quick start
+
+Ready to simplify your flows?
+
+```bash
+npm install @useflow/react
+```
+
+Then follow our [5-minute quick start](/getting-started/quick-start) to build your first flow.
+
+## Next steps
+
+- **[Quick Start](/getting-started/quick-start)** - Build a flow in 5 minutes
+- **[Core Concepts](/core-concepts/)** - Understand the architecture
+- **[Examples](/recipes/onboarding)** - See real-world implementations

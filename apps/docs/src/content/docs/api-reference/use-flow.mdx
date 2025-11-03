@@ -1,0 +1,409 @@
+---
+title: useFlow Hook
+description: Access flow state and navigation from step components
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The `useFlow` hook provides access to the current flow state, context, and navigation methods from within step components. It can be used in two ways: with a flow-specific hook or the generic hook.
+
+## Usage
+
+### Flow-specific hook (recommended)
+
+Using the flow's custom hook provides full type safety:
+
+```typescript
+import { defineFlow } from "@useflow/react";
+
+const myFlow = defineFlow({
+  id: "myFlow",
+  start: "step1",
+  steps: {
+    step1: { next: "step2" },
+    step2: { next: "step3" },
+    step3: {}
+  }
+});
+
+function MyStep() {
+  const { stepId, next, context } = myFlow.useFlow({ step: "step1" });
+  // All properties are fully typed for this specific flow
+  return <div>{stepId}</div>;
+}
+```
+
+### Generic hook
+
+For accessing flow state in shared components:
+
+```typescript
+import { useFlow } from "@useflow/react";
+
+function SharedStepComponent() {
+  const { stepId, context, next } = useFlow<MyContextType>();
+  // Generic hook - requires context type parameter
+  return <div>{stepId}</div>;
+}
+```
+
+## Return value
+
+The hook returns an object containing:
+
+### State properties
+
+```typescript
+{
+  // Current step
+  stepId: string;
+  step: StepInfo;  // Current step configuration
+  
+  // Flow context
+  context: TContext;
+  
+  // Flow status
+  status: "active" | "completed";
+  
+  // Timestamps
+  startedAt: number;
+  completedAt?: number;
+  
+  // Navigation tracking
+  path: readonly PathEntry[];
+  history: readonly HistoryEntry[];
+}
+```
+
+### Navigation methods
+
+```typescript
+{
+  // Move forward
+  next: (target?: string, update?: ContextUpdate) => void;
+  next: (update?: ContextUpdate) => void;
+  
+  // Skip step
+  skip: (target?: string, update?: ContextUpdate) => void;
+  skip: (update?: ContextUpdate) => void;
+  
+  // Go back
+  back: () => void;
+  
+  // Reset flow
+  reset: () => void;
+  
+  // Update context
+  setContext: (update: ContextUpdate<TContext>) => void;
+  
+  // Restore saved state
+  restore: (state: FlowState) => void;
+}
+```
+
+### Metadata
+
+```typescript
+{
+  // All steps in the flow
+  steps: Record<string, StepInfo>;
+  
+  // Possible next steps from current position
+  nextSteps?: readonly string[];
+  
+  // Persistence state
+  isRestoring: boolean;
+  
+  // Save state (when using persistence)
+  save: () => Promise<void>;
+}
+```
+
+## Type definitions
+
+### PathEntry
+
+```typescript
+interface PathEntry {
+  stepId: string;
+  startedAt: number;
+}
+```
+
+### HistoryEntry
+
+```typescript
+interface HistoryEntry {
+  stepId: string;
+  action: "next" | "skip" | "back";
+  startedAt: number;
+  completedAt?: number;
+}
+```
+
+### ContextUpdate
+
+```typescript
+type ContextUpdate<TContext> = 
+  | Partial<TContext>  // Object with partial updates
+  | ((current: TContext) => TContext);  // Updater function
+```
+
+### StepInfo
+
+```typescript
+interface StepInfo<TNext = string> {
+  next?: TNext | readonly TNext[];
+}
+```
+
+## Examples
+
+### Basic navigation
+
+```tsx
+function ProfileStep() {
+  const { next, back, context } = myFlow.useFlow({ step: "profile" });
+  
+  return (
+    <div>
+      <h2>Welcome, {context.name}!</h2>
+      <button onClick={back}>Back</button>
+      <button onClick={() => next()}>Continue</button>
+    </div>
+  );
+}
+```
+
+### Context updates
+
+```tsx
+function FormStep() {
+  const { next, setContext } = myFlow.useFlow({ step: "form" });
+  const [name, setName] = useState("");
+  
+  const handleSubmit = () => {
+    // Update context and navigate
+    next({ name });
+    
+    // Or update context separately
+    setContext({ name });
+    next();
+  };
+  
+  return (
+    <form onSubmit={handleSubmit}>
+      <input value={name} onChange={(e) => setName(e.target.value)} />
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+```
+
+### Conditional navigation
+
+```tsx
+function BranchStep() {
+  const { next, context } = myFlow.useFlow({ step: "branch" });
+  
+  return (
+    <div>
+      {/* Component-driven branching */}
+      <button onClick={() => next("option1")}>
+        Choose Option 1
+      </button>
+      <button onClick={() => next("option2")}>
+        Choose Option 2
+      </button>
+      
+      {/* Or context-driven (with resolver) */}
+      <button onClick={() => next({ userType: "business" })}>
+        Continue as Business
+      </button>
+    </div>
+  );
+}
+```
+
+### Skip optional steps
+
+```tsx
+function OptionalStep() {
+  const { next, skip } = myFlow.useFlow({ step: "optional" });
+  
+  return (
+    <div>
+      <h2>Optional Configuration</h2>
+      <button onClick={() => next({ configured: true })}>
+        Configure
+      </button>
+      <button onClick={() => skip({ skipped: true })}>
+        Skip for now
+      </button>
+    </div>
+  );
+}
+```
+
+### Check navigation availability
+
+```tsx
+function NavigableStep() {
+  const { next, back, path, nextSteps } = myFlow.useFlow({ step: "middle" });
+  
+  // Check if we can go back
+  const canGoBack = path.length > 1;
+  
+  // Check if we can go forward
+  const canGoForward = !!nextSteps && nextSteps.length > 0;
+  
+  return (
+    <div>
+      <button onClick={back} disabled={!canGoBack}>
+        Back
+      </button>
+      <button onClick={() => next()} disabled={!canGoForward}>
+        Next
+      </button>
+    </div>
+  );
+}
+```
+
+### Access step configuration
+
+```tsx
+function CurrentStep() {
+  const { step, stepId, steps } = myFlow.useFlow({ step: "current" });
+  
+  // Current step config
+  console.log("Current step:", stepId);
+  console.log("Next steps:", step.next);
+  
+  // All steps in flow
+  console.log("Total steps:", Object.keys(steps).length);
+  
+  return <div>Step {stepId}</div>;
+}
+```
+
+### Track progress
+
+```tsx
+function ProgressStep() {
+  const { path, history, startedAt } = myFlow.useFlow({ step: "progress" });
+  
+  // Linear progress
+  const stepsCompleted = path.length - 1;
+  
+  // Total actions taken (including back navigation)
+  const totalActions = history.length;
+  
+  // Time elapsed
+  const timeElapsed = Date.now() - startedAt;
+  
+  return (
+    <div>
+      <p>Steps completed: {stepsCompleted}</p>
+      <p>Total actions: {totalActions}</p>
+      <p>Time: {Math.floor(timeElapsed / 1000)}s</p>
+    </div>
+  );
+}
+```
+
+### Manual state persistence
+
+```tsx
+function PersistableStep() {
+  const { save, isRestoring } = myFlow.useFlow({ step: "persistable" });
+  
+  if (isRestoring) {
+    return <div>Loading saved progress...</div>;
+  }
+  
+  const handleSave = async () => {
+    await save();
+    alert("Progress saved!");
+  };
+  
+  return (
+    <div>
+      <button onClick={handleSave}>Save Progress</button>
+    </div>
+  );
+}
+```
+
+## Best practices
+
+### 1. Use flow-specific hooks
+
+Always prefer the flow-specific hook for better type safety:
+
+```tsx
+// ✅ Good - full type safety
+const { next, context, stepId } = myFlow.useFlow({ step: "myStep" });
+
+// ❌ Avoid - requires manual typing
+const { next, context, stepId } = useFlow<MyContext>();
+```
+
+### 2. Handle loading states
+
+Check `isRestoring` when using persistence:
+
+```tsx
+function MyStep() {
+  const { isRestoring } = myFlow.useFlow({ step: "myStep" });
+  
+  if (isRestoring) {
+    return <LoadingSpinner />;
+  }
+  
+  return <div>Ready!</div>;
+}
+```
+
+### 3. Validate before navigation
+
+Always validate data before navigating:
+
+```tsx
+function FormStep() {
+  const { next } = myFlow.useFlow({ step: "form" });
+  const [data, setData] = useState({});
+  
+  const isValid = validateData(data);
+  
+  return (
+    <button 
+      onClick={() => next(data)}
+      disabled={!isValid}
+    >
+      Continue
+    </button>
+  );
+}
+```
+
+### 4. Use semantic actions
+
+Choose the right navigation method:
+
+```tsx
+// ✅ Good - semantic actions
+next({ data });           // User completed step
+skip({ skipped: true });  // User chose to skip
+back();                   // User went back
+
+// ❌ Bad - unclear intent
+next({ skipped: true });  // Confusing - is this a skip?
+```
+
+## See also
+
+- [Flow Component](/api-reference/flow-component) - The parent component that provides flow context
+- [defineFlow](/api-reference/define-flow) - Creating flow definitions
+- [Navigation Guide](/core-concepts/navigation) - Detailed navigation patterns
+- [Context Guide](/core-concepts/context) - Managing flow state

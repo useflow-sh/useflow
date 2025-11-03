@@ -1,0 +1,52 @@
+---
+title: API Reference
+description: Complete API documentation for useFlow
+---
+
+Comprehensive API reference for all useFlow functions, components, and types.
+
+## Core APIs
+
+### [defineFlow()](/api-reference/define-flow)
+
+Create typed flow definitions with steps, branching, and versioning.
+
+### [`<Flow />` component](/api-reference/flow-component)
+
+Primary React component for rendering flows with full control over layout and behavior.
+
+### [useFlow() hook](/api-reference/use-flow)
+
+Access flow state and navigation methods from step components.
+
+### [FlowProvider](/api-reference/flow-provider)
+
+Configure default settings for all flows in your application.
+
+## Persistence APIs
+
+### [createPersister()](/api-reference/create-persister)
+
+Create persisters with validation, TTL, and callbacks.
+
+### [Storage Stores](/api-reference/storage-stores)
+
+Built-in stores for localStorage, sessionStorage, AsyncStorage, and memory.
+
+### [Custom Stores](/api-reference/custom-stores)
+
+Implement custom storage backends for databases, APIs, or cloud storage.
+
+## Type utilities
+
+Comprehensive TypeScript types for type-safe flow development:
+
+- `FlowDefinition` - Flow configuration type
+- `RuntimeFlowDefinition<TDefinition, TContext>` - Returned by defineFlow()
+- `UseFlowReturn<TContext>` - Return type of useFlow()
+- `FlowContext` - Base type for context objects
+- `PersistedFlowState<TContext>` - Saved state structure
+- `MigrateFunction<TContext>` - Migration function type
+- `ResolveFunction` - Branching resolver type
+
+See the [TypeScript guide](/getting-started/typescript) for detailed type information.

@@ -1,0 +1,753 @@
+---
+title: Custom Layouts
+description: Learn how to create custom UI layouts, animations, and transitions for your flows
+---
+
+useFlow provides complete freedom over how your flows are rendered. This guide covers patterns for creating custom layouts, adding animations, building progress indicators, and creating reusable UI components.
+
+## Render props pattern
+
+The `Flow` component uses a render props pattern, giving you full control over layout and presentation:
+
+```tsx
+<Flow flow={myFlow}>
+  {({ renderStep, stepId, context }) => (
+    <div className="my-custom-layout">
+      <Header currentStep={stepId} />
+      <Sidebar context={context} />
+      <main>
+        {renderStep({ /* steps */ })}
+      </main>
+      <Footer />
+    </div>
+  )}
+</Flow>
+```
+
+## Basic layouts
+
+### Single column layout
+
+The simplest layout centers content:
+
+```tsx
+<Flow flow={myFlow}>
+  {({ renderStep }) => (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl">
+        {renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          complete: <CompleteStep />
+        })}
+      </div>
+    </div>
+  )}
+</Flow>
+```
+
+### Split screen layout
+
+Show step on left, context/help on right:
+
+```tsx
+<Flow flow={myFlow}>
+  {({ renderStep, context, stepId }) => (
+    <div className="flex min-h-screen">
+      {/* Left: Current Step */}
+      <div className="flex-1 p-8">
+        {renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          complete: <CompleteStep />
+        })}
+      </div>
+
+      {/* Right: Contextual Help */}
+      <aside className="w-96 bg-slate-50 p-8">
+        <StepHelp stepId={stepId} />
+        <ContextPreview context={context} />
+      </aside>
+    </div>
+  )}
+</Flow>
+```
+
+### Wizard layout
+
+Classic wizard with header, content, and footer:
+
+```tsx
+<Flow flow={myFlow}>
+  {({ renderStep, stepId, next, back, steps }) => {
+    const currentIndex = Object.keys(steps).indexOf(stepId);
+    const totalSteps = Object.keys(steps).length;
+
+    return (
+      <div className="min-h-screen flex flex-col">
+        {/* Header */}
+        <header className="border-b p-4">
+          <div className="max-w-4xl mx-auto">
+            <h1>Setup Wizard</h1>
+            <p>Step {currentIndex + 1} of {totalSteps}</p>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 p-8">
+          <div className="max-w-4xl mx-auto">
+            {renderStep({
+              welcome: <WelcomeStep />,
+              account: <AccountStep />,
+              preferences: <PreferencesStep />,
+              complete: <CompleteStep />
+            })}
+          </div>
+        </main>
+
+        {/* Footer Navigation */}
+        <footer className="border-t p-4">
+          <div className="max-w-4xl mx-auto flex justify-between">
+            <button onClick={back} disabled={currentIndex === 0}>
+              Back
+            </button>
+            <button onClick={() => next()}>
+              {currentIndex === totalSteps - 1 ? 'Finish' : 'Next'}
+            </button>
+          </div>
+        </footer>
+      </div>
+    );
+  }}
+</Flow>
+```
+
+## Animations
+
+### Fade animation
+
+Animate steps on mount/unmount using `stepId` as key:
+
+```tsx
+function AnimateFlowStep({ children }: { children: ReactElement }) {
+  const { stepId } = useFlow();
+
+  return (
+    <div
+      key={stepId}
+      className="animate-fadeIn"
+    >
+      {children}
+    </div>
+  );
+}
+
+// Usage
+<Flow flow={myFlow}>
+  {({ renderStep }) => (
+    <AnimateFlowStep>
+      {renderStep({ /* steps */ })}
+    </AnimateFlowStep>
+  )}
+</Flow>
+```
+
+```css title="styles.css"
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+```
+
+### Slide animation
+
+Slide in from different directions based on navigation direction:
+
+```tsx
+import { useState, useEffect } from "react";
+
+function SlideFlowStep({ children }: { children: ReactElement }) {
+  const { stepId } = useFlow();
+  const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
+
+  useEffect(() => {
+    // Detect direction by comparing step IDs or using history
+  }, [stepId]);
+
+  return (
+    <div
+      key={stepId}
+      className={direction === 'forward' ? 'slide-in-right' : 'slide-in-left'}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+```css
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
+}
+```
+
+### Framer motion integration
+
+Use Framer Motion for advanced animations:
+
+```tsx
+import { motion, AnimatePresence } from "framer-motion";
+
+<Flow flow={myFlow}>
+  {({ renderStep, stepId }) => (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={stepId}
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.3 }}
+      >
+        {renderStep({ /* steps */ })}
+      </motion.div>
+    </AnimatePresence>
+  )}
+</Flow>
+```
+
+### Page transitions
+
+Animate direction based on forward/backward navigation:
+
+```tsx
+import { motion } from "framer-motion";
+
+<Flow flow={myFlow}>
+  {({ renderStep, stepId, history }) => {
+    const isGoingBack = history.length > 0 && 
+      history[history.length - 1].stepId === stepId;
+
+    return (
+      <motion.div
+        key={stepId}
+        initial={{ 
+          opacity: 0, 
+          x: isGoingBack ? -100 : 100 
+        }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ 
+          opacity: 0, 
+          x: isGoingBack ? 100 : -100 
+        }}
+        transition={{ duration: 0.3 }}
+      >
+        {renderStep({ /* steps */ })}
+      </motion.div>
+    );
+  }}
+</Flow>
+```
+
+## Progress indicators
+
+### Linear progress bar
+
+Simple progress bar based on step index:
+
+```tsx
+function ProgressBar({ current, total }: { current: number; total: number }) {
+  const progress = ((current + 1) / total) * 100;
+
+  return (
+    <div className="w-full h-2 bg-gray-200 rounded">
+      <div 
+        className="h-full bg-blue-500 rounded transition-all duration-300"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  );
+}
+
+<Flow flow={myFlow}>
+  {({ renderStep, stepId, steps }) => {
+    const stepKeys = Object.keys(steps);
+    const currentIndex = stepKeys.indexOf(stepId);
+
+    return (
+      <div>
+        <ProgressBar current={currentIndex} total={stepKeys.length} />
+        {renderStep({ /* steps */ })}
+      </div>
+    );
+  }}
+</Flow>
+```
+
+### Step indicator
+
+Show all steps with current step highlighted:
+
+```tsx
+function StepIndicator({ 
+  steps, 
+  currentStepId 
+}: { 
+  steps: string[]; 
+  currentStepId: string;
+}) {
+  const currentIndex = steps.indexOf(currentStepId);
+
+  return (
+    <div className="flex items-center justify-between">
+      {steps.map((step, index) => (
+        <div key={step} className="flex items-center flex-1">
+          <div className={`
+            w-8 h-8 rounded-full flex items-center justify-center
+            ${index < currentIndex ? 'bg-green-500 text-white' : ''}
+            ${index === currentIndex ? 'bg-blue-500 text-white' : ''}
+            ${index > currentIndex ? 'bg-gray-300' : ''}
+          `}>
+            {index < currentIndex ? '✓' : index + 1}
+          </div>
+          
+          {index < steps.length - 1 && (
+            <div className={`flex-1 h-1 mx-2 ${
+              index < currentIndex ? 'bg-green-500' : 'bg-gray-300'
+            }`} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+<Flow flow={myFlow}>
+  {({ renderStep, stepId, steps }) => (
+    <div>
+      <StepIndicator 
+        steps={Object.keys(steps)} 
+        currentStepId={stepId} 
+      />
+      {renderStep({ /* steps */ })}
+    </div>
+  )}
+</Flow>
+```
+
+### Breadcrumb navigation
+
+Show path taken through the flow:
+
+```tsx
+<Flow flow={myFlow}>
+  {({ renderStep, path }) => (
+    <div>
+      <nav className="flex gap-2 mb-4">
+        {path.map((step, index) => (
+          <span key={step} className="flex items-center gap-2">
+            {index > 0 && <span>→</span>}
+            <span className="text-sm text-gray-600">{step}</span>
+          </span>
+        ))}
+      </nav>
+      {renderStep({ /* steps */ })}
+    </div>
+  )}
+</Flow>
+```
+
+## Reusable layout components
+
+### Flowlayout component
+
+Create a reusable layout wrapper:
+
+```tsx title="components/FlowLayout.tsx"
+import { type ReactNode } from "react";
+import { useFlow } from "@useflow/react";
+
+export function FlowLayout({ 
+  children,
+  showProgress = true,
+  showNavigation = true 
+}: {
+  children: ReactNode;
+  showProgress?: boolean;
+  showNavigation?: boolean;
+}) {
+  const { stepId, steps, back, next, path, nextSteps } = useFlow();
+  
+  const stepKeys = Object.keys(steps);
+  const currentIndex = stepKeys.indexOf(stepId);
+  const progress = ((currentIndex + 1) / stepKeys.length) * 100;
+  
+  // Check navigation availability
+  const canGoBack = path.length > 1;
+  const canGoForward = !!nextSteps;
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {showProgress && (
+        <div className="h-1 bg-blue-500" style={{ width: `${progress}%` }} />
+      )}
+
+      <main className="flex-1 p-8">
+        <div className="max-w-4xl mx-auto">
+          {children}
+        </div>
+      </main>
+
+      {showNavigation && (
+        <footer className="border-t p-4">
+          <div className="max-w-4xl mx-auto flex justify-between">
+            <button 
+              onClick={back} 
+              disabled={!canGoBack}
+            >
+              Back
+            </button>
+            <button 
+              onClick={() => next()}
+              disabled={!canGoForward}
+            >
+              Next
+            </button>
+          </div>
+        </footer>
+      )}
+    </div>
+  );
+}
+
+// Usage
+<Flow flow={myFlow}>
+  {({ renderStep }) => (
+    <FlowLayout>
+      {renderStep({ /* steps */ })}
+    </FlowLayout>
+  )}
+</Flow>
+```
+
+### Card-based steps
+
+Wrap each step in a consistent card:
+
+```tsx
+function StepCard({ children }: { children: ReactNode }) {
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-8">
+      {children}
+    </div>
+  );
+}
+
+<Flow flow={myFlow}>
+  {({ renderStep }) => (
+    <div className="min-h-screen bg-gray-100 p-4">
+      <StepCard>
+        {renderStep({ /* steps */ })}
+      </StepCard>
+    </div>
+  )}
+</Flow>
+```
+
+## Responsive layouts
+
+### Mobile-first design
+
+Adapt layout for different screen sizes:
+
+```tsx
+<Flow flow={myFlow}>
+  {({ renderStep, context }) => (
+    <div className="flex flex-col lg:flex-row min-h-screen">
+      {/* Main content - full width on mobile, 2/3 on desktop */}
+      <main className="flex-1 lg:w-2/3 p-4 lg:p-8">
+        {renderStep({ /* steps */ })}
+      </main>
+
+      {/* Sidebar - bottom on mobile, right on desktop */}
+      <aside className="lg:w-1/3 bg-gray-50 p-4 lg:p-8">
+        <ContextPreview context={context} />
+      </aside>
+    </div>
+  )}
+</Flow>
+```
+
+### Conditional layout
+
+Different layouts for mobile vs desktop:
+
+```tsx
+import { useMediaQuery } from "./hooks/useMediaQuery";
+
+<Flow flow={myFlow}>
+  {({ renderStep, stepId }) => {
+    const isMobile = useMediaQuery("(max-width: 768px)");
+
+    if (isMobile) {
+      return (
+        <div className="p-4">
+          {renderStep({ /* steps */ })}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <main className="flex-1 p-8">
+          {renderStep({ /* steps */ })}
+        </main>
+      </div>
+    );
+  }}
+</Flow>
+```
+
+## Loading states
+
+### Step-level loading
+
+Show loading while step content loads:
+
+```tsx
+<Flow flow={myFlow} loadingComponent={<Spinner />}>
+  {({ renderStep, isRestoring }) => {
+    if (isRestoring) {
+      return <div>Restoring your progress...</div>;
+    }
+
+    return renderStep({ /* steps */ });
+  }}
+</Flow>
+```
+
+### Skeleton screens
+
+Show skeleton while content loads:
+
+```tsx
+function SkeletonStep() {
+  return (
+    <div className="animate-pulse">
+      <div className="h-8 bg-gray-200 rounded mb-4 w-3/4"></div>
+      <div className="h-4 bg-gray-200 rounded mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded mb-2 w-5/6"></div>
+      <div className="h-10 bg-gray-200 rounded mt-4 w-32"></div>
+    </div>
+  );
+}
+
+<Flow flow={myFlow} loadingComponent={<SkeletonStep />}>
+  {({ renderStep }) => renderStep({ /* steps */ })}
+</Flow>
+```
+
+## Best practices
+
+### 1. Keep layouts decoupled
+
+Make layouts reusable across different flows:
+
+```tsx
+// ✅ Good: Reusable layout
+function WizardLayout({ children }: { children: ReactNode }) {
+  const { stepId, back, next } = useFlow();
+  return (
+    <div className="wizard-layout">
+      <header>Step: {stepId}</header>
+      {children}
+      <footer>
+        <button onClick={back}>Back</button>
+        <button onClick={() => next()}>Next</button>
+      </footer>
+    </div>
+  );
+}
+```
+
+### 2. Use stepId as animation key
+
+Always use `stepId` as the key for animated wrappers:
+
+```tsx
+// ✅ Correct: stepId triggers re-render
+<div key={stepId} className="animate-fadeIn">
+
+// ❌ Wrong: Static key, no animation
+<div key="step" className="animate-fadeIn">
+```
+
+### 3. Handle loading states
+
+Always provide loading UI while restoring state:
+
+```tsx
+<Flow flow={myFlow} loadingComponent={<Spinner />}>
+  {({ isRestoring, renderStep }) => {
+    if (isRestoring) return <Skeleton />;
+    return renderStep({ /* steps */ });
+  }}
+</Flow>
+```
+
+### 4. Responsive by default
+
+Design mobile-first, enhance for desktop:
+
+```tsx
+<div className="flex flex-col lg:flex-row">
+  {/* Mobile: stacked, Desktop: side-by-side */}
+</div>
+```
+
+## Complete examples
+
+<details>
+<summary>View complete examples with animations, progress, and responsive layouts</summary>
+
+### Modern onboarding flow
+
+Full example with animations, progress, and responsive layout:
+
+```tsx title="OnboardingFlow.tsx"
+import { Flow } from "@useflow/react";
+import { motion, AnimatePresence } from "framer-motion";
+import { onboardingFlow } from "./flow";
+
+export function OnboardingFlow() {
+  return (
+    <Flow flow={onboardingFlow}>
+      {({ renderStep, stepId, steps, back, next, path }) => {
+        const stepKeys = Object.keys(steps);
+        const currentIndex = stepKeys.indexOf(stepId);
+        const progress = ((currentIndex + 1) / stepKeys.length) * 100;
+        
+        // Check if we can go back
+        const canGoBack = path.length > 1;
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+            {/* Progress Bar */}
+            <div className="fixed top-0 left-0 right-0 h-1 bg-gray-200 z-50">
+              <div 
+                className="h-full bg-blue-500 transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+
+            {/* Main Content */}
+            <div className="flex items-center justify-center min-h-screen p-4">
+              <div className="w-full max-w-2xl">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={stepId}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="bg-white rounded-2xl shadow-xl p-8">
+                      {renderStep({
+                        welcome: <WelcomeStep />,
+                        profile: <ProfileStep />,
+                        preferences: <PreferencesStep />,
+                        complete: <CompleteStep />
+                      })}
+
+                      {/* Navigation */}
+                      <div className="flex justify-between mt-8 pt-8 border-t">
+                        {canGoBack ? (
+                          <button 
+                            onClick={back}
+                            className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                          >
+                            ← Back
+                          </button>
+                        ) : (
+                          <div />
+                        )}
+                        
+                        <button 
+                          onClick={() => next()}
+                          className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                        >
+                          {currentIndex === stepKeys.length - 1 ? 'Finish' : 'Continue →'}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* Step Indicator */}
+                <div className="flex justify-center gap-2 mt-6">
+                  {stepKeys.map((key, index) => (
+                    <div 
+                      key={key}
+                      className={`h-2 rounded-full transition-all ${
+                        index === currentIndex ? 'w-8 bg-blue-500' :
+                        index < currentIndex ? 'w-2 bg-blue-300' :
+                        'w-2 bg-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }}
+    </Flow>
+  );
+}
+```
+
+</details>
+
+## Next steps
+
+- [Callbacks](/guides/callbacks) - Add navigation callbacks
+- [Persistence](/guides/persistence) - Save flow progress
+- [Testing](/guides/testing) - Test custom layouts
+- [TypeScript](/getting-started/typescript) - Type-safe layouts
+

@@ -1,0 +1,64 @@
+---
+title: Installation
+description: How to install useFlow in your React project
+---
+
+import { Tabs, TabItem, Aside, Badge } from '@astrojs/starlight/components';
+
+Install useFlow using your preferred package manager.
+
+## Package managers
+
+<Tabs>
+  <TabItem label="npm">
+    ```bash
+    npm install @useflow/react
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn add @useflow/react
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add @useflow/react
+    ```
+  </TabItem>
+  <TabItem label="bun">
+    ```bash
+    bun add @useflow/react
+    ```
+  </TabItem>
+</Tabs>
+
+## What gets installed
+
+<Aside type="tip" title="What You Get">
+  When you install `@useflow/react`, you automatically get:
+
+  - **@useflow/react** - React hooks and components
+  - **@useflow/core** - Framework-agnostic flow logic (included as dependency)
+  - **Zero external dependencies** - Just React, no bloat
+  - **TypeScript types included** - Full type safety out of the box
+</Aside>
+
+## Requirements
+
+useFlow works with modern React versions:
+
+- **React** `^18.0.0` or `^19.0.0`
+- **React DOM** `^18.0.0` or `^19.0.0` (for web applications)
+- **TypeScript** `^5.0.0` (optional, but recommended)
+
+## TypeScript support
+
+useFlow is written in TypeScript and includes type definitions out of the box. No additional `@types` packages are needed.
+
+## Next steps
+
+Ready to build your first flow? Check out the [Quick Start](/getting-started/quick-start) guide to create a working onboarding flow in 5 minutes.
+
+Other resources:
+- [TypeScript](/getting-started/typescript) - Learn about type safety
+- [Core Concepts](/core-concepts/) - Understand flows, steps, and context

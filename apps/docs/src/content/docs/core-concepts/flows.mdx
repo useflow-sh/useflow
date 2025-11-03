@@ -1,0 +1,542 @@
+---
+title: Flows
+description: Define declarative multi-step flows with type-safe structure and transitions
+---
+
+A **flow** is the heart of useFlow. It's a declarative, JSON-serializable definition of your multi-step process that defines the structure, steps, and transitions.
+
+## Flow anatomy
+
+Every flow has three required properties:
+
+```ts
+import { defineFlow } from '@useflow/react';
+
+const myFlow = defineFlow({
+  id: 'onboarding',           // Unique identifier for persistence
+  start: 'welcome',            // Starting step
+  steps: {                     // Step definitions
+    welcome: { next: 'profile' },
+    profile: { next: 'complete' },
+    complete: {}               // Terminal step (no next)
+  }
+});
+```
+
+### Required properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` | Unique identifier for this flow (used for persistence) |
+| `start` | `string` | The step ID where the flow begins |
+| `steps` | `Record<string, StepDefinition>` | Map of step IDs to step definitions |
+
+### Optional properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `version` | `string` | Schema version for migrations (e.g., `"v1"`, `"2024-01"`) |
+| `variantId` | `string` | Variant identifier for flow variations (e.g., `"express"`, `"full"`) |
+
+## Step transitions
+
+Each step defines where users can go next using the `next` property:
+
+### Linear transitions
+
+Single destination - users automatically proceed to the specified step:
+
+```ts
+steps: {
+  welcome: { 
+    next: 'profile' // Always go to 'profile'
+  },
+  profile: { 
+    next: 'complete' 
+  },
+  complete: {} // No next - terminal step
+}
+```
+
+### Branching transitions
+
+Multiple possible destinations - requires either a resolver function or component-driven navigation:
+
+```ts
+steps: {
+  userType: { 
+    next: ['business', 'personal'] // Can go to either step
+  },
+  business: { next: 'complete' },
+  personal: { next: 'complete' },
+  complete: {}
+}
+```
+
+There are **two ways** to handle branching:
+
+#### 1. Context-Driven Branching (with Resolvers)
+
+Flow automatically decides based on context:
+
+```ts
+type SignupContext = {
+  userType: 'business' | 'personal';
+};
+
+const flow = defineFlow({
+  id: 'signup',
+  start: 'userType',
+  steps: {
+    userType: { next: ['business', 'personal'] },
+    business: { next: 'complete' },
+    personal: { next: 'complete' },
+    complete: {}
+  }
+}).with<SignupContext>((steps) => ({
+  resolvers: {
+    userType: (ctx) => 
+      ctx.userType === 'business' ? steps.business : steps.personal
+  }
+}));
+```
+
+#### 2. Component-Driven Branching (Explicit Navigation)
+
+Component explicitly chooses the destination:
+
+```ts
+function UserTypeStep() {
+  const { next } = flow.useFlow({ step: 'userType' });
+  
+  return (
+    <div>
+      <button onClick={() => next('business')}>Business</button>
+      <button onClick={() => next('personal')}>Personal</button>
+    </div>
+  );
+}
+```
+
+[Learn more about branching →](/guides/branching)
+
+### Terminal steps
+
+Steps with no `next` property are **terminal** - reaching them completes the flow:
+
+```ts
+steps: {
+  welcome: { next: 'complete' },
+  complete: {} // Terminal - flow is complete
+}
+```
+
+## Type safety
+
+useFlow infers types from your flow definition, giving you:
+
+### Type-safe step names
+
+```ts
+const flow = defineFlow({
+  id: 'onboarding',
+  start: 'welcome',
+  steps: {
+    welcome: { next: 'profile' },
+    profile: { next: 'complete' },
+    complete: {}
+  }
+});
+
+// ✅ Valid
+flow.useFlow({ step: 'welcome' });
+
+// ❌ TypeScript error: "invalid" is not a valid step
+flow.useFlow({ step: 'invalid' });
+```
+
+### Type-safe navigation
+
+```ts
+function WelcomeStep() {
+  const { next } = flow.useFlow({ step: 'welcome' });
+  
+  // ✅ Valid - 'profile' is the only valid next step
+  next();
+  
+  // ❌ TypeScript error - can't navigate to 'complete' from 'welcome'
+  next('complete');
+}
+```
+
+### Type-safe context
+
+```ts
+type OnboardingContext = {
+  name: string;
+  email: string;
+};
+
+const flow = defineFlow({
+  id: 'onboarding',
+  start: 'welcome',
+  steps: {
+    welcome: { next: 'complete' },
+    complete: {}
+  }
+});
+
+function WelcomeStep() {
+  const { next, context } = flow.useFlow({ step: 'welcome' });
+  
+  // ✅ context is typed as OnboardingContext
+  console.log(context.name);
+  
+  // ✅ Type-safe updates
+  next({ name: 'Alice', email: 'alice@example.com' });
+  
+  // ❌ TypeScript error - invalid property
+  next({ invalidProp: 'value' });
+}
+```
+
+## Schema versioning
+
+Use `version` to handle breaking changes in your flow structure:
+
+```ts
+const flow = defineFlow({
+  id: 'onboarding',
+  version: 'v2', // Schema version
+  start: 'welcome',
+  steps: {
+    welcome: { next: 'profile' },
+    profile: { next: 'preferences' }, // New in v2
+    preferences: { next: 'complete' },
+    complete: {}
+  }
+});
+```
+
+When you update your flow structure, increment the version and provide a migration function to transform old saved state:
+
+```ts
+const flow = defineFlow({
+  id: 'onboarding',
+  version: 'v2',
+  start: 'welcome',
+  steps: { /* ... */ }
+}).with<OnboardingContext>(() => ({
+  migration: (oldState, oldVersion) => {
+    if (oldVersion === 'v1') {
+      // Transform v1 state to v2
+      return {
+        ...oldState,
+        // Add default for new field
+        preferences: { theme: 'light', notifications: true }
+      };
+    }
+    return oldState;
+  }
+}));
+```
+
+[Learn more about migrations →](/guides/migrations)
+
+## Flow variants
+
+Use `variantId` to run different variations of the same flow (for A/B testing, feature flags, or user segments):
+
+```ts
+// Standard onboarding
+const standardFlow = defineFlow({
+  id: 'onboarding',
+  variantId: 'standard',
+  start: 'welcome',
+  steps: {
+    welcome: { next: 'profile' },
+    profile: { next: 'preferences' },
+    preferences: { next: 'complete' },
+    complete: {}
+  }
+});
+
+// Express onboarding (fewer steps)
+const expressFlow = defineFlow({
+  id: 'onboarding',
+  variantId: 'express',
+  start: 'welcome',
+  steps: {
+    welcome: { next: 'complete' },
+    complete: {}
+  }
+});
+```
+
+Variants enable A/B testing, feature flags, role-based flows, and server-driven flows.
+
+[Learn more about flow variants →](/guides/flow-variants)
+
+## Flow instances
+
+When the same flow definition is used multiple times (e.g., multiple tasks, orders, or documents), use `instanceId` to maintain separate state for each:
+
+```tsx
+// Same flow, different instances with separate state
+function TaskList({ tasks }) {
+  return (
+    <>
+      {tasks.map(task => (
+        <Flow 
+          key={task.id}
+          flow={taskFlow}
+          instanceId={task.id}  // Each task has its own state
+          persister={persister}
+        >
+          {({ renderStep }) => renderStep({ /* ... */ })}
+        </Flow>
+      ))}
+    </>
+  );
+}
+```
+
+### Common use cases for instance IDs
+
+**Multiple items of same type:**
+```tsx
+// Each order has separate checkout flow state
+<Flow flow={checkoutFlow} instanceId={`order-${orderId}`} />
+
+// Each document has separate review flow state  
+<Flow flow={reviewFlow} instanceId={`doc-${documentId}`} />
+
+// Each user profile edit has separate state
+<Flow flow={editProfileFlow} instanceId={`user-${userId}`} />
+```
+
+**Reusable flows:**
+```tsx
+// Generic task creation flow used for different task types
+<Flow flow={createTaskFlow} instanceId={`${taskType}-${timestamp}`} />
+
+// Survey flow reused for different products
+<Flow flow={surveyFlow} instanceId={`survey-${productId}`} />
+```
+
+### How instance IDs work
+
+Instance IDs affect:
+1. **Persistence keys** - State is saved under `[prefix]:[flowId]:[variantId]:[instanceId]`
+2. **State isolation** - Each instance maintains completely separate state
+3. **Concurrent flows** - Multiple instances can run simultaneously without interference
+
+```tsx
+// Without instanceId - all use same storage key
+<Flow flow={taskFlow} />  // Key: "flow:task::"
+<Flow flow={taskFlow} />  // Key: "flow:task::" (overwrites!)
+
+// With instanceId - each has unique storage
+<Flow flow={taskFlow} instanceId="task1" />  // Key: "flow:task::task1"
+<Flow flow={taskFlow} instanceId="task2" />  // Key: "flow:task::task2"
+```
+
+## Remote flows
+
+Flows are **JSON-serializable** - they can be fetched from an API:
+
+```ts
+// Fetch flow definition from your backend
+const flowDefinition = await fetch('/api/flows/onboarding').then(r => r.json());
+
+const flow = defineFlow(flowDefinition);
+
+// Use it like any other flow
+<Flow flow={flow} initialContext={{}}>
+  {({ renderStep }) => renderStep({
+    welcome: <WelcomeStep />,
+    profile: <ProfileStep />,
+    complete: <CompleteStep />
+  })}
+</Flow>
+```
+
+This enables:
+- **Dynamic flows**: Change flow structure without deploying code
+- **Personalization**: Serve different flows to different users
+- **A/B testing**: Test flow variations server-side
+- **Feature flags**: Enable/disable steps remotely
+
+:::tip[Resolver Functions]
+While flow definitions are JSON-serializable, **resolver functions** for context-driven branching must be defined in your code. Remote flows can specify which resolvers to use by name, and you map them in your application.
+:::
+
+## Flow definition vs runtime flow
+
+useFlow distinguishes between:
+
+1. **Flow Definition** (`FlowDefinition`): The declarative structure (JSON-serializable)
+2. **Runtime Flow** (`RuntimeFlowDefinition`): The definition + runtime config (resolvers, migrations)
+
+```ts
+// Definition (JSON-serializable)
+const definition = {
+  id: 'onboarding',
+  start: 'welcome',
+  steps: {
+    welcome: { next: 'complete' },
+    complete: {}
+  }
+};
+
+// Runtime flow (definition + config)
+const flow = defineFlow(definition).with<MyContext>((steps) => ({
+  resolvers: { /* ... */ },
+  migration: (state, version) => { /* ... */ }
+}));
+```
+
+This separation means:
+- ✅ Flow structures can be fetched remotely
+- ✅ Runtime logic (resolvers, migrations) stays in your code
+- ✅ Type safety is preserved
+- ✅ Flows are cacheable and portable
+
+## Complete example
+
+Here's a complete flow with all features:
+
+```ts
+import { defineFlow } from '@useflow/react';
+
+type OnboardingContext = {
+  name: string;
+  email: string;
+  userType?: 'business' | 'personal';
+  companyName?: string;
+  preferences?: {
+    theme: 'light' | 'dark';
+    notifications: boolean;
+  };
+};
+
+export const onboardingFlow = defineFlow({
+  id: 'onboarding',
+  version: 'v2',
+  variantId: 'standard',
+  start: 'welcome',
+  steps: {
+    welcome: { 
+      next: 'profile' 
+    },
+    profile: { 
+      next: 'userType' 
+    },
+    userType: { 
+      // Context-driven branching
+      next: ['businessDetails', 'preferences'] 
+    },
+    businessDetails: { 
+      next: 'preferences' 
+    },
+    preferences: { 
+      next: 'complete' 
+    },
+    complete: {}
+  }
+}).with<OnboardingContext>((steps) => ({
+  // Resolver for context-driven branching
+  resolvers: {
+    userType: (ctx) => 
+      ctx.userType === 'business' 
+        ? steps.businessDetails 
+        : steps.preferences
+  },
+  
+  // Migration from v1 to v2
+  migration: (state, version) => {
+    if (version === 'v1') {
+      return {
+        ...state,
+        preferences: { 
+          theme: 'light', 
+          notifications: true 
+        }
+      };
+    }
+    return state;
+  }
+}));
+```
+
+## Best practices
+
+### 1. Keep steps granular
+
+Break complex processes into small, focused steps:
+
+```ts
+// ❌ Avoid: One giant step
+steps: {
+  onboarding: { next: 'complete' },
+  complete: {}
+}
+
+// ✅ Better: Multiple focused steps
+steps: {
+  welcome: { next: 'profile' },
+  profile: { next: 'preferences' },
+  preferences: { next: 'complete' },
+  complete: {}
+}
+```
+
+### 2. Use semantic step names
+
+Choose clear, descriptive names:
+
+```ts
+// ❌ Avoid: Generic names
+steps: {
+  step1: { next: 'step2' },
+  step2: { next: 'step3' }
+}
+
+// ✅ Better: Semantic names
+steps: {
+  welcome: { next: 'profile' },
+  profile: { next: 'preferences' },
+  preferences: { next: 'complete' }
+}
+```
+
+### 3. Use versions for breaking changes
+
+Increment version when structure changes:
+
+```ts
+const flow = defineFlow({
+  id: 'onboarding',
+  version: 'v2', // Incremented from v1
+  // ... provide migration function
+});
+```
+
+### 4. Use variants for variations
+
+Keep same flow ID, different variant IDs:
+
+```ts
+// Same flow ID, different variants
+const standard = defineFlow({ id: 'onboarding', variantId: 'standard', /* ... */ });
+const express = defineFlow({ id: 'onboarding', variantId: 'express', /* ... */ });
+```
+
+## Next steps
+
+- [**Steps & Transitions**](/core-concepts/steps) - Learn about step components
+- [**Context**](/core-concepts/context) - Manage shared state
+- [**Navigation**](/core-concepts/navigation) - Control flow movement
+- [**Branching Guide**](/guides/branching) - Deep dive into branching patterns
+- [**Flow Variants**](/guides/flow-variants) - A/B testing and dynamic flows
+- [**Migrations Guide**](/guides/migrations) - Handle schema changes

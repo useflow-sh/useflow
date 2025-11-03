@@ -1,0 +1,767 @@
+---
+title: Persistence
+description: Learn how to save and restore flow state using built-in stores or custom implementations
+---
+
+import { Aside, Tabs, TabItem, Badge, FileTree } from '@astrojs/starlight/components';
+
+Persistence allows users to continue their flow where they left off, even after closing the browser or app. useFlow provides a flexible persistence system that works with browser storage, React Native AsyncStorage, custom databases, and more.
+
+## How persistence works
+
+useFlow's persistence system consists of three layers:
+
+1. **Store** - Low-level interface for reading/writing data (localStorage, database, etc.)
+2. **Persister** - Adds features like TTL, versioning, validation, and callbacks
+3. **Flow Component** - Uses the persister to auto-save and restore state
+
+```tsx
+// 1. Create a store
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+
+const store = createLocalStorageStore(localStorage);
+
+// 2. Create a persister with features
+const persister = createPersister({
+  store,
+  ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
+});
+
+// 3. Use in Flow component
+<Flow flow={myFlow} persister={persister} />;
+```
+
+## Built-in stores
+
+useFlow provides pre-built stores for common environments:
+
+### Browser storage (web)
+
+```tsx
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+
+// localStorage - Persists across browser sessions
+const localStore = createLocalStorageStore(localStorage);
+const localPersister = createPersister({ store: localStore });
+
+// sessionStorage - Cleared when tab closes
+const sessionStore = createSessionStorageStore(sessionStorage);
+const sessionPersister = createPersister({ store: sessionStore });
+```
+
+**Custom prefix:**
+
+```tsx
+const store = createLocalStorageStore(localStorage, {
+  prefix: "myapp", // Keys: "myapp:flowId:variantId:instanceId"
+});
+```
+
+### Memory store (testing)
+
+```tsx
+import { createMemoryStore, createPersister } from "@useflow/react";
+
+// Perfect for tests - state doesn't persist across page reloads
+const store = createMemoryStore();
+const persister = createPersister({ store });
+```
+
+### React native asyncstorage
+
+```tsx
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  createAsyncStorageStore,
+  createPersister,
+} from "@useflow/react-native";
+
+const store = createAsyncStorageStore(AsyncStorage);
+const persister = createPersister({ store });
+```
+
+## Basic usage
+
+### Enable persistence
+
+Pass a persister to the `Flow` component:
+
+```tsx
+import { Flow } from "@useflow/react";
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+import { myFlow } from "./flow";
+
+const store = createLocalStorageStore(localStorage);
+const persister = createPersister({ store });
+
+function App() {
+  return (
+    <Flow
+      flow={myFlow}
+      persister={persister}
+      initialContext={{ name: "" }}
+    >
+      {({ renderStep }) => (
+        // Your steps...
+      )}
+    </Flow>
+  );
+}
+```
+
+That's it! The flow will automatically:
+
+- Save state on navigation (next/skip/back)
+- Restore state on mount if saved state exists
+- Include context, current step, history, and path in saved state
+
+### Manual save control
+
+Control when the flow saves using the `save()` function:
+
+```tsx
+function MyStep() {
+  const { save } = flow.useFlow({ step: "profile" });
+
+  const handleChange = async () => {
+    // Make changes...
+    await save(); // Manually trigger save
+  };
+
+  return <input onChange={handleChange} />;
+}
+```
+
+You can also configure save behavior globally (see [Save Modes](#save-modes) below).
+
+## Save modes
+
+Control when state is automatically saved using save modes:
+
+```tsx
+<Flow
+  flow={myFlow}
+  persister={persister}
+  saveMode="always" // "always" | "navigation" | "manual"
+>
+```
+
+| Mode             | Saves On                   | Use Case                                            |
+| ---------------- | -------------------------- | --------------------------------------------------- |
+| **`navigation`** | next/skip/back calls       | **Default** - Balances persistence with performance |
+| **`always`**     | Every context update       | Real-time autosave, critical flows                  |
+| **`manual`**     | Only when calling `save()` | Full control, custom save logic                     |
+
+### Examples
+
+**Always save (real-time autosave):**
+
+```tsx
+<Flow
+  flow={myFlow}
+  persister={persister}
+  saveMode="always"
+  saveDebounce={500} // Debounce rapid updates
+>
+```
+
+**Manual save only:**
+
+```tsx
+<Flow flow={myFlow} persister={persister} saveMode="manual">
+  {({ save, context }) => (
+    <div>
+      {/* Your steps */}
+      <button onClick={save}>Save Progress</button>
+    </div>
+  )}
+</Flow>
+```
+
+## Persister options
+
+The `createPersister` function accepts options for advanced features:
+
+```tsx
+import { createPersister } from "@useflow/react";
+
+const persister = createPersister({
+  store,
+
+  // Time-to-live: Discard state older than 7 days
+  ttl: 7 * 24 * 60 * 60 * 1000,
+
+  // Validate before restoring
+  validate: (state) => {
+    return state.stepId !== "invalid" && state.context.email?.includes("@");
+  },
+
+  // Callbacks
+  onSave: (flowId, state) => {
+    console.log(`Saved ${flowId} at step ${state.stepId}`);
+  },
+
+  onRestore: (flowId, state) => {
+    console.log(`Restored ${flowId} from ${state.stepId}`);
+    analytics.track("flow_restored", { flowId });
+  },
+
+  onError: (error) => {
+    console.error("Persistence error:", error);
+    toast.error("Failed to save progress");
+  },
+});
+```
+
+### Ttl (time to live)
+
+Automatically discard old saved states:
+
+```tsx
+const persister = createPersister({
+  store,
+  ttl: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+});
+
+// State older than 24 hours is ignored and removed
+```
+
+### Validation
+
+Validate saved state before restoring:
+
+```tsx
+const persister = createPersister({
+  store,
+  validate: (state) => {
+    // Only restore if on a valid step
+    if (state.stepId === "deleted_step") return false;
+
+    // Validate context shape
+    if (!state.context.userId) return false;
+
+    return true;
+  },
+});
+```
+
+**Important:** The `validate` function should NOT mutate state. For transformations, use [migrations](/guides/migrations).
+
+### Callbacks
+
+React to persistence events:
+
+```tsx
+const persister = createPersister({
+  store,
+
+  onSave: (flowId, state) => {
+    // Track saves
+    analytics.track("flow_saved", {
+      flowId,
+      step: state.stepId,
+      progress: calculateProgress(state),
+    });
+  },
+
+  onRestore: (flowId, state) => {
+    // Notify user
+    toast.success("Continuing from where you left off!");
+  },
+
+  onError: (error) => {
+    // Handle errors gracefully
+    Sentry.captureException(error);
+    toast.error("Failed to save. Please try again.");
+  },
+});
+```
+
+## Flow instances
+
+Persist multiple instances of the same flow using `instanceId`:
+
+```tsx
+// Different users on same device
+<Flow flow={onboardingFlow} instanceId={userId} persister={persister} />
+
+// Each instance has separate saved state
+// Keys: "useflow:onboarding:default:user-123"
+//       "useflow:onboarding:default:user-456"
+```
+
+### Common use cases
+
+**Multi-tenant applications:**
+
+```tsx
+function TenantOnboarding({ tenantId }: { tenantId: string }) {
+  return (
+    <Flow flow={onboardingFlow} instanceId={tenantId} persister={persister}>
+      {/* Each tenant has their own saved progress */}
+    </Flow>
+  );
+}
+```
+
+**Multi-tab support:**
+
+```tsx
+function CheckoutFlow() {
+  const sessionId = useMemo(() => generateId(), []);
+
+  return (
+    <Flow flow={checkoutFlow} instanceId={sessionId} persister={persister}>
+      {/* Each tab has its own checkout flow */}
+    </Flow>
+  );
+}
+```
+
+## Flow variants
+
+Persist state separately for different flow variants:
+
+```tsx
+import { standardFlow, expressFlow } from "./flows";
+
+const selectedFlow = useExpress ? expressFlow : standardFlow;
+
+<Flow flow={selectedFlow} persister={persister} />;
+
+// Keys: "useflow:onboarding:standard:default"
+//       "useflow:onboarding:express:default"
+```
+
+Each variant stores state independently. See [Flow Variants guide](/guides/flow-variants) for more.
+
+## Custom stores
+
+Create custom stores for databases, APIs, or cloud storage:
+
+```typescript
+import type { FlowStore } from "@useflow/react";
+
+export function createDatabaseStore(db: Database): FlowStore {
+  return {
+    async get(flowId, options) {
+      const { instanceId = "default", variantId = "default" } = options || {};
+
+      const result = await db.query(
+        "SELECT state FROM flows WHERE flowId = ? AND instanceId = ? AND variantId = ?",
+        [flowId, instanceId, variantId]
+      );
+
+      return result ? JSON.parse(result.state) : null;
+    },
+
+    async set(flowId, state, options) {
+      const { instanceId = "default", variantId = "default" } = options || {};
+
+      await db.query(
+        "INSERT OR REPLACE INTO flows (flowId, instanceId, variantId, state) VALUES (?, ?, ?, ?)",
+        [flowId, instanceId, variantId, JSON.stringify(state)]
+      );
+    },
+
+    async remove(flowId, options) {
+      const { instanceId = "default", variantId = "default" } = options || {};
+
+      await db.query(
+        "DELETE FROM flows WHERE flowId = ? AND instanceId = ? AND variantId = ?",
+        [flowId, instanceId, variantId]
+      );
+    },
+
+    // Optional: Bulk operations
+    async removeFlow(flowId) {
+      await db.query("DELETE FROM flows WHERE flowId = ?", [flowId]);
+    },
+
+    async removeAll() {
+      await db.query("DELETE FROM flows");
+    },
+
+    async list(flowId) {
+      const results = await db.query(
+        "SELECT instanceId, variantId, state FROM flows WHERE flowId = ?",
+        [flowId]
+      );
+
+      return results.map((row) => ({
+        flowId,
+        instanceId: row.instanceId,
+        variantId: row.variantId,
+        state: JSON.parse(row.state),
+      }));
+    },
+  };
+}
+```
+
+**Use the custom store:**
+
+```tsx
+import { createPersister } from "@useflow/react";
+import { createDatabaseStore } from "./stores/database";
+
+const store = createDatabaseStore(myDatabase);
+const persister = createPersister({ store });
+```
+
+### Key-value store adapter
+
+For simple key-value stores (Redis, MMKV, etc.), use the KV adapter:
+
+```typescript
+import { kvStorageAdapter } from "@useflow/react";
+
+const store = kvStorageAdapter({
+  storage: {
+    getItem: (key) => redisClient.get(key),
+    setItem: (key, value) => redisClient.set(key, value),
+    removeItem: (key) => redisClient.del(key),
+  },
+  serializer: JsonSerializer,
+  formatKey: (flowId, instanceId, variantId) => {
+    const vid = variantId || "default";
+    const iid = instanceId || "default";
+    return `flow:${flowId}:${vid}:${iid}`;
+  },
+  listKeys: (flowId) => {
+    // Return all keys for this flow (for removeFlow/list operations)
+    return redisClient.keys(`flow:${flowId}:*`);
+  },
+});
+```
+
+## Global configuration
+
+Configure persistence globally with `FlowProvider`:
+
+```tsx
+import { FlowProvider } from "@useflow/react";
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+
+const store = createLocalStorageStore(localStorage);
+const persister = createPersister({ store });
+
+function App() {
+  return (
+    <FlowProvider
+      config={{
+        persister,
+        saveMode: "always",
+        saveDebounce: 500,
+        onPersistenceError: (error) => {
+          Sentry.captureException(error);
+          toast.error("Failed to save progress");
+        },
+      }}
+    >
+      <YourApp />
+    </FlowProvider>
+  );
+}
+```
+
+Individual flows can override these defaults:
+
+```tsx
+<Flow
+  flow={myFlow}
+  saveMode="manual" // Overrides global "always"
+/>
+```
+
+See [Global Configuration](/guides/global-configuration) for more.
+
+## Clearing saved state
+
+### Reset flow and clear state
+
+The `reset()` function automatically clears the persisted state:
+
+```tsx
+function MyFlow() {
+  const { reset } = useFlow();
+
+  const handleClearProgress = () => {
+    reset(); // Resets flow to start AND clears saved state
+  };
+
+  return <button onClick={handleClearProgress}>Start Over</button>;
+}
+```
+
+### Programmatic clearing (advanced)
+
+If you need to clear state without resetting the current flow, you can access the persister directly:
+
+```tsx
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+
+const store = createLocalStorageStore(localStorage);
+const persister = createPersister({ store });
+
+// Remove a specific flow instance
+await persister.remove?.("onboarding", {
+  instanceId: "user-123",
+  variantId: "express",
+});
+
+// Remove all instances of a specific flow (if supported by store)
+await persister.removeFlow?.("onboarding");
+
+// Clear all flow state from the store (if supported by store)
+await persister.removeAll?.();
+```
+
+**Note:** Not all storage implementations support `removeFlow` and `removeAll`. Check the specific store documentation.
+
+## Best practices
+
+### Choose the right save mode
+
+| Scenario                | Recommended Mode       |
+| ----------------------- | ---------------------- |
+| Multi-step form         | `navigation` (default) |
+| Long form with autosave | `always` with debounce |
+| Custom save button      | `manual`               |
+| Critical data entry     | `always`               |
+
+### Debounce rapid updates
+
+When using `saveMode="always"`, debounce to avoid excessive writes:
+
+```tsx
+<Flow
+  saveMode="always"
+  saveDebounce={500} // Wait 500ms after last change
+/>
+```
+
+### Handle restoration state
+
+Show loading state while restoring:
+
+```tsx
+<Flow flow={myFlow} persister={persister}>
+  {({ isRestoring, renderStep }) => (
+    <>
+      {isRestoring ? (
+        <div>Restoring your progress...</div>
+      ) : (
+        renderStep({
+          /* steps */
+        })
+      )}
+    </>
+  )}
+</Flow>
+```
+
+### Validate before restoring
+
+Prevent broken states from being restored:
+
+```tsx
+const persister = createPersister({
+  store,
+  validate: (state) => {
+    // Check step exists
+    if (!validSteps.includes(state.stepId)) return false;
+
+    // Check required context
+    if (!state.context.userId) return false;
+
+    // Check version compatibility
+    if (state.__meta?.version && state.__meta.version < "2.0.0") {
+      return false; // Too old, use migration instead
+    }
+
+    return true;
+  },
+});
+```
+
+### Use migrations for schema changes
+
+When your flow's context shape changes, use migrations instead of validation:
+
+```tsx
+// See Migration Guide for details
+const flow = defineFlow({
+  id: "onboarding",
+  version: "2.0.0",
+  start: "welcome",
+  steps: {
+    // ...
+  }
+}).with<MyContext>(() => ({
+  migration: (state, fromVersion) => {
+    if (!fromVersion || fromVersion < "2.0.0") {
+      // Transform old state to new shape
+      return {
+        ...state,
+        context: {
+          ...state.context,
+          newField: "default",
+        },
+      };
+    }
+    return state;
+  },
+}));
+```
+
+See [Migrations Guide](/guides/migrations) for comprehensive migration examples.
+
+### Secure sensitive data
+
+Don't store sensitive data in persistence:
+
+```tsx
+const persister = createPersister({
+  store,
+  onSave: (flowId, state) => {
+    // Warning: localStorage is not encrypted
+    if (state.context.creditCard) {
+      console.warn("Sensitive data in persisted state!");
+    }
+  },
+});
+```
+
+Consider encrypting sensitive data before saving:
+
+```tsx
+const store = kvStorageAdapter({
+  storage: {
+    getItem: (key) => {
+      const encrypted = localStorage.getItem(key);
+      return encrypted ? decrypt(encrypted) : null;
+    },
+    setItem: (key, value) => {
+      localStorage.setItem(key, encrypt(value));
+    },
+    removeItem: (key) => localStorage.removeItem(key),
+  },
+  // ...
+});
+```
+
+## Complete example
+
+<details>
+<summary>View the complete onboarding flow with persistence</summary>
+
+```tsx title="App.tsx"
+import { FlowProvider } from "@useflow/react";
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+
+const store = createLocalStorageStore(localStorage, { prefix: "myapp" });
+
+const persister = createPersister({
+  store,
+  ttl: 30 * 24 * 60 * 60 * 1000, // 30 days
+  validate: (state) => {
+    // Only restore if user hasn't completed
+    return state.status !== "completed";
+  },
+  onRestore: (flowId, state) => {
+    toast.info(`Continuing from step: ${state.stepId}`);
+  },
+  onError: (error) => {
+    console.error("Persistence failed:", error);
+  },
+});
+
+export function App() {
+  return (
+    <FlowProvider
+      config={{
+        persister,
+        saveMode: "navigation",
+        saveDebounce: 300,
+      }}
+    >
+      <OnboardingFlow />
+    </FlowProvider>
+  );
+}
+```
+
+```tsx title="OnboardingFlow.tsx"
+import { Flow } from "@useflow/react";
+import { onboardingFlow } from "./flow";
+
+export function OnboardingFlow() {
+  return (
+    <Flow
+      flow={onboardingFlow}
+      initialContext={{
+        name: "",
+        email: "",
+        preferences: [],
+      }}
+    >
+      {({ renderStep, remove, isRestoring }) => (
+        <div>
+          {isRestoring && <div>Loading saved progress...</div>}
+
+          {renderStep({
+            welcome: <WelcomeStep />,
+            profile: <ProfileStep />,
+            preferences: <PreferencesStep />,
+            complete: <CompleteStep />,
+          })}
+
+          <button onClick={remove}>Start Over</button>
+        </div>
+      )}
+    </Flow>
+  );
+}
+```
+
+```tsx title="ProfileStep.tsx"
+export function ProfileStep() {
+  const { context, setContext, next, save } = onboardingFlow.useFlow({
+    step: "profile",
+  });
+
+  const handleSaveDraft = async () => {
+    await save(); // Manual save
+    toast.success("Draft saved!");
+  };
+
+  return (
+    <div>
+      <input
+        value={context.name}
+        onChange={(e) => setContext({ name: e.target.value })}
+        placeholder="Name"
+      />
+
+      <input
+        value={context.email}
+        onChange={(e) => setContext({ email: e.target.value })}
+        placeholder="Email"
+      />
+
+      <button onClick={handleSaveDraft}>Save Draft</button>
+      <button onClick={() => next()}>Continue</button>
+    </div>
+  );
+}
+```
+
+</details>
+
+## Next steps
+
+- [Migrations](/guides/migrations) - Handle schema versioning and breaking changes
+- [Global Configuration](/guides/global-configuration) - Configure persistence app-wide
+- [Testing](/guides/testing) - Test flows with persistence
+- [Flow Variants](/guides/flow-variants) - Persist state per variant

@@ -1,0 +1,525 @@
+---
+title: Custom Stores
+description: Build custom storage backends for specialized persistence needs
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Create custom storage implementations for databases, APIs, or specialized storage systems.
+
+## Store interface
+
+All stores must implement this interface:
+
+```typescript
+interface StorageStore {
+  get(key: string): Promise<string | null> | string | null;
+  set(key: string, value: string): Promise<void> | void;
+  delete(key: string): Promise<void> | void;
+  clear?(): Promise<void> | void;  // Optional
+}
+```
+
+## Implementation examples
+
+### REST API store
+
+```typescript
+class APIStore implements StorageStore {
+  constructor(private apiUrl: string, private headers?: HeadersInit) {}
+
+  async get(key: string): Promise<string | null> {
+    try {
+      const response = await fetch(`${this.apiUrl}/states/${key}`, {
+        headers: this.headers
+      });
+      
+      if (!response.ok) return null;
+      
+      const data = await response.json();
+      return JSON.stringify(data);
+    } catch (error) {
+      console.error('Failed to fetch state:', error);
+      return null;
+    }
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    await fetch(`${this.apiUrl}/states/${key}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.headers
+      },
+      body: value
+    });
+  }
+
+  async delete(key: string): Promise<void> {
+    await fetch(`${this.apiUrl}/states/${key}`, {
+      method: 'DELETE',
+      headers: this.headers
+    });
+  }
+
+  async clear(): Promise<void> {
+    await fetch(`${this.apiUrl}/states`, {
+      method: 'DELETE',
+      headers: this.headers
+    });
+  }
+}
+
+// Usage
+const apiStore = new APIStore('https://api.example.com', {
+  'Authorization': 'Bearer token'
+});
+
+const persister = createPersister({ store: apiStore });
+```
+
+### IndexedDB store
+
+```typescript
+class IndexedDBStore implements StorageStore {
+  private dbName = 'FlowStates';
+  private storeName = 'states';
+  private db: IDBDatabase | null = null;
+
+  private async getDB(): Promise<IDBDatabase> {
+    if (this.db) return this.db;
+
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, 1);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        this.db = request.result;
+        resolve(this.db);
+      };
+      
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(this.storeName)) {
+          db.createObjectStore(this.storeName);
+        }
+      };
+    });
+  }
+
+  async get(key: string): Promise<string | null> {
+    const db = await this.getDB();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([this.storeName], 'readonly');
+      const store = transaction.objectStore(this.storeName);
+      const request = store.get(key);
+      
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    const db = await this.getDB();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([this.storeName], 'readwrite');
+      const store = transaction.objectStore(this.storeName);
+      const request = store.put(value, key);
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async delete(key: string): Promise<void> {
+    const db = await this.getDB();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([this.storeName], 'readwrite');
+      const store = transaction.objectStore(this.storeName);
+      const request = store.delete(key);
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+}
+
+const indexedDBStore = new IndexedDBStore();
+const persister = createPersister({ store: indexedDBStore });
+```
+
+### Sql database store
+
+<Tabs>
+  <TabItem label="PostgreSQL">
+    ```typescript
+    import { Pool } from 'pg';
+
+    class PostgresStore implements StorageStore {
+      constructor(private pool: Pool) {}
+
+      async get(key: string): Promise<string | null> {
+        const result = await this.pool.query(
+          'SELECT value FROM flow_states WHERE key = $1',
+          [key]
+        );
+        return result.rows[0]?.value || null;
+      }
+
+      async set(key: string, value: string): Promise<void> {
+        await this.pool.query(
+          `INSERT INTO flow_states (key, value, updated_at) 
+           VALUES ($1, $2, NOW()) 
+           ON CONFLICT (key) 
+           DO UPDATE SET value = $2, updated_at = NOW()`,
+          [key, value]
+        );
+      }
+
+      async delete(key: string): Promise<void> {
+        await this.pool.query(
+          'DELETE FROM flow_states WHERE key = $1',
+          [key]
+        );
+      }
+
+      async clear(): Promise<void> {
+        await this.pool.query('TRUNCATE TABLE flow_states');
+      }
+    }
+    ```
+  </TabItem>
+  
+  <TabItem label="SQLite">
+    ```typescript
+    import Database from 'better-sqlite3';
+
+    class SQLiteStore implements StorageStore {
+      constructor(private db: Database.Database) {
+        // Create table if not exists
+        this.db.exec(`
+          CREATE TABLE IF NOT EXISTS flow_states (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+          )
+        `);
+      }
+
+      get(key: string): string | null {
+        const row = this.db
+          .prepare('SELECT value FROM flow_states WHERE key = ?')
+          .get(key) as { value: string } | undefined;
+        return row?.value || null;
+      }
+
+      set(key: string, value: string): void {
+        this.db
+          .prepare(`
+            INSERT OR REPLACE INTO flow_states (key, value, updated_at)
+            VALUES (?, ?, strftime('%s', 'now'))
+          `)
+          .run(key, value);
+      }
+
+      delete(key: string): void {
+        this.db
+          .prepare('DELETE FROM flow_states WHERE key = ?')
+          .run(key);
+      }
+
+      clear(): void {
+        this.db.exec('DELETE FROM flow_states');
+      }
+    }
+    ```
+  </TabItem>
+</Tabs>
+
+### Redis store
+
+```typescript
+import { Redis } from 'ioredis';
+
+class RedisStore implements StorageStore {
+  constructor(
+    private redis: Redis,
+    private ttl?: number  // Optional TTL in seconds
+  ) {}
+
+  async get(key: string): Promise<string | null> {
+    return await this.redis.get(key);
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    if (this.ttl) {
+      await this.redis.setex(key, this.ttl, value);
+    } else {
+      await this.redis.set(key, value);
+    }
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.redis.del(key);
+  }
+
+  async clear(): Promise<void> {
+    const keys = await this.redis.keys('flow:*');
+    if (keys.length > 0) {
+      await this.redis.del(...keys);
+    }
+  }
+}
+
+const redis = new Redis();
+const redisStore = new RedisStore(redis, 86400); // 24 hour TTL
+const persister = createPersister({ store: redisStore });
+```
+
+## Advanced patterns
+
+### Encrypted store
+
+```typescript
+import { encrypt, decrypt } from 'crypto-js/aes';
+
+class EncryptedStore implements StorageStore {
+  constructor(
+    private baseStore: StorageStore,
+    private secretKey: string
+  ) {}
+
+  async get(key: string): Promise<string | null> {
+    const encrypted = await this.baseStore.get(key);
+    if (!encrypted) return null;
+    
+    try {
+      return decrypt(encrypted, this.secretKey).toString();
+    } catch {
+      return null; // Decryption failed
+    }
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    const encrypted = encrypt(value, this.secretKey).toString();
+    await this.baseStore.set(key, encrypted);
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.baseStore.delete(key);
+  }
+
+  async clear(): Promise<void> {
+    await this.baseStore.clear?.();
+  }
+}
+
+// Layer encryption on top of any store
+const baseStore = createLocalStorageStore();
+const encryptedStore = new EncryptedStore(baseStore, 'secret-key');
+const persister = createPersister({ store: encryptedStore });
+```
+
+### Compressed store
+
+```typescript
+import { compress, decompress } from 'lz-string';
+
+class CompressedStore implements StorageStore {
+  constructor(private baseStore: StorageStore) {}
+
+  async get(key: string): Promise<string | null> {
+    const compressed = await this.baseStore.get(key);
+    if (!compressed) return null;
+    
+    return decompress(compressed);
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    const compressed = compress(value);
+    await this.baseStore.set(key, compressed);
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.baseStore.delete(key);
+  }
+}
+
+// Reduce storage size
+const baseStore = createLocalStorageStore();
+const compressedStore = new CompressedStore(baseStore);
+const persister = createPersister({ store: compressedStore });
+```
+
+### Multi-store fallback
+
+```typescript
+class FallbackStore implements StorageStore {
+  constructor(private stores: StorageStore[]) {}
+
+  async get(key: string): Promise<string | null> {
+    for (const store of this.stores) {
+      try {
+        const value = await store.get(key);
+        if (value) return value;
+      } catch {
+        continue; // Try next store
+      }
+    }
+    return null;
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    const errors: Error[] = [];
+    
+    for (const store of this.stores) {
+      try {
+        await store.set(key, value);
+        return; // Success, no need to try others
+      } catch (error) {
+        errors.push(error as Error);
+      }
+    }
+    
+    throw new Error(`All stores failed: ${errors.join(', ')}`);
+  }
+
+  async delete(key: string): Promise<void> {
+    // Try to delete from all stores
+    await Promise.allSettled(
+      this.stores.map(store => store.delete(key))
+    );
+  }
+}
+
+// Try API first, fallback to localStorage
+const fallbackStore = new FallbackStore([
+  new APIStore('https://api.example.com'),
+  createLocalStorageStore()
+]);
+```
+
+## Testing custom stores
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest';
+
+describe('CustomStore', () => {
+  let store: StorageStore;
+  
+  beforeEach(() => {
+    store = new MyCustomStore();
+  });
+
+  it('should save and retrieve state', async () => {
+    const key = 'test-key';
+    const value = JSON.stringify({ step: 'welcome' });
+    
+    await store.set(key, value);
+    const retrieved = await store.get(key);
+    
+    expect(retrieved).toBe(value);
+  });
+
+  it('should return null for missing keys', async () => {
+    const value = await store.get('missing-key');
+    expect(value).toBeNull();
+  });
+
+  it('should delete keys', async () => {
+    const key = 'test-key';
+    await store.set(key, 'value');
+    await store.delete(key);
+    
+    const value = await store.get(key);
+    expect(value).toBeNull();
+  });
+});
+```
+
+## Best practices
+
+<Aside type="tip">
+  **Store Guidelines:**
+  - Always handle errors gracefully
+  - Return `null` for missing keys, not `undefined`
+  - Make operations idempotent when possible
+  - Consider adding retry logic for network stores
+</Aside>
+
+### Error handling
+
+```typescript
+class ResilientStore implements StorageStore {
+  constructor(
+    private store: StorageStore,
+    private maxRetries = 3
+  ) {}
+
+  async get(key: string): Promise<string | null> {
+    for (let i = 0; i < this.maxRetries; i++) {
+      try {
+        return await this.store.get(key);
+      } catch (error) {
+        if (i === this.maxRetries - 1) {
+          console.error('Failed after retries:', error);
+          return null; // Graceful fallback
+        }
+        await this.delay(Math.pow(2, i) * 1000); // Exponential backoff
+      }
+    }
+    return null;
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Implement set and delete similarly...
+}
+```
+
+### Performance monitoring
+
+```typescript
+class MonitoredStore implements StorageStore {
+  constructor(
+    private store: StorageStore,
+    private onMetric: (metric: Metric) => void
+  ) {}
+
+  async get(key: string): Promise<string | null> {
+    const start = performance.now();
+    
+    try {
+      const value = await this.store.get(key);
+      this.onMetric({
+        operation: 'get',
+        duration: performance.now() - start,
+        success: true,
+        size: value?.length || 0
+      });
+      return value;
+    } catch (error) {
+      this.onMetric({
+        operation: 'get',
+        duration: performance.now() - start,
+        success: false,
+        error
+      });
+      throw error;
+    }
+  }
+
+  // Implement set and delete similarly...
+}
+```
+
+## Related
+
+- [Storage Stores](/api-reference/storage-stores) - Built-in stores
+- [createPersister()](/api-reference/create-persister) - Using stores
+- [Persistence Guide](/guides/persistence) - Persistence patterns

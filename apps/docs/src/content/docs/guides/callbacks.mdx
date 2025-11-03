@@ -1,0 +1,760 @@
+---
+title: Callbacks
+description: Learn how to use lifecycle callbacks to track events, integrate analytics, and respond to flow transitions
+---
+
+Callbacks allow you to hook into flow lifecycle events like navigation, completion, and context updates. Use them for analytics, logging, external integrations, or triggering side effects.
+
+## How callbacks work
+
+useFlow provides callback props at both the `Flow` component level and globally via `FlowProvider`:
+
+```tsx
+<Flow
+  flow={myFlow}
+  onNext={(event) => console.log("Moving forward!")}
+  onComplete={(event) => analytics.track("flow_completed")}
+>
+  {/* ... */}
+</Flow>
+```
+
+## Available callbacks
+
+### onNext
+
+Called when navigating forward (calling `next()` or `next(target)`):
+
+```tsx
+<Flow
+  flow={myFlow}
+  onNext={(event) => {
+    console.log(`${event.from} → ${event.to}`);
+    analytics.track('step_forward', {
+      from: event.from,
+      to: event.to
+    });
+  }}
+>
+```
+
+**Event shape:**
+
+```typescript
+{
+  from: string; // Step ID we're leaving
+  to: string; // Step ID we're moving to
+  oldContext: TContext; // Context before navigation
+  newContext: TContext; // Context after navigation
+}
+```
+
+**Common use cases:**
+
+- Track forward progression
+- Log step completions
+- Trigger validation feedback
+- Update progress indicators
+
+### onSkip
+
+Called when skipping a step (calling `skip()` or `skip(target)`):
+
+```tsx
+<Flow
+  flow={myFlow}
+  onSkip={(event) => {
+    console.log(`Skipped from ${event.from} to ${event.to}`);
+    analytics.track('step_skipped', {
+      from: event.from,
+      to: event.to
+    });
+  }}
+>
+```
+
+**Event shape:** Same as `onNext`
+
+**Common use cases:**
+
+- Track optional steps that users skip
+- Identify friction points
+- A/B test "Skip" vs "Continue" flows
+- Log feature adoption
+
+### onBack
+
+Called when navigating backward (calling `back()`):
+
+```tsx
+<Flow
+  flow={myFlow}
+  onBack={(event) => {
+    console.log(`Going back from ${event.from} to ${event.to}`);
+
+    // Track user hesitation
+    if (event.from === 'payment') {
+      analytics.track('payment_hesitation');
+    }
+  }}
+>
+```
+
+**Event shape:** Same as `onNext`
+
+**Common use cases:**
+
+- Track which steps cause hesitation
+- Identify confusing UI/copy
+- Log form correction behavior
+- Measure conversion funnel drop-off
+
+### onTransition
+
+Called on **any** navigation (next, skip, or back):
+
+```tsx
+<Flow
+  flow={myFlow}
+  onTransition={(event) => {
+    console.log(`Transition: ${event.from} → ${event.to} (${event.direction})`);
+
+    // Universal tracking for all navigation
+    analytics.track('step_transition', {
+      from: event.from,
+      to: event.to,
+      direction: event.direction
+    });
+  }}
+>
+```
+
+**Event shape:**
+
+```typescript
+{
+  from: string;
+  to: string;
+  direction: "forward" | "backward"; // "forward" for next/skip, "backward" for back
+  oldContext: TContext;
+  newContext: TContext;
+}
+```
+
+**Common use cases:**
+
+- Universal step tracking
+- Sync URL with flow step
+- Update page titles
+- Track overall flow progression
+
+### onComplete
+
+Called when the flow reaches a terminal step (step with no `next`):
+
+```tsx
+<Flow
+  flow={myFlow}
+  onComplete={(event) => {
+    console.log('Flow completed!', event.context);
+
+    // Send final data to backend
+    await saveUserData(event.context);
+
+    // Track completion
+    analytics.track('onboarding_completed', {
+      userId: event.context.userId,
+      completedAt: Date.now()
+    });
+
+    // Redirect
+    router.push('/dashboard');
+  }}
+>
+```
+
+**Event shape:**
+
+```typescript
+{
+  context: TContext; // Final context state
+}
+```
+
+**Common use cases:**
+
+- Submit collected data
+- Track conversion
+- Show success message
+- Redirect to next page
+- Clear saved state
+
+### onContextUpdate
+
+Called whenever context is updated via `setContext()`:
+
+```tsx
+<Flow
+  flow={myFlow}
+  onContextUpdate={(event) => {
+    console.log('Context updated', {
+      old: event.oldContext,
+      new: event.newContext
+    });
+
+    // Auto-save on every change
+    autosave(event.newContext);
+  }}
+>
+```
+
+**Event shape:**
+
+```typescript
+{
+  oldContext: TContext;
+  newContext: TContext;
+}
+```
+
+**Common use cases:**
+
+- Auto-save drafts
+- Track field-level changes
+- Validate data in real-time
+- Update dependent fields
+
+## Common patterns
+
+### Analytics integration
+
+Track every transition for analytics:
+
+```tsx
+<Flow
+  flow={checkoutFlow}
+  onTransition={(event) => {
+    // Track with Segment, Amplitude, etc.
+    analytics.track('checkout_step', {
+      step: event.to,
+      direction: event.direction,
+      previousStep: event.from
+    });
+  }}
+  onComplete={(event) => {
+    analytics.track('checkout_completed', {
+      total: event.context.total,
+      items: event.context.items.length
+    });
+  }}
+>
+```
+
+### Url sync
+
+Keep URL in sync with current step:
+
+```tsx
+import { useRouter } from 'next/router';
+
+function OnboardingFlow() {
+  const router = useRouter();
+
+  return (
+    <Flow
+      flow={onboardingFlow}
+      onTransition={(event) => {
+        // Update URL without page reload
+        router.replace(`/onboarding/${event.to}`, { shallow: true });
+      }}
+    >
+  );
+}
+```
+
+### Progress tracking
+
+Update a progress indicator:
+
+```tsx
+function SignupFlow() {
+  const [progress, setProgress] = useState(0);
+
+  const steps = ["welcome", "account", "profile", "preferences", "complete"];
+
+  return (
+    <Flow
+      flow={signupFlow}
+      onTransition={(event) => {
+        const currentIndex = steps.indexOf(event.to);
+        const progressPercent = ((currentIndex + 1) / steps.length) * 100;
+        setProgress(progressPercent);
+      }}
+    >
+      {({ renderStep }) => (
+        <div>
+          <ProgressBar value={progress} />
+          {renderStep({
+            /* steps */
+          })}
+        </div>
+      )}
+    </Flow>
+  );
+}
+```
+
+### Error tracking
+
+Track errors and send to error monitoring:
+
+```tsx
+<Flow
+  flow={paymentFlow}
+  onNext={(event) => {
+    // Track successful progression
+    Sentry.addBreadcrumb({
+      category: 'flow',
+      message: `Advanced to ${event.to}`,
+      level: 'info'
+    });
+  }}
+  onComplete={(event) => {
+    // Track successful completion
+    Sentry.addBreadcrumb({
+      category: 'flow',
+      message: 'Payment flow completed',
+      level: 'info',
+      data: { amount: event.context.amount }
+    });
+  }}
+>
+```
+
+### Conditional redirects
+
+Redirect based on completion state:
+
+```tsx
+function OnboardingFlow() {
+  const router = useRouter();
+
+  return (
+    <Flow
+      flow={onboardingFlow}
+      onComplete={(event) => {
+        // Redirect based on user type
+        if (event.context.accountType === 'business') {
+          router.push('/dashboard/business');
+        } else {
+          router.push('/dashboard/personal');
+        }
+      }}
+    >
+  );
+}
+```
+
+### Auto-save drafts
+
+Save progress on every context update:
+
+```tsx
+import { debounce } from 'lodash';
+
+function ApplicationFlow() {
+  const saveDraft = debounce(async (context) => {
+    await fetch('/api/drafts', {
+      method: 'POST',
+      body: JSON.stringify(context)
+    });
+    toast.success('Draft saved');
+  }, 1000);
+
+  return (
+    <Flow
+      flow={applicationFlow}
+      onContextUpdate={(event) => {
+        saveDraft(event.newContext);
+      }}
+    >
+  );
+}
+```
+
+### Hesitation detection
+
+Identify steps that cause users to go back:
+
+```tsx
+function CheckoutFlow() {
+  const [hesitationPoints, setHesitationPoints] = useState<Record<string, number>>({});
+
+  return (
+    <Flow
+      flow={checkoutFlow}
+      onBack={(event) => {
+        // Track which steps users backtrack from
+        setHesitationPoints(prev => ({
+          ...prev,
+          [event.from]: (prev[event.from] || 0) + 1
+        }));
+
+        // Alert if payment step has high backtrack rate
+        if (event.from === 'payment') {
+          analytics.track('payment_abandonment_risk');
+        }
+      }}
+    >
+  );
+}
+```
+
+## Global callbacks
+
+Configure callbacks globally with `FlowProvider`:
+
+```tsx title="App.tsx"
+import { FlowProvider } from "@useflow/react";
+
+export function App() {
+  return (
+    <FlowProvider
+      config={{
+        callbacks: {
+          onFlowStart: ({ flowId, instanceId, context }) => {
+            console.log(`Flow started: ${flowId}`);
+            analytics.track("flow_started", { flowId, instanceId });
+          },
+
+          onFlowComplete: ({ flowId, context }) => {
+            console.log(`Flow completed: ${flowId}`);
+            analytics.track("flow_completed", { flowId, context });
+          },
+
+          onStepTransition: ({ flowId, from, to, direction }) => {
+            analytics.track("step_transition", {
+              flowId,
+              from,
+              to,
+              direction,
+            });
+          },
+        },
+      }}
+    >
+      <YourApp />
+    </FlowProvider>
+  );
+}
+```
+
+Individual flows can override global callbacks:
+
+```tsx
+// Uses global callbacks
+<Flow flow={flow1} />
+
+// Overrides global onComplete
+<Flow
+  flow={flow2}
+  onComplete={(event) => {
+    // Custom completion logic for this flow
+  }}
+/>
+```
+
+See [Global Configuration](/guides/global-configuration) for more details.
+
+## Persistence callbacks
+
+Special callbacks for persistence events:
+
+```tsx
+<Flow
+  flow={myFlow}
+  persister={persister}
+
+  onSave={(state) => {
+    console.log('State saved:', state);
+    analytics.track('flow_saved', {
+      flowId: myFlow.id,
+      step: state.stepId
+    });
+  }}
+
+  onRestore={(state) => {
+    console.log('State restored:', state);
+    toast.success('Continuing where you left off!');
+  }}
+
+  onPersistenceError={(error) => {
+    console.error('Persistence failed:', error);
+    Sentry.captureException(error);
+    toast.error('Failed to save progress');
+  }}
+>
+```
+
+See [Persistence](/guides/persistence) for more details.
+
+## TypeScript
+
+All callbacks are fully typed based on your flow's context:
+
+```typescript
+import type { FlowContext } from "@useflow/react";
+
+type MyContext = {
+  name: string;
+  email: string;
+  age: number;
+};
+
+<Flow
+  flow={myFlow}
+  onNext={(event) => {
+    // event.oldContext and event.newContext are typed as MyContext
+    event.newContext.name;  // ✅ string
+    event.newContext.email; // ✅ string
+    event.newContext.age;   // ✅ number
+    event.newContext.foo;   // ❌ TypeScript error
+  }}
+  onComplete={(event) => {
+    // event.context is typed as MyContext
+    event.context.name;  // ✅ string
+  }}
+>
+```
+
+## Best practices
+
+### 1. Keep callbacks pure
+
+Callbacks should not modify flow state directly:
+
+```tsx
+// ❌ Bad: Don't modify state in callbacks
+onNext={(event) => {
+  setContext({ modified: true }); // Causes infinite loop
+}}
+
+// ✅ Good: Use callbacks for side effects only
+onNext={(event) => {
+  analytics.track('next', event);
+  saveToDB(event.newContext);
+}}
+```
+
+### 2. Handle errors gracefully
+
+Callbacks shouldn't throw errors that break the flow:
+
+```tsx
+// ✅ Good: Catch errors
+onComplete={async (event) => {
+  try {
+    await saveData(event.context);
+  } catch (error) {
+    console.error('Save failed:', error);
+    Sentry.captureException(error);
+    // Don't re-throw - let flow continue
+  }}
+}
+```
+
+### 3. Debounce expensive operations
+
+Debounce callbacks that trigger expensive operations:
+
+```tsx
+import { debounce } from 'lodash';
+
+const debouncedSave = debounce((context) => {
+  saveToDB(context);
+}, 500);
+
+<Flow
+  onContextUpdate={(event) => {
+    debouncedSave(event.newContext);
+  }}
+>
+```
+
+### 4. Use onTransition for universal tracking
+
+Instead of duplicating logic across `onNext`, `onSkip`, and `onBack`:
+
+```tsx
+// ❌ Repetitive
+<Flow
+  onNext={(event) => analytics.track('step', event)}
+  onSkip={(event) => analytics.track('step', event)}
+  onBack={(event) => analytics.track('step', event)}
+>
+
+// ✅ Cleaner
+<Flow
+  onTransition={(event) => {
+    analytics.track('step', {
+      ...event,
+      direction: event.direction // "forward" or "backward"
+    });
+  }}
+>
+```
+
+### 5. Combine with global callbacks
+
+Use global callbacks for app-wide tracking, local for flow-specific logic:
+
+```tsx
+// Global: Track all flows
+<FlowProvider
+  config={{
+    callbacks: {
+      onFlowComplete: (event) => {
+        analytics.track("flow_completed", event);
+      },
+    },
+  }}
+>
+  {/* Local: Flow-specific logic */}
+  <Flow
+    flow={checkoutFlow}
+    onComplete={(event) => {
+      // Charge payment
+      processPayment(event.context);
+    }}
+  />
+</FlowProvider>
+```
+
+## Complete example
+
+<details>
+<summary>View the complete survey flow with comprehensive event tracking</summary>
+
+```tsx title="SurveyFlow.tsx"
+import { Flow } from "@useflow/react";
+import { useState } from "react";
+
+type EventLog = {
+  id: string;
+  type: "next" | "back" | "complete";
+  from?: string;
+  to?: string;
+  message: string;
+  timestamp: number;
+};
+
+export function SurveyFlow() {
+  const [eventLogs, setEventLogs] = useState<EventLog[]>([]);
+
+  const logEvent = (
+    type: EventLog["type"],
+    message: string,
+    from?: string,
+    to?: string
+  ) => {
+    const event: EventLog = {
+      id: crypto.randomUUID(),
+      type,
+      message,
+      from,
+      to,
+      timestamp: Date.now(),
+    };
+    setEventLogs((prev) => [...prev, event]);
+  };
+
+  const handleNext = ({ from, to, newContext }: any) => {
+    // Track answered questions
+    if (from.startsWith("question")) {
+      const questionNum = from.replace("question", "");
+      const answer = newContext[`answer${questionNum}`];
+      logEvent("next", `Question ${questionNum} answered: ${answer}`, from, to);
+    } else {
+      logEvent("next", `Moved forward from ${from} to ${to}`, from, to);
+    }
+  };
+
+  const handleBack = ({ from, to }: any) => {
+    // Track revision behavior
+    if (from.startsWith("question")) {
+      const questionNum = from.replace("question", "");
+      logEvent("back", `User revising question ${questionNum}`, from, to);
+    } else {
+      logEvent("back", `Moved backward from ${from} to ${to}`, from, to);
+    }
+  };
+
+  const handleComplete = ({ context }: any) => {
+    // Calculate and log final score
+    const totalQuestions = 4;
+    const answeredQuestions = Object.keys(context).filter((k) =>
+      k.startsWith("answer")
+    ).length;
+
+    logEvent(
+      "complete",
+      `Survey completed: ${answeredQuestions}/${totalQuestions} answered`
+    );
+
+    // Send to analytics
+    analytics.track("survey_completed", {
+      completionRate: answeredQuestions / totalQuestions,
+      answers: context,
+    });
+
+    // Save to backend
+    saveSurveyResults(context);
+  };
+
+  return (
+    <div>
+      <Flow
+        flow={surveyFlow}
+        onNext={handleNext}
+        onBack={handleBack}
+        onComplete={handleComplete}
+      >
+        {({ renderStep }) => (
+          <div>
+            {renderStep({
+              intro: <IntroStep />,
+              question1: <QuestionStep questionNum={1} />,
+              question2: <QuestionStep questionNum={2} />,
+              question3: <QuestionStep questionNum={3} />,
+              question4: <QuestionStep questionNum={4} />,
+              results: <ResultsStep />,
+            })}
+          </div>
+        )}
+      </Flow>
+
+      {/* Event Log Display */}
+      <div className="event-log">
+        <h3>Event Log</h3>
+        {eventLogs
+          .slice(-10)
+          .reverse()
+          .map((log) => (
+            <div key={log.id}>
+              <strong>{log.type}:</strong> {log.message}
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+```
+
+</details>
+
+## Next steps
+
+- [Global Configuration](/guides/global-configuration) - Configure callbacks globally
+- [Persistence](/guides/persistence) - Use persistence callbacks
+- [Testing](/guides/testing) - Test flows with callbacks
+- [TypeScript](/getting-started/typescript) - Type-safe callbacks

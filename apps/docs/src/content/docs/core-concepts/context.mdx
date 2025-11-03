@@ -1,0 +1,798 @@
+---
+title: Context
+description: Manage shared state across your flow with type-safe context
+---
+
+**Context** is the shared state that flows through all steps in your multi-step process. It stores data collected from users, intermediate calculations, and any other information needed across steps.
+
+## What is context?
+
+Context is a plain JavaScript object that:
+
+- **Persists** across step transitions
+- **Accumulates** data as users progress
+- Is **type-safe** when using TypeScript
+- Can be **saved** and **restored** automatically
+
+```tsx
+type OnboardingContext = {
+  name: string;
+  email: string;
+  preferences?: {
+    theme: "light" | "dark";
+    notifications: boolean;
+  };
+  completedAt?: number;
+};
+```
+
+## Defining context types
+
+### Basic context
+
+Define your context type and pass it to `defineFlow`:
+
+```tsx
+import { defineFlow } from "@useflow/react";
+
+type MyContext = {
+  name: string;
+  age: number;
+};
+
+const myFlow = defineFlow({
+  id: "myFlow",
+  start: "welcome",
+  steps: {
+    welcome: { next: "complete" },
+    complete: {},
+  },
+});
+```
+
+### Complex context
+
+Use nested objects and optional fields:
+
+```tsx
+type OnboardingContext = {
+  // Required fields
+  userId: string;
+  startedAt: number;
+
+  // User info (collected in profile step)
+  profile?: {
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+
+  // Business-specific (only for business users)
+  business?: {
+    companyName: string;
+    industry: string;
+    size: "small" | "medium" | "large";
+  };
+
+  // Preferences (optional step)
+  preferences?: {
+    theme: "light" | "dark";
+    notifications: boolean;
+    emailFrequency: "daily" | "weekly" | "never";
+  };
+
+  // Tracking
+  skippedSteps?: string[];
+  completedAt?: number;
+};
+```
+
+### Shared base types
+
+Reuse common fields across flows:
+
+```tsx
+// Base context shared across all flows
+type BaseContext = {
+  userId: string;
+  startedAt: number;
+  completedAt?: number;
+};
+
+// Specific flow contexts extend the base
+type OnboardingContext = BaseContext & {
+  name: string;
+  email: string;
+};
+
+type CheckoutContext = BaseContext & {
+  cartItems: CartItem[];
+  shippingAddress: Address;
+  paymentMethod: PaymentMethod;
+};
+```
+
+## Accessing context
+
+### In step components
+
+Use the `useFlow()` hook to access context:
+
+```tsx
+function ProfileStep() {
+  const { context } = useFlow<OnboardingContext>();
+
+  // Access context data
+  console.log(context.name);
+  console.log(context.email);
+
+  return <div>Welcome, {context.name}!</div>;
+}
+```
+
+### Type-safe access
+
+TypeScript infers the context type from your flow definition:
+
+```tsx
+const myFlow = defineFlow({
+  id: "onboarding",
+  start: "welcome",
+  steps: {
+    /* ... */
+  },
+});
+
+function MyStep() {
+  const { context } = myFlow.useFlow({ step: "profile" });
+
+  // ✅ TypeScript knows context is OnboardingContext
+  console.log(context.name); // ✅ Valid
+  console.log(context.invalid); // ❌ TypeScript error
+}
+```
+
+## Updating context
+
+There are three ways to update context when navigating:
+
+### 1. Object merge (shallow)
+
+Pass an object to merge with current context:
+
+```tsx
+function ProfileStep() {
+  const { next, context } = useFlow();
+  const [name, setName] = useState("");
+
+  const handleNext = () => {
+    // Shallow merge with current context
+    next({ name });
+
+    // Before: { email: 'user@example.com' }
+    // After:  { email: 'user@example.com', name: 'Alice' }
+  };
+
+  return <button onClick={handleNext}>Continue</button>;
+}
+```
+
+### 2. Updater function (full control)
+
+Use a function for complex updates:
+
+```tsx
+function PreferencesStep() {
+  const { next } = useFlow();
+
+  const handleNext = () => {
+    // Function receives current context, returns new context
+    next((currentContext) => ({
+      ...currentContext,
+      preferences: {
+        theme: "dark",
+        notifications: true,
+      },
+      updatedAt: Date.now(),
+    }));
+  };
+
+  return <button onClick={handleNext}>Continue</button>;
+}
+```
+
+### 3. Conditional updates
+
+Update based on current context:
+
+```tsx
+function MyStep() {
+  const { next, context } = useFlow();
+
+  const handleNext = () => {
+    next((ctx) => ({
+      ...ctx,
+      // Increment counter
+      visitCount: (ctx.visitCount || 0) + 1,
+
+      // Add to array
+      visitedSteps: [...(ctx.visitedSteps || []), "myStep"],
+
+      // Conditional update
+      isFirstTime: ctx.visitCount === undefined,
+    }));
+  };
+
+  return <button onClick={handleNext}>Continue</button>;
+}
+```
+
+## Context patterns
+
+### Collecting data progressively
+
+Build up context across multiple steps:
+
+```tsx
+// Step 1: Basic info
+function Step1() {
+  const { next } = useFlow();
+  return (
+    <button onClick={() => next({ name: "Alice", email: "alice@example.com" })}>
+      Continue
+    </button>
+  );
+}
+
+// Step 2: Add preferences
+function Step2() {
+  const { next, context } = useFlow();
+  // context = { name: 'Alice', email: 'alice@example.com' }
+
+  return (
+    <button onClick={() => next({ theme: "dark", notifications: true })}>
+      Continue
+    </button>
+  );
+}
+
+// Step 3: Final context
+function Step3() {
+  const { context } = useFlow();
+  // context = {
+  //   name: 'Alice',
+  //   email: 'alice@example.com',
+  //   theme: 'dark',
+  //   notifications: true
+  // }
+}
+```
+
+### Initializing context
+
+Set initial values when mounting the flow:
+
+```tsx
+<Flow
+  flow={myFlow}
+  initialContext={{
+    userId: user.id,
+    startedAt: Date.now(),
+    theme: "light",
+    notifications: false,
+  }}
+>
+  {({ renderStep }) =>
+    renderStep({
+      /* ... */
+    })
+  }
+</Flow>
+```
+
+### Conditional fields
+
+Add fields only when needed:
+
+```tsx
+function UserTypeStep() {
+  const { next } = useFlow();
+
+  const handleBusinessUser = () => {
+    next({
+      userType: "business",
+      // Add business-specific fields
+      business: {
+        companyName: "",
+        industry: "",
+      },
+    });
+  };
+
+  const handlePersonalUser = () => {
+    next({
+      userType: "personal",
+      // No business fields for personal users
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={handleBusinessUser}>Business</button>
+      <button onClick={handlePersonalUser}>Personal</button>
+    </div>
+  );
+}
+```
+
+### Tracking metadata
+
+Store navigation metadata in context:
+
+```tsx
+function MyStep() {
+  const { next, stepId } = useFlow();
+
+  const handleNext = () => {
+    next((ctx) => ({
+      ...ctx,
+      // Track visited steps
+      visitedSteps: [...(ctx.visitedSteps || []), stepId],
+
+      // Track last action time
+      lastActionAt: Date.now(),
+
+      // Track step durations
+      stepDurations: {
+        ...ctx.stepDurations,
+        [stepId]: Date.now() - ctx.stepStartedAt,
+      },
+    }));
+  };
+
+  return <button onClick={handleNext}>Continue</button>;
+}
+```
+
+### Resetting fields
+
+Clear fields when navigating back:
+
+```tsx
+function BusinessDetailsStep() {
+  const { next } = useFlow();
+
+  const handleNext = () => {
+    next((ctx) => {
+      // Remove business fields if user changes mind
+      const { business, ...rest } = ctx;
+      return rest;
+    });
+  };
+
+  return <button onClick={handleNext}>Not a business</button>;
+}
+```
+
+## Context in callbacks
+
+Access context in flow callbacks:
+
+```tsx
+<Flow
+  flow={myFlow}
+  initialContext={{}}
+  onNext={({ from, to, newContext }) => {
+    console.log(`Moved from ${from} to ${to}`);
+    console.log("New context:", newContext);
+
+    // Track in analytics
+    trackEvent("step_completed", {
+      step: from,
+      context: newContext,
+    });
+  }}
+  onComplete={({ context }) => {
+    console.log("Flow completed with context:", context);
+
+    // Submit to API
+    await submitOnboarding(context);
+  }}
+>
+  {({ renderStep }) =>
+    renderStep({
+      /* ... */
+    })
+  }
+</Flow>
+```
+
+## Context best practices
+
+### 1. Initialize required fields
+
+Always provide required fields in `initialContext`:
+
+```tsx
+// ❌ Bad: Missing required fields
+<Flow flow={myFlow} initialContext={{}}>
+
+// ✅ Good: All required fields provided
+<Flow
+  flow={myFlow}
+  initialContext={{
+    userId: user.id,
+    startedAt: Date.now()
+  }}
+>
+```
+
+### 2. Use optional fields for progressive data
+
+Mark fields optional if collected in later steps:
+
+```tsx
+type Context = {
+  userId: string; // Required from start
+  startedAt: number; // Required from start
+  name?: string; // Collected in step 1
+  email?: string; // Collected in step 1
+  preferences?: {
+    // Collected in step 2
+    theme: "light" | "dark";
+    notifications: boolean;
+  };
+};
+```
+
+### 3. Avoid deep mutations
+
+Use spread operators to avoid mutating nested objects:
+
+```tsx
+// ❌ Bad: Mutating nested object
+next((ctx) => {
+  ctx.preferences.theme = "dark"; // Mutation!
+  return ctx;
+});
+
+// ✅ Good: Create new nested object
+next((ctx) => ({
+  ...ctx,
+  preferences: {
+    ...ctx.preferences,
+    theme: "dark",
+  },
+}));
+```
+
+### 4. Keep context serializable
+
+Avoid storing non-serializable values (functions, class instances, etc.):
+
+```tsx
+// ❌ Bad: Non-serializable
+type Context = {
+  name: string;
+  validate: () => boolean; // Function - can't be saved
+  createdAt: Date; // Date object - loses type when saved
+};
+
+// ✅ Good: Serializable
+type Context = {
+  name: string;
+  createdAt: number; // Timestamp instead of Date
+};
+```
+
+### 5. Use semantic field names
+
+Choose clear, descriptive names:
+
+```tsx
+// ❌ Bad: Unclear names
+type Context = {
+  d1: string;
+  f: boolean;
+  x: number;
+};
+
+// ✅ Good: Clear names
+type Context = {
+  userName: string;
+  hasAcceptedTerms: boolean;
+  signupTimestamp: number;
+};
+```
+
+## Context persistence
+
+Context is automatically saved when using persistence:
+
+```tsx
+import { createLocalStorageStore } from "@useflow/react";
+
+const store = createLocalStorageStore({
+  storage: localStorage,
+  prefix: "my-app",
+});
+
+<Flow
+  flow={myFlow}
+  initialContext={{}}
+  persister={{
+    store,
+    saveMode: "auto", // Auto-save on every step change
+  }}
+>
+  {({ renderStep }) =>
+    renderStep({
+      /* ... */
+    })
+  }
+</Flow>;
+```
+
+When users return:
+
+- Context is automatically restored
+- Flow resumes from last step
+- All data is preserved
+
+[Learn more about Persistence →](/guides/persistence)
+
+## Validation
+
+Validate context before navigation:
+
+```tsx
+function ProfileStep() {
+  const { next } = useFlow();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+
+  const isValid = () => {
+    return name.length > 0 && email.includes("@") && email.length > 3;
+  };
+
+  const handleNext = () => {
+    if (!isValid()) {
+      alert("Please fill all fields correctly");
+      return;
+    }
+
+    next({ name, email });
+  };
+
+  return (
+    <div>
+      <input value={name} onChange={(e) => setName(e.target.value)} />
+      <input value={email} onChange={(e) => setEmail(e.target.value)} />
+      <button onClick={handleNext} disabled={!isValid()}>
+        Continue
+      </button>
+    </div>
+  );
+}
+```
+
+### Using validation libraries
+
+Integrate with Zod, Yup, or other validation libraries:
+
+```tsx
+import { z } from "zod";
+
+const profileSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email"),
+  age: z.number().min(18, "Must be 18 or older"),
+});
+
+function ProfileStep() {
+  const { next } = useFlow();
+  const [data, setData] = useState({ name: "", email: "", age: 0 });
+  const [errors, setErrors] = useState({});
+
+  const handleNext = () => {
+    try {
+      profileSchema.parse(data);
+      next(data);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setErrors(err.formErrors.fieldErrors);
+      }
+    }
+  };
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleNext();
+      }}
+    >
+      {/* Form fields with error messages */}
+      <button type="submit">Continue</button>
+    </form>
+  );
+}
+```
+
+## Context vs local state
+
+Choose between context and local component state:
+
+| Use Context                     | Use Local State                  |
+| ------------------------------- | -------------------------------- |
+| Data needed in multiple steps   | UI state (e.g., open/closed)     |
+| Should persist when going back  | Should reset on revisit          |
+| Part of the flow's domain logic | Part of the component's UI logic |
+| Needs to be saved/restored      | Temporary interaction state      |
+
+```tsx
+function ProfileStep() {
+  const { context, next } = useFlow();
+
+  // ✅ Context: Data needed in other steps
+  // Already in context.name from previous visits
+
+  // ✅ Local state: Temporary form state
+  const [nameInput, setNameInput] = useState(context.name || "");
+  const [isEditing, setIsEditing] = useState(false);
+
+  return (
+    <div>
+      <input
+        value={nameInput}
+        onChange={(e) => setNameInput(e.target.value)}
+        disabled={!isEditing}
+      />
+      <button onClick={() => setIsEditing(!isEditing)}>
+        {isEditing ? "Cancel" : "Edit"}
+      </button>
+      <button onClick={() => next({ name: nameInput })}>Continue</button>
+    </div>
+  );
+}
+```
+
+## Complete example
+
+Here's a complete example showing context usage across multiple steps:
+
+```tsx
+import { defineFlow, Flow } from "@useflow/react";
+import { useState } from "react";
+
+// 1. Define context type
+type OnboardingContext = {
+  userId: string;
+  startedAt: number;
+  name?: string;
+  email?: string;
+  userType?: "business" | "personal";
+  business?: {
+    companyName: string;
+    industry: string;
+  };
+  preferences?: {
+    theme: "light" | "dark";
+    notifications: boolean;
+  };
+  completedAt?: number;
+};
+
+// 2. Define flow
+const onboardingFlow = defineFlow({
+  id: "onboarding",
+  start: "profile",
+  steps: {
+    profile: { next: "userType" },
+    userType: { next: ["business", "preferences"] },
+    business: { next: "preferences" },
+    preferences: { next: "complete" },
+    complete: {},
+  },
+}).with<OnboardingContext>((steps) => ({
+  resolvers: {
+    userType: (ctx) =>
+      ctx.userType === "business" ? steps.business : steps.preferences,
+  },
+}));
+
+// 3. Step components
+function ProfileStep() {
+  const { next, context } = onboardingFlow.useFlow({ step: "profile" });
+  const [name, setName] = useState(context.name || "");
+  const [email, setEmail] = useState(context.email || "");
+
+  return (
+    <div>
+      <input value={name} onChange={(e) => setName(e.target.value)} />
+      <input value={email} onChange={(e) => setEmail(e.target.value)} />
+      <button onClick={() => next({ name, email })}>Continue</button>
+    </div>
+  );
+}
+
+function UserTypeStep() {
+  const { next } = onboardingFlow.useFlow({ step: "userType" });
+
+  return (
+    <div>
+      <button onClick={() => next({ userType: "business" })}>Business</button>
+      <button onClick={() => next({ userType: "personal" })}>Personal</button>
+    </div>
+  );
+}
+
+function BusinessStep() {
+  const { next } = onboardingFlow.useFlow({ step: "business" });
+  const [company, setCompany] = useState("");
+  const [industry, setIndustry] = useState("");
+
+  return (
+    <div>
+      <input value={company} onChange={(e) => setCompany(e.target.value)} />
+      <input value={industry} onChange={(e) => setIndustry(e.target.value)} />
+      <button
+        onClick={() =>
+          next({
+            business: { companyName: company, industry },
+          })
+        }
+      >
+        Continue
+      </button>
+    </div>
+  );
+}
+
+function CompleteStep() {
+  const { context } = onboardingFlow.useFlow({ step: "complete" });
+
+  return (
+    <div>
+      <h1>Welcome, {context.name}!</h1>
+      <p>Email: {context.email}</p>
+      {context.userType === "business" && (
+        <p>Company: {context.business?.companyName}</p>
+      )}
+    </div>
+  );
+}
+
+// 4. Render flow
+function App() {
+  return (
+    <Flow
+      flow={onboardingFlow}
+      initialContext={{
+        userId: "user-123",
+        startedAt: Date.now(),
+      }}
+      onComplete={({ context }) => {
+        console.log("Completed with:", context);
+      }}
+    >
+      {({ renderStep }) =>
+        renderStep({
+          profile: <ProfileStep />,
+          userType: <UserTypeStep />,
+          business: <BusinessStep />,
+          preferences: <PreferencesStep />,
+          complete: <CompleteStep />,
+        })
+      }
+    </Flow>
+  );
+}
+```
+
+## Next steps
+
+- [**Navigation**](/core-concepts/navigation) - Control flow movement
+- [**Persistence Guide**](/guides/persistence) - Save and restore context
+- [**Branching Guide**](/guides/branching) - Use context for conditional navigation
+- [**Migrations Guide**](/guides/migrations) - Handle context schema changes

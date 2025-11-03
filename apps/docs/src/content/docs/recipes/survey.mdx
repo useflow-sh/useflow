@@ -1,0 +1,573 @@
+---
+title: Survey Flow
+description: Build an interactive survey or questionnaire with ratings, multiple choice, and results
+---
+
+import { Aside, Card, CardGrid, FileTree, Badge } from '@astrojs/starlight/components';
+
+Create an engaging survey flow with various question types, progress tracking, and results visualization.
+
+## What you'll build
+
+This recipe demonstrates:
+- Multiple question types (ratings, multiple choice, open-ended)
+- Visual progress bar with completion percentage
+- Conditional questions based on previous answers
+- Real-time results calculation and visualization
+- Reusable question components
+- Anonymous data collection
+- Time tracking from start to finish
+- Optional feedback fields
+
+## Project structure
+
+<FileTree>
+- src/
+  - flows/
+    - survey/
+      - **flow.ts** Flow definition and context type
+      - components/
+        - IntroStep.tsx
+        - Question1Step.tsx
+        - Question2Step.tsx
+        - Question3Step.tsx
+        - Question4Step.tsx
+        - FeedbackStep.tsx
+        - ResultsStep.tsx
+        - RatingQuestion.tsx
+      - **SurveyFlow.tsx** Main survey component
+  - App.tsx
+</FileTree>
+
+## Flow definition
+
+```typescript title="flow.ts"
+import { defineFlow } from "@useflow/react";
+
+export type SurveyContext = {
+  // Responses
+  q1_satisfaction?: number;    // 1-5 rating
+  q2_recommend?: number;        // 1-5 rating
+  q3_features?: number;         // 1-5 rating
+  q4_support?: number;          // 1-5 rating
+  q5_feedback?: string;         // Optional text
+  
+  // Metadata
+  startedAt?: number;
+  completedAt?: number;
+  userId?: string;
+};
+
+export const surveyFlow = defineFlow({
+  id: "survey",
+  start: "intro",
+  steps: {
+    intro: {
+      next: "question1"
+    },
+    question1: {
+      next: "question2"
+    },
+    question2: {
+      next: "question3"
+    },
+    question3: {
+      next: "question4"
+    },
+    question4: {
+      next: "feedback"
+    },
+    feedback: {
+      next: "results"
+    },
+    results: {}
+  }
+});
+```
+
+## Reusable question component
+
+```tsx title="RatingQuestion.tsx"
+export function RatingQuestion({
+  question,
+  description,
+  value,
+  onChange
+}: {
+  question: string;
+  description: string;
+  value?: number;
+  onChange: (rating: number) => void;
+}) {
+  return (
+    <div className="max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold mb-2">{question}</h2>
+      <p className="text-gray-600 mb-6">{description}</p>
+
+      {/* Rating Buttons */}
+      <div className="flex gap-3 mb-8">
+        {[1, 2, 3, 4, 5].map(rating => (
+          <button
+            key={rating}
+            onClick={() => onChange(rating)}
+            className={`flex-1 py-6 text-2xl font-bold rounded-lg border-2 transition-all ${
+              value === rating
+                ? "border-blue-500 bg-blue-50 scale-105"
+                : "border-gray-300 hover:border-gray-400"
+            }`}
+          >
+            {rating}
+          </button>
+        ))}
+      </div>
+
+      {/* Labels */}
+      <div className="flex justify-between text-sm text-gray-500">
+        <span>Not at all</span>
+        <span>Extremely</span>
+      </div>
+    </div>
+  );
+}
+```
+
+## Step components
+
+### Intro step
+
+```tsx title="IntroStep.tsx"
+import { surveyFlow } from "./flow";
+
+export function IntroStep() {
+  const { next, setContext } = surveyFlow.useFlow({ step: "intro" });
+
+  const handleStart = () => {
+    setContext({ startedAt: Date.now() });
+    next();
+  };
+
+  return (
+    <div className="text-center max-w-2xl mx-auto">
+      <h1 className="text-4xl font-bold mb-4">
+        We'd Love Your Feedback!
+      </h1>
+      
+      <p className="text-xl text-gray-600 mb-8">
+        This survey will take about 2 minutes and help us improve our product.
+      </p>
+
+      <div className="bg-blue-50 rounded-lg p-6 mb-8 text-left">
+        <h3 className="font-semibold mb-3">What to expect:</h3>
+        <ul className="space-y-2 text-gray-700">
+          <li>✓ 4 quick rating questions</li>
+          <li>✓ Optional feedback field</li>
+          <li>✓ Your responses are anonymous</li>
+          <li>✓ Takes about 2 minutes</li>
+        </ul>
+      </div>
+
+      <button
+        onClick={handleStart}
+        className="px-8 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-lg"
+      >
+        Start Survey
+      </button>
+    </div>
+  );
+}
+```
+
+### Question steps
+
+```tsx title="Question1Step.tsx"
+import { surveyFlow } from "./flow";
+import { RatingQuestion } from "./RatingQuestion";
+
+export function Question1Step() {
+  const { context, setContext, next, back } = surveyFlow.useFlow({
+    step: "question1"
+  });
+
+  return (
+    <div>
+      <RatingQuestion
+        question="How satisfied are you with our product overall?"
+        description="Rate your overall experience from 1 (not satisfied) to 5 (very satisfied)"
+        value={context.q1_satisfaction}
+        onChange={(rating) => setContext({ q1_satisfaction: rating })}
+      />
+
+      <div className="flex gap-3 mt-8 max-w-2xl mx-auto">
+        <button
+          onClick={back}
+          className="px-6 py-2 border rounded-lg hover:bg-gray-50"
+        >
+          Back
+        </button>
+        <button
+          onClick={() => next()}
+          disabled={!context.q1_satisfaction}
+          className="flex-1 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300"
+        >
+          Next Question
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Feedback step (optional)
+
+```tsx title="FeedbackStep.tsx"
+import { surveyFlow } from "./flow";
+
+export function FeedbackStep() {
+  const { context, setContext, next, skip, back } = surveyFlow.useFlow({
+    step: "feedback"
+  });
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold mb-2">
+        Any additional feedback?
+      </h2>
+      
+      <p className="text-gray-600 mb-6">
+        This is optional, but we'd love to hear your thoughts!
+      </p>
+
+      <textarea
+        value={context.q5_feedback || ""}
+        onChange={(e) => setContext({ q5_feedback: e.target.value })}
+        placeholder="Tell us what you think..."
+        rows={6}
+        className="w-full px-4 py-3 border rounded-lg resize-none"
+      />
+
+      <div className="flex gap-3 mt-6">
+        <button
+          onClick={back}
+          className="px-6 py-2 border rounded-lg hover:bg-gray-50"
+        >
+          Back
+        </button>
+        <button
+          onClick={() => skip()}
+          className="px-6 py-2 border rounded-lg hover:bg-gray-50"
+        >
+          Skip
+        </button>
+        <button
+          onClick={() => next()}
+          className="flex-1 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        >
+          See Results
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Results step
+
+```tsx title="ResultsStep.tsx"
+import { surveyFlow } from "./flow";
+
+export function ResultsStep() {
+  const { context, reset } = surveyFlow.useFlow({ step: "results" });
+
+  // Calculate average score
+  const scores = [
+    context.q1_satisfaction,
+    context.q2_recommend,
+    context.q3_features,
+    context.q4_support
+  ].filter((score): score is number => typeof score === "number");
+
+  const averageScore = scores.length > 0
+    ? (scores.reduce((sum, score) => sum + score, 0) / scores.length).toFixed(1)
+    : "0.0";
+
+  // Calculate time spent
+  const timeSpent = context.startedAt
+    ? Math.round((Date.now() - context.startedAt) / 1000)
+    : 0;
+
+  // Get satisfaction level
+  const getSatisfactionLevel = (score: number) => {
+    if (score >= 4.5) return { label: "Excellent", color: "text-green-600" };
+    if (score >= 3.5) return { label: "Good", color: "text-blue-600" };
+    if (score >= 2.5) return { label: "Fair", color: "text-yellow-600" };
+    return { label: "Needs Improvement", color: "text-red-600" };
+  };
+
+  const satisfaction = getSatisfactionLevel(Number(averageScore));
+
+  return (
+    <div className="max-w-2xl mx-auto text-center">
+      <div className="text-6xl mb-4">🎉</div>
+      
+      <h2 className="text-3xl font-bold mb-4">
+        Thank You for Your Feedback!
+      </h2>
+      
+      <p className="text-gray-600 mb-8">
+        Your responses have been submitted and will help us improve.
+      </p>
+
+      {/* Score Display */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-8 mb-6">
+        <div className="text-6xl font-bold mb-2">{averageScore}</div>
+        <div className={`text-xl font-semibold ${satisfaction.color}`}>
+          {satisfaction.label}
+        </div>
+        <div className="text-sm text-gray-600 mt-2">
+          Average rating across all questions
+        </div>
+      </div>
+
+      {/* Individual Scores */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-white rounded-lg p-4 border">
+          <div className="text-2xl font-bold">{context.q1_satisfaction}/5</div>
+          <div className="text-sm text-gray-600">Overall Satisfaction</div>
+        </div>
+        <div className="bg-white rounded-lg p-4 border">
+          <div className="text-2xl font-bold">{context.q2_recommend}/5</div>
+          <div className="text-sm text-gray-600">Recommendation</div>
+        </div>
+        <div className="bg-white rounded-lg p-4 border">
+          <div className="text-2xl font-bold">{context.q3_features}/5</div>
+          <div className="text-sm text-gray-600">Features & Functionality</div>
+        </div>
+        <div className="bg-white rounded-lg p-4 border">
+          <div className="text-2xl font-bold">{context.q4_support}/5</div>
+          <div className="text-sm text-gray-600">Customer Support</div>
+        </div>
+      </div>
+
+      {/* Additional Info */}
+      {context.q5_feedback && (
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+          <div className="font-semibold mb-2">Your Feedback:</div>
+          <p className="text-gray-700 italic">"{context.q5_feedback}"</p>
+        </div>
+      )}
+
+      <div className="text-sm text-gray-500 mb-6">
+        Completed in {timeSpent} seconds
+      </div>
+
+      <button
+        onClick={reset}
+        className="text-blue-500 hover:underline"
+      >
+        Take Survey Again
+      </button>
+    </div>
+  );
+}
+```
+
+## Main component with progress
+
+```tsx title="SurveyFlow.tsx"
+import { Flow } from "@useflow/react";
+import { createMemoryStore, createPersister } from "@useflow/react";
+import { surveyFlow } from "./flow";
+
+const store = createMemoryStore();
+const persister = createPersister({ store });
+
+const questionSteps = ["intro", "question1", "question2", "question3", "question4", "feedback"];
+
+export function SurveyFlow() {
+  return (
+    <Flow
+      flow={surveyFlow}
+      persister={persister}
+      initialContext={{
+        q1_satisfaction: undefined,
+        q2_recommend: undefined,
+        q3_features: undefined,
+        q4_support: undefined
+      }}
+      onComplete={(event) => {
+        // Submit survey results
+        submitSurveyResults({
+          responses: {
+            satisfaction: event.context.q1_satisfaction,
+            recommend: event.context.q2_recommend,
+            features: event.context.q3_features,
+            support: event.context.q4_support,
+            feedback: event.context.q5_feedback
+          },
+          timeSpent: event.context.startedAt
+            ? Date.now() - event.context.startedAt
+            : 0
+        });
+      }}
+    >
+      {({ renderStep, stepId }) => {
+        // Calculate progress
+        const currentIndex = questionSteps.indexOf(stepId);
+        const progress = currentIndex >= 0
+          ? ((currentIndex + 1) / questionSteps.length) * 100
+          : 100;
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
+            {/* Progress Bar */}
+            {stepId !== "results" && (
+              <div className="max-w-2xl mx-auto mb-8 px-4">
+                <div className="h-2 bg-white/50 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-sm text-gray-600 mt-2">
+                  <span>Question {currentIndex + 1} of {questionSteps.length}</span>
+                  <span>{Math.round(progress)}% Complete</span>
+                </div>
+              </div>
+            )}
+
+            {/* Step Content */}
+            <div className="px-4">
+              {renderStep({
+                intro: <IntroStep />,
+                question1: <Question1Step />,
+                question2: <Question2Step />,
+                question3: <Question3Step />,
+                question4: <Question4Step />,
+                feedback: <FeedbackStep />,
+                results: <ResultsStep />
+              })}
+            </div>
+          </div>
+        );
+      }}
+    </Flow>
+  );
+}
+
+async function submitSurveyResults(data: any) {
+  await fetch("/api/survey", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+}
+```
+
+## Key features
+
+<Aside type="tip">
+This survey pattern can be adapted for NPS scores, customer feedback, employee satisfaction surveys, and more.
+</Aside>
+
+### Progress tracking
+- Visual progress bar with smooth transitions
+- Step counter showing current question
+- Real-time completion percentage
+- Time tracking from start to finish
+
+### Reusable components
+- Generic `RatingQuestion` component for 1-5 scale questions
+- `MultipleChoiceQuestion` for single/multiple selections
+- Consistent styling across all question types
+- Easy to extend with new question formats
+
+### Results visualization
+- Automatic average score calculation
+- Individual question score breakdown
+- Color-coded satisfaction levels
+- Completion time display
+- Optional feedback display
+
+### Anonymous surveys
+- No authentication required by default
+- Optional user identification via context
+- Privacy-friendly data collection
+- Session-based persistence
+
+## Customization
+
+### Add more question types
+
+```tsx
+// Multiple Choice Question
+export function MultipleChoiceQuestion({
+  question,
+  options,
+  value,
+  onChange
+}: {
+  question: string;
+  options: string[];
+  value?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6">{question}</h2>
+      <div className="space-y-3">
+        {options.map(option => (
+          <label
+            key={option}
+            className={`flex items-center p-4 border-2 rounded-lg cursor-pointer ${
+              value === option ? "border-blue-500 bg-blue-50" : "border-gray-300"
+            }`}
+          >
+            <input
+              type="radio"
+              name="choice"
+              value={option}
+              checked={value === option}
+              onChange={(e) => onChange(e.target.value)}
+              className="mr-3"
+            />
+            {option}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+### Conditional routing
+
+```tsx
+// Route based on answer
+type ConditionalContext = {
+  q1_answer: "yes" | "no";
+};
+
+const surveyFlow = defineFlow({
+  id: "conditional-survey",
+  start: "q1",
+  steps: {
+    q1: { next: ["q2_yes", "q2_no"] },
+    q2_yes: { next: "results" },
+    q2_no: { next: "results" },
+    results: {}
+  }
+}).with<ConditionalContext>((steps) => ({
+  resolvers: {
+    q1: (ctx) =>
+      ctx.q1_answer === "yes" ? steps.q2_yes : steps.q2_no
+  }
+}));
+```
+
+## Next steps
+
+- [Onboarding Flow](/recipes/onboarding)
+- [Branching Guide](/guides/branching)
+- [Callbacks Guide](/guides/callbacks)
+- [Testing Guide](/guides/testing)
+

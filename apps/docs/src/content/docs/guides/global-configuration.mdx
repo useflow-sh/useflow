@@ -1,0 +1,621 @@
+---
+title: Global Configuration
+description: Learn how to configure default settings for all flows in your application using FlowProvider
+---
+
+The `FlowProvider` component allows you to configure default settings for all flows in your application. Individual flows can override these defaults when needed, giving you centralized configuration with flexibility.
+
+## Why use flowprovider?
+
+Without `FlowProvider`, you configure each flow individually:
+
+```tsx
+// ❌ Repetitive configuration
+<Flow flow={flow1} persister={persister} saveMode="always" />
+<Flow flow={flow2} persister={persister} saveMode="always" />
+<Flow flow={flow3} persister={persister} saveMode="always" />
+```
+
+With `FlowProvider`, you configure once:
+
+```tsx
+// ✅ Configure once, apply everywhere
+<FlowProvider config={{ persister, saveMode: "always" }}>
+  <Flow flow={flow1} />
+  <Flow flow={flow2} />
+  <Flow flow={flow3} />
+</FlowProvider>
+```
+
+## Basic usage
+
+Wrap your app with `FlowProvider` at the root level:
+
+```tsx title="App.tsx"
+import { FlowProvider } from "@useflow/react";
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+
+const store = createLocalStorageStore(localStorage);
+const persister = createPersister({ store });
+
+export function App() {
+  return (
+    <FlowProvider config={{
+      persister,
+      saveMode: "navigation",
+      saveDebounce: 300
+    }}>
+      <YourApp />
+    </FlowProvider>
+  );
+}
+```
+
+Now all flows will use these defaults:
+
+```tsx
+// Uses global persister, saveMode, and saveDebounce
+<Flow flow={myFlow} initialContext={{...}} />
+```
+
+## Configuration options
+
+### Persistence
+
+Configure default persistence for all flows:
+
+```tsx
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+
+const store = createLocalStorageStore(localStorage, { prefix: "myapp" });
+
+const persister = createPersister({
+  store,
+  ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
+  onError: (error) => {
+    console.error('Persistence error:', error);
+  }
+});
+
+<FlowProvider config={{ persister }}>
+  <App />
+</FlowProvider>
+```
+
+### Save mode
+
+Set the default save mode for all flows:
+
+```tsx
+<FlowProvider config={{
+  persister,
+  saveMode: "always" // "always" | "navigation" | "manual"
+}}>
+  <App />
+</FlowProvider>
+```
+
+| Mode | When State is Saved |
+|------|---------------------|
+| `navigation` | On next/skip/back calls (default) |
+| `always` | On every context update |
+| `manual` | Only when calling `save()` |
+
+### Save debounce
+
+Control debounce delay for save operations:
+
+```tsx
+<FlowProvider config={{
+  persister,
+  saveMode: "always",
+  saveDebounce: 500 // Wait 500ms after last change before saving
+}}>
+  <App />
+</FlowProvider>
+```
+
+This prevents excessive writes when state changes rapidly (e.g., typing in input fields).
+
+### Error handling
+
+Configure global error handler for persistence failures:
+
+```tsx
+<FlowProvider config={{
+  persister,
+  onPersistenceError: (error) => {
+    // Log to error tracking
+    Sentry.captureException(error);
+    
+    // Show user feedback
+    toast.error('Failed to save your progress. Please check your connection.');
+    
+    // Track analytics
+    analytics.track('persistence_error', { 
+      message: error.message 
+    });
+  }
+}}>
+  <App />
+</FlowProvider>
+```
+
+## Lifecycle callbacks
+
+Configure global callbacks for flow lifecycle events:
+
+```tsx
+<FlowProvider config={{
+  callbacks: {
+    onFlowStart: (event) => {
+      console.log('Flow started:', event.flowId);
+      analytics.track('flow_started', {
+        flowId: event.flowId,
+        variantId: event.variantId,
+        instanceId: event.instanceId
+      });
+    },
+    
+    onFlowComplete: (event) => {
+      console.log('Flow completed:', event.flowId);
+      analytics.track('flow_completed', {
+        flowId: event.flowId,
+        context: event.context
+      });
+    },
+    
+    onStepTransition: (event) => {
+      console.log(`${event.flowId}: ${event.from} → ${event.to}`);
+      analytics.track('step_transition', {
+        flowId: event.flowId,
+        from: event.from,
+        to: event.to,
+        direction: event.direction // "forward" | "backward"
+      });
+    }
+  }
+}}>
+  <App />
+</FlowProvider>
+```
+
+### Callback event types
+
+**onFlowStart:**
+```typescript
+{
+  flowId: string;
+  variantId?: string;
+  instanceId?: string;
+  context: FlowContext;
+}
+```
+
+**onFlowComplete:**
+```typescript
+{
+  flowId: string;
+  variantId?: string;
+  instanceId?: string;
+  context: FlowContext;
+}
+```
+
+**onStepTransition:**
+```typescript
+{
+  flowId: string;
+  variantId?: string;
+  instanceId?: string;
+  from: string;
+  to: string;
+  direction: "forward" | "backward";
+  oldContext: FlowContext;
+  newContext: FlowContext;
+}
+```
+
+## Overriding defaults
+
+Individual flows can override global configuration:
+
+```tsx
+<FlowProvider config={{
+  persister: globalPersister,
+  saveMode: "navigation",
+  saveDebounce: 300
+}}>
+  {/* Uses global config */}
+  <Flow flow={standardFlow} />
+  
+  {/* Overrides saveMode */}
+  <Flow flow={criticalFlow} saveMode="always" />
+  
+  {/* Overrides persister (doesn't persist) */}
+  <Flow flow={temporaryFlow} persister={undefined} />
+  
+  {/* Overrides persister with custom one */}
+  <Flow flow={secureFlow} persister={encryptedPersister} />
+</FlowProvider>
+```
+
+## Accessing global config
+
+Use the `useFlowConfig` hook to access global configuration from anywhere:
+
+```tsx
+import { useFlowConfig } from "@useflow/react";
+
+export function CustomComponent() {
+  const config = useFlowConfig();
+  
+  // Check if persistence is enabled globally
+  if (config?.persister) {
+    return <div>Progress will be saved</div>;
+  }
+  
+  return <div>Progress won't be saved</div>;
+}
+```
+
+Returns `null` if no `FlowProvider` is present.
+
+## Nested providers
+
+You can nest `FlowProvider` components to create different configuration zones:
+
+```tsx
+<FlowProvider config={{
+  saveMode: "navigation",
+  persister: regularPersister
+}}>
+  {/* Regular flows use navigation mode */}
+  <Dashboard />
+  
+  {/* Critical flows use always mode */}
+  <FlowProvider config={{
+    saveMode: "always",
+    persister: encryptedPersister
+  }}>
+    <PaymentFlow />
+    <HealthRecordsFlow />
+  </FlowProvider>
+</FlowProvider>
+```
+
+Inner providers override outer ones.
+
+## Common patterns
+
+### Development vs production
+
+Different configurations for different environments:
+
+```tsx
+const isDev = import.meta.env.DEV;
+
+const persister = createPersister({
+  store: createLocalStorageStore(localStorage),
+  onSave: isDev ? (flowId, state) => {
+    console.log('💾 Saved:', flowId, state);
+  } : undefined,
+  onError: isDev ? console.error : (error) => {
+    Sentry.captureException(error);
+  }
+});
+
+<FlowProvider config={{
+  persister,
+  saveDebounce: isDev ? 100 : 500 // Faster feedback in dev
+}}>
+  <App />
+</FlowProvider>
+```
+
+### Feature flags
+
+Enable/disable features globally:
+
+```tsx
+const { featureFlags } = useFeatureFlags();
+
+<FlowProvider config={{
+  persister: featureFlags.persistence ? persister : undefined,
+  callbacks: {
+    onFlowComplete: featureFlags.analytics ? trackCompletion : undefined
+  }
+}}>
+  <App />
+</FlowProvider>
+```
+
+### Multi-tenant apps
+
+Different configuration per tenant:
+
+```tsx
+function TenantApp({ tenantId }: { tenantId: string }) {
+  const tenantConfig = useTenantConfig(tenantId);
+  
+  const persister = createPersister({
+    store: createLocalStorageStore(localStorage, {
+      prefix: `tenant-${tenantId}`
+    })
+  });
+  
+  return (
+    <FlowProvider config={{
+      persister,
+      saveMode: tenantConfig.autoSave ? "always" : "navigation",
+      callbacks: {
+        onFlowComplete: (event) => {
+          // Tenant-specific analytics
+          trackForTenant(tenantId, 'flow_completed', event);
+        }
+      }
+    }}>
+      <TenantDashboard />
+    </FlowProvider>
+  );
+}
+```
+
+### A/B testing
+
+Different flows for different user groups:
+
+```tsx
+const { variant } = useABTest('flow-autosave');
+
+<FlowProvider config={{
+  persister,
+  saveMode: variant === 'A' ? "navigation" : "always",
+  callbacks: {
+    onFlowComplete: (event) => {
+      trackABTest('flow-autosave', variant, {
+        flowId: event.flowId,
+        completed: true
+      });
+    }
+  }
+}}>
+  <App />
+</FlowProvider>
+```
+
+## TypeScript
+
+The `FlowProviderConfig` type is fully typed:
+
+```typescript
+import type { FlowProviderConfig } from "@useflow/react";
+
+const config: FlowProviderConfig = {
+  persister,
+  saveMode: "always",
+  saveDebounce: 500,
+  onPersistenceError: (error) => {
+    // error is typed as Error
+  },
+  callbacks: {
+    onFlowStart: (event) => {
+      // event is fully typed
+      event.flowId;      // string
+      event.variantId;   // string | undefined
+      event.context;     // FlowContext
+    }
+  }
+};
+```
+
+## Best practices
+
+### 1. Configure at app root
+
+Place `FlowProvider` as high as possible in your component tree:
+
+```tsx
+// ✅ Good: At app root
+<FlowProvider>
+  <Router>
+    <App />
+  </Router>
+</FlowProvider>
+
+// ❌ Bad: Deep in tree, some flows won't have access
+<Router>
+  <App>
+    <FlowProvider>
+      <OnboardingFlow />
+    </FlowProvider>
+  </App>
+</Router>
+```
+
+### 2. Single persister instance
+
+Create persister once and reuse it:
+
+```tsx
+// ✅ Good: Created once
+const persister = createPersister({ store });
+
+<FlowProvider config={{ persister }}>
+
+// ❌ Bad: Created on every render
+<FlowProvider config={{ 
+  persister: createPersister({ store }) // New instance each render!
+}}>
+```
+
+### 3. Memoize callbacks
+
+Memoize callback functions to prevent unnecessary re-renders:
+
+```tsx
+const handleFlowComplete = useCallback((event) => {
+  analytics.track('flow_completed', event);
+}, []);
+
+<FlowProvider config={{
+  callbacks: {
+    onFlowComplete: handleFlowComplete
+  }
+}}>
+```
+
+### 4. Error boundaries
+
+Wrap FlowProvider with error boundary for production resilience:
+
+```tsx
+<ErrorBoundary fallback={<ErrorPage />}>
+  <FlowProvider config={{ persister, onPersistenceError }}>
+    <App />
+  </FlowProvider>
+</ErrorBoundary>
+```
+
+### 5. Default to sensible defaults
+
+Use conservative defaults that work for most flows:
+
+```tsx
+<FlowProvider config={{
+  saveMode: "navigation", // Safe default
+  saveDebounce: 300,      // Reasonable delay
+  onPersistenceError: (error) => {
+    // Always handle errors
+  }
+}}>
+```
+
+Then override for special cases:
+
+```tsx
+<Flow flow={criticalFlow} saveMode="always" />
+```
+
+## Complete example
+
+<details>
+<summary>View the complete production-ready app configuration</summary>
+
+```tsx title="App.tsx"
+import { FlowProvider } from "@useflow/react";
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+import { toast } from "sonner";
+import * as Sentry from "@sentry/react";
+
+// Create store
+const store = createLocalStorageStore(localStorage, {
+  prefix: "myapp"
+});
+
+// Create persister with advanced options
+const persister = createPersister({
+  store,
+  ttl: 30 * 24 * 60 * 60 * 1000, // 30 days
+  validate: (state) => {
+    // Only restore active flows
+    return state.status === 'active';
+  },
+  onSave: (flowId, state) => {
+    console.log(`Saved ${flowId} at step ${state.stepId}`);
+  },
+  onRestore: (flowId, state) => {
+    toast.success('Continuing where you left off!');
+  },
+  onError: (error) => {
+    console.error('Storage error:', error);
+  }
+});
+
+export function App() {
+  return (
+    <FlowProvider config={{
+      persister,
+      saveMode: "navigation",
+      saveDebounce: 300,
+      
+      onPersistenceError: (error) => {
+        Sentry.captureException(error);
+        toast.error('Failed to save progress');
+      },
+      
+      callbacks: {
+        onFlowStart: ({ flowId, instanceId }) => {
+          analytics.track('flow_started', {
+            flowId,
+            instanceId,
+            timestamp: Date.now()
+          });
+        },
+        
+        onFlowComplete: ({ flowId, context }) => {
+          analytics.track('flow_completed', {
+            flowId,
+            context,
+            timestamp: Date.now()
+          });
+          
+          // Show completion message
+          toast.success('All done! 🎉');
+        },
+        
+        onStepTransition: ({ flowId, from, to, direction }) => {
+          analytics.track('step_transition', {
+            flowId,
+            from,
+            to,
+            direction
+          });
+        }
+      }
+    }}>
+      <Routes>
+        <Route path="/onboarding" element={<OnboardingFlow />} />
+        <Route path="/checkout" element={<CheckoutFlow />} />
+        <Route path="/survey" element={<SurveyFlow />} />
+      </Routes>
+    </FlowProvider>
+  );
+}
+```
+
+```tsx title="OnboardingFlow.tsx"
+import { Flow } from "@useflow/react";
+import { onboardingFlow } from "./flow";
+
+export function OnboardingFlow() {
+  // Uses global config automatically
+  return (
+    <Flow 
+      flow={onboardingFlow}
+      initialContext={{
+        name: "",
+        email: ""
+      }}
+    >
+      {({ renderStep }) => (
+        renderStep({
+          welcome: <WelcomeStep />,
+          profile: <ProfileStep />,
+          complete: <CompleteStep />
+        })
+      )}
+    </Flow>
+  );
+}
+```
+
+</details>
+
+## Next steps
+
+- [Persistence](/guides/persistence) - Learn about persistence configuration
+- [Callbacks](/guides/callbacks) - Deep dive into flow callbacks
+- [Testing](/guides/testing) - Test flows with global configuration
+- [TypeScript](/getting-started/typescript) - Type-safe configuration
+

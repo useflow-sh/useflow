@@ -1,0 +1,578 @@
+---
+title: Onboarding Flow
+description: Complete example of a user onboarding flow with validation, persistence, and analytics
+---
+
+import { Aside, FileTree, Badge, Steps, LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+Build a complete onboarding flow that collects user information, validates input, saves progress, and tracks analytics.
+
+## What you'll build
+
+This recipe demonstrates:
+- Multi-step form with validation
+- Context management and type safety
+- State persistence with localStorage
+- Progress indicator
+- Analytics tracking
+- Skip functionality for optional steps
+
+## Project structure
+
+<FileTree>
+- src/
+  - flows/
+    - onboarding/
+      - **flow.ts** Flow definition and context type
+      - components/
+        - WelcomeStep.tsx
+        - ProfileStep.tsx
+        - PreferencesStep.tsx
+        - CompleteStep.tsx
+      - **index.tsx** Main onboarding component
+  - App.tsx
+</FileTree>
+
+## Flow definition
+
+```typescript title="flow.ts"
+import { defineFlow } from "@useflow/react";
+
+export type OnboardingContext = {
+  // Step 1: Welcome (no data collected)
+  
+  // Step 2: Profile
+  name: string;
+  email: string;
+  
+  // Step 3: Preferences (optional)
+  theme?: "light" | "dark";
+  notifications: boolean;
+  newsletter?: boolean;
+  
+  // Metadata
+  startedAt?: number;
+  skippedPreferences?: boolean;
+};
+
+export const onboardingFlow = defineFlow({
+  id: "onboarding",
+  version: "v1",
+  start: "welcome",
+  steps: {
+    welcome: {
+      next: "profile"
+    },
+    profile: {
+      next: "preferences"
+    },
+    preferences: {
+      next: "complete"
+    },
+    complete: {}
+  }
+});
+```
+
+## Step components
+
+### Welcome step
+
+```tsx title="WelcomeStep.tsx"
+import { onboardingFlow } from "./flow";
+
+export function WelcomeStep() {
+  const { next, setContext } = onboardingFlow.useFlow({
+    step: "welcome"
+  });
+
+  const handleStart = () => {
+    setContext({ startedAt: Date.now() });
+    next();
+  };
+
+  return (
+    <div className="text-center">
+      <h1 className="text-4xl font-bold mb-4">
+        Welcome to Our App!
+      </h1>
+      <p className="text-xl text-gray-600 mb-8">
+        Let's get you set up in just a few steps
+      </p>
+      
+      <button
+        onClick={handleStart}
+        className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+      >
+        Get Started
+      </button>
+    </div>
+  );
+}
+```
+
+### Profile step with validation
+
+```tsx title="ProfileStep.tsx"
+import { useState } from "react";
+import { onboardingFlow } from "./flow";
+
+export function ProfileStep() {
+  const { context, setContext, next, back } = onboardingFlow.useFlow({
+    step: "profile"
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateAndContinue = () => {
+    const newErrors: Record<string, string> = {};
+
+    // Validate name
+    if (!context.name || context.name.trim().length < 2) {
+      newErrors.name = "Name must be at least 2 characters";
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!context.email || !emailRegex.test(context.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+    next();
+  };
+
+  return (
+    <div className="max-w-md mx-auto">
+      <h2 className="text-2xl font-bold mb-6">
+        Tell us about yourself
+      </h2>
+
+      {/* Name Input */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">
+          Name *
+        </label>
+        <input
+          type="text"
+          value={context.name || ""}
+          onChange={(e) => setContext({ name: e.target.value })}
+          className={`w-full px-4 py-2 border rounded-lg ${
+            errors.name ? "border-red-500" : "border-gray-300"
+          }`}
+          placeholder="John Doe"
+        />
+        {errors.name && (
+          <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+        )}
+      </div>
+
+      {/* Email Input */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-2">
+          Email *
+        </label>
+        <input
+          type="email"
+          value={context.email || ""}
+          onChange={(e) => setContext({ email: e.target.value })}
+          className={`w-full px-4 py-2 border rounded-lg ${
+            errors.email ? "border-red-500" : "border-gray-300"
+          }`}
+          placeholder="john@example.com"
+        />
+        {errors.email && (
+          <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+        )}
+      </div>
+
+      {/* Navigation */}
+      <div className="flex gap-3">
+        <button
+          onClick={back}
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          Back
+        </button>
+        <button
+          onClick={validateAndContinue}
+          className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Preferences step (optional)
+
+```tsx title="PreferencesStep.tsx"
+import { onboardingFlow } from "./flow";
+
+export function PreferencesStep() {
+  const { context, setContext, next, skip, back } = onboardingFlow.useFlow({
+    step: "preferences"
+  });
+
+  const handleSkip = () => {
+    setContext({ skippedPreferences: true });
+    skip();
+  };
+
+  return (
+    <div className="max-w-md mx-auto">
+      <h2 className="text-2xl font-bold mb-6">
+        Customize your experience
+      </h2>
+
+      {/* Theme Selection */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-3">
+          Theme Preference
+        </label>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setContext({ theme: "light" })}
+            className={`flex-1 px-4 py-3 border rounded-lg ${
+              context.theme === "light"
+                ? "border-blue-500 bg-blue-50"
+                : "border-gray-300"
+            }`}
+          >
+            ☀️ Light
+          </button>
+          <button
+            onClick={() => setContext({ theme: "dark" })}
+            className={`flex-1 px-4 py-3 border rounded-lg ${
+              context.theme === "dark"
+                ? "border-blue-500 bg-blue-50"
+                : "border-gray-300"
+            }`}
+          >
+            🌙 Dark
+          </button>
+        </div>
+      </div>
+
+      {/* Notifications Toggle */}
+      <div className="mb-6">
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={context.notifications}
+            onChange={(e) => setContext({ notifications: e.target.checked })}
+            className="mr-3"
+          />
+          <span>Enable push notifications</span>
+        </label>
+      </div>
+
+      {/* Newsletter Toggle */}
+      <div className="mb-8">
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={context.newsletter || false}
+            onChange={(e) => setContext({ newsletter: e.target.checked })}
+            className="mr-3"
+          />
+          <span>Subscribe to our newsletter</span>
+        </label>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex gap-3">
+        <button
+          onClick={back}
+          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          Back
+        </button>
+        <button
+          onClick={handleSkip}
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          Skip
+        </button>
+        <button
+          onClick={() => next()}
+          className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Complete step
+
+```tsx title="CompleteStep.tsx"
+import { onboardingFlow } from "./flow";
+
+export function CompleteStep() {
+  const { context, reset } = onboardingFlow.useFlow({
+    step: "complete"
+  });
+
+  const timeSpent = context.startedAt
+    ? Math.round((Date.now() - context.startedAt) / 1000)
+    : 0;
+
+  return (
+    <div className="text-center max-w-md mx-auto">
+      <div className="text-6xl mb-4">🎉</div>
+      
+      <h2 className="text-3xl font-bold mb-4">
+        Welcome, {context.name}!
+      </h2>
+      
+      <p className="text-gray-600 mb-6">
+        Your account is all set up. You completed onboarding in{" "}
+        {timeSpent} seconds!
+      </p>
+
+      {/* Summary */}
+      <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+        <h3 className="font-semibold mb-2">Your Settings:</h3>
+        <ul className="space-y-1 text-sm">
+          <li>📧 Email: {context.email}</li>
+          {context.theme && <li>🎨 Theme: {context.theme}</li>}
+          <li>
+            🔔 Notifications: {context.notifications ? "Enabled" : "Disabled"}
+          </li>
+          {context.newsletter && <li>📬 Newsletter: Subscribed</li>}
+          {context.skippedPreferences && (
+            <li className="text-gray-500">
+              ⏭️ Skipped preferences (you can change these later)
+            </li>
+          )}
+        </ul>
+      </div>
+
+      <button
+        onClick={() => {
+          // In a real app, redirect to dashboard
+          window.location.href = "/dashboard";
+        }}
+        className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 mb-3"
+      >
+        Go to Dashboard
+      </button>
+
+      <button
+        onClick={reset}
+        className="text-sm text-gray-500 hover:text-gray-700"
+      >
+        Start Over
+      </button>
+    </div>
+  );
+}
+```
+
+## Main component with persistence
+
+```tsx title="OnboardingFlow.tsx"
+import { Flow } from "@useflow/react";
+import { createLocalStorageStore, createPersister } from "@useflow/react";
+import { onboardingFlow } from "./flow";
+import { WelcomeStep } from "./WelcomeStep";
+import { ProfileStep } from "./ProfileStep";
+import { PreferencesStep } from "./PreferencesStep";
+import { CompleteStep } from "./CompleteStep";
+
+// Create persister for localStorage
+const store = createLocalStorageStore(localStorage, { prefix: "myapp" });
+const persister = createPersister({
+  store,
+  ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
+  onSave: (flowId, state) => {
+    console.log("Progress saved:", state.stepId);
+  },
+  onRestore: (flowId, state) => {
+    console.log("Progress restored from:", state.stepId);
+  }
+});
+
+export function OnboardingFlow() {
+  return (
+    <Flow
+      flow={onboardingFlow}
+      persister={persister}
+      initialContext={{
+        name: "",
+        email: "",
+        notifications: true
+      }}
+      onComplete={(event) => {
+        // Track completion
+        analytics.track("onboarding_completed", {
+          name: event.context.name,
+          email: event.context.email,
+          theme: event.context.theme,
+          timeSpent: event.context.startedAt
+            ? Date.now() - event.context.startedAt
+            : 0
+        });
+      }}
+      onTransition={(event) => {
+        // Track step transitions
+        analytics.track("onboarding_step", {
+          from: event.from,
+          to: event.to,
+          direction: event.direction
+        });
+      }}
+    >
+      {({ renderStep, stepId, steps }) => {
+        // Calculate progress
+        const stepKeys = Object.keys(steps);
+        const currentIndex = stepKeys.indexOf(stepId);
+        const progress = ((currentIndex + 1) / stepKeys.length) * 100;
+
+        return (
+          <div className="min-h-screen bg-gray-50 p-4">
+            {/* Progress Bar */}
+            <div className="max-w-2xl mx-auto mb-8">
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-sm text-gray-600 mt-2 text-center">
+                Step {currentIndex + 1} of {stepKeys.length}
+              </p>
+            </div>
+
+            {/* Step Content */}
+            <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
+              {renderStep({
+                welcome: <WelcomeStep />,
+                profile: <ProfileStep />,
+                preferences: <PreferencesStep />,
+                complete: <CompleteStep />
+              })}
+            </div>
+          </div>
+        );
+      }}
+    </Flow>
+  );
+}
+```
+
+## Key features
+
+### Form validation
+
+The profile step demonstrates client-side validation:
+- Required field checking
+- Email format validation
+- Error display and state management
+- Prevents navigation until valid
+
+### Progress persistence
+
+State is automatically saved to localStorage:
+- Saves after each navigation
+- Restores on page reload
+- TTL of 7 days
+- Tracks save/restore events
+
+### Analytics tracking
+
+Track user behavior with callbacks:
+- Step transitions (forward/backward)
+- Completion events
+- Time spent in flow
+- Skipped steps
+
+### Optional steps
+
+The preferences step can be skipped:
+- Uses `skip()` instead of `next()`
+- Tracks skip behavior in context
+- Shows skip option in summary
+
+## Customization
+
+### Add more steps
+
+```tsx
+const onboardingFlow = defineFlow({
+  // ...
+  steps: {
+    welcome: { next: "profile" },
+    profile: { next: "verification" },   // New step
+    verification: { next: "preferences" },
+    preferences: { next: "complete" },
+    complete: {}
+  }
+});
+```
+
+### Add server-side validation
+
+```tsx
+const validateAndContinue = async () => {
+  // Client-side validation
+  if (!context.email) {
+    setErrors({ email: "Email required" });
+    return;
+  }
+
+  // Server-side validation
+  try {
+    const response = await fetch("/api/validate-email", {
+      method: "POST",
+      body: JSON.stringify({ email: context.email })
+    });
+
+    if (!response.ok) {
+      setErrors({ email: "Email already taken" });
+      return;
+    }
+
+    next();
+  } catch (error) {
+    setErrors({ email: "Validation failed" });
+  }
+};
+```
+
+### Customize persistence
+
+```tsx
+const persister = createPersister({
+  store,
+  ttl: 30 * 24 * 60 * 60 * 1000, // 30 days
+  validate: (state) => {
+    // Only restore if not completed
+    return state.status !== "completed";
+  },
+  onSave: (flowId, state) => {
+    // Send to analytics
+    analytics.track("progress_saved", {
+      step: state.stepId
+    });
+  }
+});
+```
+
+## Next steps
+
+- [Form Validation Recipe](/recipes/form-validation)
+- [Multi-Step Checkout](/recipes/checkout)
+- [Survey Flow](/recipes/survey)
+- [Persistence Guide](/guides/persistence)
+

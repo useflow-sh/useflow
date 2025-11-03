@@ -1,0 +1,176 @@
+---
+title: Overview
+description: Get started with useFlow - the type-safe way to build multi-step flows in React
+---
+
+import { Tabs, TabItem, Aside, LinkCard, CardGrid, Badge } from '@astrojs/starlight/components';
+import { REPO_ISSUES_URL } from '../../../constants';
+
+useFlow is a declarative, type-safe library for building multi-step flows in React with **built-in persistence and analytics**. Whether you're building onboarding, checkout, surveys, or wizards, useFlow eliminates the complexity while providing exceptional developer experience.
+
+## Quick example
+
+Here's a complete onboarding flow in under 30 lines:
+
+```tsx
+import { defineFlow, Flow, useFlow } from "@useflow/react";
+
+// 1. Define your flow structure
+const onboardingFlow = defineFlow({
+  id: "onboarding",
+  start: "welcome",
+  steps: {
+    welcome: { next: "profile" },
+    profile: { next: "complete" },
+    complete: {}
+  }
+});
+
+// 2. Create step components
+function ProfileStep() {
+  const { context, setContext, next, back } = useFlow();
+  
+  return (
+    <div>
+      <input 
+        value={context.name}
+        onChange={(e) => setContext({ name: e.target.value })}
+      />
+      <button onClick={back}>Back</button>
+      <button onClick={next}>Continue</button>
+    </div>
+  );
+}
+
+// 3. Render with automatic step management
+function App() {
+  return (
+    <Flow flow={onboardingFlow} initialContext={{ name: "" }}>
+      {({ renderStep }) => renderStep({
+        welcome: <WelcomeStep />,
+        profile: <ProfileStep />,
+        complete: <CompleteStep />
+      })}
+    </Flow>
+  );
+}
+```
+
+## Key features
+
+🎯 **Declarative** - Define your flow once, components automatically show/hide
+
+🔒 **Type-Safe** - TypeScript knows which steps can navigate where
+
+🔄 **Smart Navigation** - Linear, branching, or component-driven routing
+
+💾 **Persistence Built-in** - Save and restore progress automatically
+
+⚡ **Zero Dependencies** - Under 5KB gzipped, no external dependencies
+
+📊 **Analytics Ready** - Built-in hooks for tracking user journeys
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm">
+    ```bash
+    npm install @useflow/react
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn add @useflow/react
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add @useflow/react
+    ```
+  </TabItem>
+  <TabItem label="bun">
+    ```bash
+    bun add @useflow/react
+    ```
+  </TabItem>
+</Tabs>
+
+## Core concepts
+
+### Flows
+Define the structure and rules of your multi-step experience:
+
+```tsx
+const flow = defineFlow({
+  id: "checkout",
+  start: "cart",
+  steps: {
+    cart: { next: "shipping" },
+    shipping: { next: "payment" },
+    payment: { next: "confirm" },
+    confirm: {}
+  }
+});
+```
+
+### Context
+Shared state that flows through all steps:
+
+```tsx
+type CheckoutContext = {
+  items: CartItem[];
+  total: number;
+  shippingAddress?: Address;
+};
+
+// Any step can access/update
+const { context, setContext } = useFlow<CheckoutContext>();
+```
+
+### Type safety
+TypeScript ensures you can't mess up:
+
+```tsx
+// Must provide ALL step components
+renderStep({
+  cart: <Cart />,
+  shipping: <Shipping />,
+  // ❌ Error: Missing 'payment' and 'confirm'
+});
+
+// Navigation is step-specific
+const { next } = flow.useFlow({ step: "cart" });
+next("shipping");  // ✅ Valid
+next("confirm");   // ❌ Error: Can't skip to confirm from cart
+```
+
+## Learn more
+
+<CardGrid>
+  <LinkCard
+    title="Why useFlow?"
+    description="Understand the problems useFlow solves"
+    href="/getting-started/why-useflow"
+  />
+  <LinkCard
+    title="Quick Start"
+    description="Build your first flow in 5 minutes"
+    href="/getting-started/quick-start"
+  />
+  <LinkCard
+    title="TypeScript"
+    description="Leverage powerful type safety"
+    href="/getting-started/typescript"
+  />
+  <LinkCard
+    title="Recipes"
+    description="Production-ready examples"
+    href="/recipes/onboarding"
+  />
+</CardGrid>
+
+## Get help
+
+- 📚 Read the [Core Concepts](/core-concepts/)
+- 🐛 Report issues on [GitHub]({REPO_ISSUES_URL})
+- 💬 Join the community discussions

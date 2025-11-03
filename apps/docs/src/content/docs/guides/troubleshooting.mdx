@@ -1,0 +1,487 @@
+---
+title: Troubleshooting
+description: Solutions to common issues and debugging tips for useFlow
+---
+
+import { REPO_ISSUES_URL, REPO_DISCUSSIONS_URL } from '../../../constants';
+
+This guide covers common issues you might encounter with useFlow and how to solve them.
+
+## Common issues
+
+### TypeScript errors
+
+#### "Type 'string' is not assignable to type..."
+
+**Problem:** TypeScript can't infer the correct step names when using dynamic navigation.
+
+```tsx
+// ❌ Error: Type 'string' is not assignable
+const stepName = "profile";
+next(stepName);
+```
+
+**Solution:** Use `as const` or type the variable:
+
+```tsx
+// ✅ Solution 1: as const
+const stepName = "profile" as const;
+next(stepName);
+
+// ✅ Solution 2: Type the variable
+const stepName: "profile" | "preferences" = "profile";
+next(stepName);
+```
+
+#### "Property does not exist on type 'never'"
+
+**Problem:** Using the generic `useFlow()` hook without proper typing.
+
+```tsx
+// ❌ Error: Property 'name' does not exist
+const { context } = useFlow();
+console.log(context.name);
+```
+
+**Solution:** Use the flow-specific hook or provide type parameter:
+
+```tsx
+// ✅ Solution 1: Use flow-specific hook (recommended)
+const { context } = myFlow.useFlow({ step: "profile" });
+
+// ✅ Solution 2: Provide type parameter
+const { context } = useFlow<MyContextType>();
+```
+
+### Persistence issues
+
+#### State not persisting
+
+**Problem:** Flow state isn't being saved to storage.
+
+**Common causes and solutions:**
+
+1. **No persister configured:**
+
+```tsx
+// ❌ Missing persister
+<Flow flow={myFlow}>
+
+// ✅ Add persister
+import { createLocalStorageStore, createPersister } from '@useflow/react';
+
+const persister = createPersister({ store: createLocalStorageStore() });
+
+<Flow
+  flow={myFlow}
+  persister={persister}
+>
+```
+
+2. **Manual save mode without calling save():**
+
+```tsx
+// If using saveMode="manual"
+const { save } = useFlow();
+
+// Remember to call save() when needed
+const handleSave = async () => {
+  await save();
+};
+```
+
+3. **Storage quota exceeded:**
+
+```tsx
+<Flow
+  flow={myFlow}
+  persister={persister}
+  onPersistenceError={(error) => {
+    console.error('Storage error:', error);
+    // Handle storage quota or access issues
+  }}
+>
+```
+
+#### State not restoring
+
+**Problem:** Saved state exists but isn't being restored.
+
+**Solutions:**
+
+1. **Check if restoration is in progress:**
+
+```tsx
+function MyStep() {
+  const { isRestoring } = useFlow();
+
+  if (isRestoring) {
+    return <LoadingSpinner />;
+  }
+
+  // Your component content
+}
+```
+
+2. **Verify flow ID and instance ID match:**
+
+```tsx
+// State is saved with flowId + instanceId + variantId
+// Make sure these are consistent across sessions
+<Flow
+  flow={myFlow}
+  instanceId="user-123"  // Must be same to restore
+>
+```
+
+3. **Check for version mismatches:**
+
+```tsx
+// If flow structure changed, old state might be invalid
+const flow = defineFlow({
+  id: "myFlow",
+  version: "2", // Version change might invalidate old state
+  start: "welcome",
+  steps: {
+    // ...
+  }
+}).with<MyContext>(() => ({
+  // Add migration function for version changes
+  migration: (oldState, oldVersion) => {
+    if (oldVersion === "1") {
+      // Transform old state to new format
+      return { ...oldState, newField: "default" };
+    }
+    return oldState;
+  },
+}));
+```
+
+### Navigation issues
+
+#### "Cannot go back from first step"
+
+**Problem:** Calling `back()` when on the first step.
+
+**Solution:** Check if back navigation is available:
+
+```tsx
+function MyStep() {
+  const { back, path } = useFlow();
+
+  // Check path length before going back
+  const canGoBack = path.length > 1;
+
+  return (
+    <button onClick={back} disabled={!canGoBack}>
+      Back
+    </button>
+  );
+}
+```
+
+#### Navigation not working
+
+**Problem:** Calling `next()` but nothing happens.
+
+**Common causes:**
+
+1. **Step has no next defined (terminal step):**
+
+```tsx
+// Check your flow definition
+steps: {
+  complete: {
+  } // Terminal step - no next
+}
+
+// Check if next is available
+const { nextSteps } = useFlow();
+if (!nextSteps) {
+  console.log("This is a terminal step");
+}
+```
+
+2. **Branching step requires target:**
+
+```tsx
+// For branching steps, must specify target
+steps: {
+  choice: {
+    next: ["option1", "option2"];
+  }
+}
+
+// ❌ Error: Must specify target
+next();
+
+// ✅ Correct: Specify target
+next("option1");
+```
+
+### Context issues
+
+#### Context not updating
+
+**Problem:** Setting context but values don't change.
+
+**Common causes:**
+
+1. **Mutating context directly:**
+
+```tsx
+// ❌ Don't mutate directly
+const { context, setContext } = useFlow();
+context.name = "Alice"; // Won't trigger update
+
+// ✅ Use setContext
+setContext({ name: "Alice" });
+```
+
+2. **Async updates not handled:**
+
+```tsx
+// ❌ State might be stale
+const handleSubmit = async () => {
+  await saveData();
+  setContext({ saved: true });
+  next(); // Might navigate before context updates
+};
+
+// ✅ Update context in next() call
+const handleSubmit = async () => {
+  await saveData();
+  next({ saved: true }); // Context and navigation together
+};
+```
+
+#### Context type errors
+
+**Problem:** TypeScript errors when updating context.
+
+**Solution:** Define your context type properly:
+
+```tsx
+// Define complete context type
+type MyContext = {
+  name: string;
+  email?: string; // Optional fields
+  preferences: {
+    theme: "light" | "dark";
+  };
+};
+
+// Use with your flow
+const flow = defineFlow({
+  // ...
+});
+```
+
+## Debugging techniques
+
+### Enable debug logging
+
+```tsx
+// Log all navigation events
+<Flow
+  flow={myFlow}
+  onTransition={({ from, to, action, context }) => {
+    console.log(`[Flow] ${action}: ${from} → ${to}`, context);
+  }}
+  onContextUpdate={({ oldContext, newContext }) => {
+    console.log('[Flow] Context updated:', { oldContext, newContext });
+  }}
+>
+```
+
+### Inspect flow state
+
+```tsx
+function DebugPanel() {
+  const { stepId, context, path, history, status } = useFlow();
+
+  return (
+    <pre
+      style={{
+        position: "fixed",
+        bottom: 0,
+        right: 0,
+        background: "black",
+        color: "white",
+        padding: "10px",
+      }}
+    >
+      {JSON.stringify(
+        {
+          currentStep: stepId,
+          status,
+          context,
+          path: path.map((p) => p.stepId),
+          history: history.map((h) => ({
+            step: h.stepId,
+            action: h.action,
+          })),
+        },
+        null,
+        2
+      )}
+    </pre>
+  );
+}
+```
+
+### Use browser devtools
+
+1. **Check localStorage:**
+
+```javascript
+// In browser console
+localStorage.getItem("useflow:myFlow:default:default");
+```
+
+2. **Clear saved state:**
+
+```javascript
+// Clear specific flow
+localStorage.removeItem("useflow:myFlow:default:default");
+
+// Clear all useFlow data
+Object.keys(localStorage)
+  .filter((key) => key.startsWith("useflow:"))
+  .forEach((key) => localStorage.removeItem(key));
+```
+
+## Performance issues
+
+### Memory leaks
+
+**Problem:** Memory usage increases over time.
+
+**Solution:** Clean up effects and listeners:
+
+```tsx
+function MyStep() {
+  const { next } = useFlow();
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Enter") next();
+    };
+
+    window.addEventListener("keydown", handler);
+
+    // Clean up!
+    return () => window.removeEventListener("keydown", handler);
+  }, [next]);
+}
+```
+
+## Getting help
+
+### Before asking for help
+
+1. **Check the console** for error messages
+2. **Verify your flow definition** is correct
+3. **Try the debug techniques** above
+4. **Check if you're using the latest version**
+5. **Create a minimal reproduction** of the issue
+
+### Where to get help
+
+- **GitHub Issues**: [Report bugs]({REPO_ISSUES_URL})
+- **GitHub Discussions**: [Ask questions]({REPO_DISCUSSIONS_URL})
+- **Examples**: Check the [recipes](/recipes) for working examples
+
+### Reporting issues
+
+When reporting an issue, include:
+
+1. **useFlow version**
+2. **React version**
+3. **TypeScript version** (if applicable)
+4. **Minimal code example** that reproduces the issue
+5. **Error messages** from the console
+6. **Expected vs actual behavior**
+
+Example issue report:
+
+```markdown
+## Issue: context not persisting between page refreshes
+
+**Versions:**
+
+- useFlow: 1.0.0
+- React: 18.2.0
+- TypeScript: 5.0.0
+
+**Code:**
+\`\`\`tsx
+const flow = defineFlow({
+id: "test",
+steps: { /_ ... _/ }
+});
+
+<Flow flow={flow} persister={createPersister({ store: createLocalStorageStore() })}>
+{/_ ... _/}
+</Flow>
+\`\`\`
+
+**Expected:** Context should persist
+**Actual:** Context resets on refresh
+**Console errors:** None
+```
+
+## FAQ
+
+### Can i have multiple flows on the same page?
+
+Yes! Each flow maintains its own state:
+
+```tsx
+<div>
+  <Flow flow={onboardingFlow} instanceId="onboarding">
+    {/* ... */}
+  </Flow>
+
+  <Flow flow={checkoutFlow} instanceId="checkout">
+    {/* ... */}
+  </Flow>
+</div>
+```
+
+### How do i reset a flow programmatically?
+
+Use the `reset()` function:
+
+```tsx
+function MyStep() {
+  const { reset } = useFlow();
+
+  const handleError = () => {
+    alert("Something went wrong!");
+    reset(); // Start over
+  };
+}
+```
+
+### Can i prevent navigation based on validation?
+
+Yes! Validate before calling navigation functions:
+
+```tsx
+function MyStep() {
+  const { next, context } = useFlow();
+  const [errors, setErrors] = useState({});
+
+  const handleNext = () => {
+    const validationErrors = validate(context);
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return; // Don't navigate
+    }
+
+    next();
+  };
+}
+```

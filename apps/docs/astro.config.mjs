@@ -18,7 +18,6 @@ export default defineConfig({
     defaultStrategy: "hover",
   },
   vite: {
-    // @ts-expect-error - Tailwind Vite plugin has type conflicts with Astro's Vite types
     plugins: [tailwindcss()],
     ssr: {
       noExternal: ["zod"],
@@ -43,6 +42,20 @@ export default defineConfig({
       ],
       head: [
         {
+          tag: "script",
+          content: `
+            (function() {
+              // Default to dark theme if no preference is saved
+              const theme = localStorage.getItem('starlight-theme') || 'dark';
+              if (!localStorage.getItem('starlight-theme')) {
+                localStorage.setItem('starlight-theme', 'dark');
+              }
+              document.documentElement.dataset.theme = theme;
+              document.documentElement.style.backgroundColor = theme === 'light' ? '#f5f5f0' : '#26252a';
+            })();
+          `,
+        },
+        {
           tag: "style",
           content: `
             html, body {
@@ -52,16 +65,6 @@ export default defineConfig({
             html[data-theme='light'] body {
               background-color: #f5f5f0 !important;
             }
-          `,
-        },
-        {
-          tag: "script",
-          content: `
-            (function() {
-              const theme = localStorage.getItem('starlight-theme') || 
-                           (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-              document.documentElement.style.backgroundColor = theme === 'light' ? '#f5f5f0' : '#26252a';
-            })();
           `,
         },
         {

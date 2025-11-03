@@ -27,12 +27,12 @@ Configuration object for the persister:
 
 ```typescript
 type PersisterOptions = {
-  store: StorageStore;           // Required: Storage backend
-  ttl?: number;                 // Optional: Time to live in ms
-  prefix?: string;              // Optional: Key prefix (default: "flow")
-  validate?: (state: any) => boolean;  // Optional: State validation
-  serialize?: (state: any) => string;  // Optional: Custom serializer
-  deserialize?: (data: string) => any; // Optional: Custom deserializer
+  store: FlowStore;                    // Required: Storage backend
+  ttl?: number;                        // Optional: Time to live in ms
+  validate?: (state: PersistedFlowState) => boolean;  // Optional: State validation
+  onSave?: (flowId: string, state: PersistedFlowState) => void;  // Optional: Save callback
+  onRestore?: (flowId: string, state: PersistedFlowState) => void;  // Optional: Restore callback
+  onError?: (error: Error) => void;    // Optional: Error handler
 }
 ```
 
@@ -60,11 +60,20 @@ const memoryStore = createMemoryStore();
 ### Custom store interface
 
 ```typescript
-type StorageStore = {
-  get: (key: string) => Promise<string | null> | string | null;
-  set: (key: string, value: string) => Promise<void> | void;
-  delete: (key: string) => Promise<void> | void;
-  clear?: () => Promise<void> | void;
+type FlowStore = {
+  get: (flowId: string, options?: FlowStoreOptions) => 
+    Promise<PersistedFlowState | null> | PersistedFlowState | null;
+  set: (flowId: string, state: PersistedFlowState, options?: FlowStoreOptions) => 
+    Promise<void> | void;
+  remove: (flowId: string, options?: FlowStoreOptions) => 
+    Promise<void> | void;
+  removeFlow?: (flowId: string) => Promise<void> | void;
+  removeAll?: () => Promise<void> | void;
+}
+
+type FlowStoreOptions = {
+  instanceId?: string;
+  variantId?: string;
 }
 ```
 
@@ -114,27 +123,21 @@ const persister = createPersister({
 // Invalid states will be ignored on restore
 ```
 
-### With custom key prefix
+### With callbacks
 
 ```typescript
 const persister = createPersister({
   store: createLocalStorageStore(),
-  prefix: "myapp-flow"  // Keys: "myapp-flow:flowId:instanceId"
+  onSave: (flowId, state) => {
+    console.log(`Saved ${flowId} at step ${state.stepId}`);
+  },
+  onRestore: (flowId, state) => {
+    console.log(`Restored ${flowId} from step ${state.stepId}`);
+  },
+  onError: (error) => {
+    console.error('Persistence error:', error);
+  }
 });
-```
-
-### With custom serialization
-
-```typescript
-import { compress, decompress } from 'lz-string';
-
-const persister = createPersister({
-  store: createLocalStorageStore(),
-  serialize: (state) => compress(JSON.stringify(state)),
-  deserialize: (data) => JSON.parse(decompress(data))
-});
-
-// State will be compressed before saving
 ```
 
 ## Custom storage backend
@@ -144,22 +147,33 @@ Create a custom store for any backend:
 ### API backend
 
 ```typescript
-const apiStore: StorageStore = {
-  get: async (key) => {
-    const response = await fetch(`/api/flow-state/${key}`);
+const apiStore: FlowStore = {
+  get: async (flowId, options) => {
+    const params = new URLSearchParams({
+      flowId,
+      ...(options?.instanceId && { instanceId: options.instanceId }),
+      ...(options?.variantId && { variantId: options.variantId })
+    });
+    const response = await fetch(`/api/flow-state?${params}`);
     if (!response.ok) return null;
-    return response.text();
+    return response.json();
   },
   
-  set: async (key, value) => {
-    await fetch(`/api/flow-state/${key}`, {
+  set: async (flowId, state, options) => {
+    await fetch('/api/flow-state', {
       method: 'PUT',
-      body: value
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ flowId, state, ...options })
     });
   },
   
-  delete: async (key) => {
-    await fetch(`/api/flow-state/${key}`, {
+  remove: async (flowId, options) => {
+    const params = new URLSearchParams({
+      flowId,
+      ...(options?.instanceId && { instanceId: options.instanceId }),
+      ...(options?.variantId && { variantId: options.variantId })
+    });
+    await fetch(`/api/flow-state?${params}`, {
       method: 'DELETE'
     });
   }
@@ -171,22 +185,33 @@ const persister = createPersister({ store: apiStore });
 ### IndexedDB
 
 ```typescript
-const indexedDBStore: StorageStore = {
-  get: async (key) => {
+const indexedDBStore: FlowStore = {
+  get: async (flowId, options) => {
     const db = await openDB();
+    const key = formatKey(flowId, options);
     return db.get('flows', key);
   },
   
-  set: async (key, value) => {
+  set: async (flowId, state, options) => {
     const db = await openDB();
-    await db.put('flows', value, key);
+    const key = formatKey(flowId, options);
+    await db.put('flows', state, key);
   },
   
-  delete: async (key) => {
+  remove: async (flowId, options) => {
     const db = await openDB();
+    const key = formatKey(flowId, options);
     await db.delete('flows', key);
   }
 };
+
+// Helper to format keys consistently
+function formatKey(flowId: string, options?: FlowStoreOptions) {
+  const parts = [flowId];
+  if (options?.variantId) parts.push(options.variantId);
+  if (options?.instanceId) parts.push(options.instanceId);
+  return parts.join(':');
+}
 
 const persister = createPersister({ store: indexedDBStore });
 ```
@@ -235,35 +260,41 @@ await persister.remove(
 ): Promise<void>
 ```
 
-### `clear()`
+### `removeFlow()`
 
 ```typescript
-await persister.clear(): Promise<void>
+await persister.removeFlow(
+  flowId: string
+): Promise<void>
 ```
+
+Removes all instances of a specific flow (base + all instances).
+
+### `removeAll()`
+
+```typescript
+await persister.removeAll(): Promise<void>
+```
+
+Removes all flows managed by this persister.
 
 ## Storage keys
 
-Keys are generated using this pattern:
+The store implementation determines the key format. For key-value stores (localStorage, sessionStorage), keys typically follow this pattern:
 
 ```
-[prefix]:[flowId]:[variantId]:[instanceId]
+[flowId]:[variantId]:[instanceId]
 ```
 
 Examples:
-- `flow:onboarding::` - Default
-- `flow:onboarding:v2:` - With variant
-- `flow:onboarding::user123` - With instance
-- `myapp:checkout:v2:session456` - All options
+- `onboarding::` - Default (no variant or instance)
+- `onboarding:v2:` - With variant
+- `onboarding::user123` - With instance
+- `checkout:v2:session456` - All options
+
+Different stores may use different formats. Check your store's documentation for specifics.
 
 ## Best practices
-
-<Aside type="tip">
-  **TTL Recommendations:**
-  - Onboarding: 7-30 days
-  - Checkout: 1-3 days
-  - Long applications: 30-90 days
-  - Session-only: Use sessionStorage instead
-</Aside>
 
 ### Handle storage errors
 
@@ -286,8 +317,11 @@ Examples:
 // Remove specific flow state
 await persister.remove('onboarding', { instanceId: 'user123' });
 
+// Remove all instances of a flow
+await persister.removeFlow?.('onboarding');
+
 // Clear all persisted data
-await persister.clear();
+await persister.removeAll?.();
 ```
 
 ### Instance IDs for multiple flows

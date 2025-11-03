@@ -510,20 +510,16 @@ type Context = {
 Context is automatically saved when using persistence:
 
 ```tsx
-import { createLocalStorageStore } from "@useflow/react";
+import { createPersister, createLocalStorageStore } from "@useflow/react";
 
-const store = createLocalStorageStore({
-  storage: localStorage,
-  prefix: "my-app",
+const persister = createPersister({
+  store: createLocalStorageStore(localStorage, { prefix: "my-app" }),
 });
 
 <Flow
   flow={myFlow}
   initialContext={{}}
-  persister={{
-    store,
-    saveMode: "auto", // Auto-save on every step change
-  }}
+  persister={persister}
 >
   {({ renderStep }) =>
     renderStep({
@@ -794,5 +790,5 @@ function App() {
 
 - [**Navigation**](/core-concepts/navigation) - Control flow movement
 - [**Persistence Guide**](/guides/persistence) - Save and restore context
-- [**Branching Guide**](/guides/branching) - Use context for conditional navigation
+- [**Branching Flows**](/guides/branching-flows) - Use context for conditional navigation
 - [**Migrations Guide**](/guides/migrations) - Handle context schema changes

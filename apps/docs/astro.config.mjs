@@ -78,7 +78,7 @@ export default defineConfig({
             { label: "Why useFlow?", link: "/getting-started/why-useflow" },
             { label: "Installation", link: "/getting-started/installation" },
             { label: "Quick Start", link: "/getting-started/quick-start" },
-            { label: "TypeScript", link: "/getting-started/typescript" },
+            { label: "Type Safety", link: "/getting-started/type-safety" },
             {
               label: "Decision Guide",
               link: "/getting-started/decision-guide",
@@ -99,7 +99,7 @@ export default defineConfig({
           label: "Guides",
           items: [
             { label: "Linear Flows", link: "/guides/linear-flows" },
-            { label: "Branching", link: "/guides/branching" },
+            { label: "Branching Flows", link: "/guides/branching-flows" },
             { label: "Flow Variants", link: "/guides/flow-variants" },
             { label: "Persistence", link: "/guides/persistence" },
             { label: "Callbacks", link: "/guides/callbacks" },

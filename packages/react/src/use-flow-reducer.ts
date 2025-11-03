@@ -72,7 +72,7 @@ export type UseFlowReducerReturn<
  * @param definition - Flow definition
  * @param initialContext - Initial context values
  * @param initialState - Optional initial state to restore
- * @param resolvers - Optional resolver map for context-driven branching
+ * @param resolvers - Optional resolver map for context-driven navigation
  * @returns Flow state and control functions
  */
 export function useFlowReducer<TContext extends FlowContext>(

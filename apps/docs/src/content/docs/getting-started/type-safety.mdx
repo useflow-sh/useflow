@@ -1,0 +1,426 @@
+---
+title: Type Safety
+description: Leverage useFlow's powerful type safety features
+---
+
+import { Aside, Badge, FileTree, LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+useFlow provides exceptional type safety that catches errors at **compile time**, not runtime. Entire classes of bugs become impossible.
+
+## What you get
+
+useFlow leverages TypeScript to make these guarantees:
+
+1. **Enforced component mapping** - Cannot forget to provide a component for any step
+2. **Step-specific navigation** - Each step knows exactly which steps it can navigate to
+3. **Type-safe resolvers** - Context-driven navigation can only route to valid steps
+4. **Automatic context typing** - Your context type flows through all components automatically
+5. **Compile-time validation** - All of this is checked when you write code, not when users click
+
+**The result:** Navigation bugs, missing components, and invalid context updates literally cannot compile. Refactoring is safe because TypeScript tells you exactly what needs updating.
+
+## The magic: everything is type-safe
+
+### 1. renderStep enforces all components
+
+TypeScript **requires** you to provide components for every step:
+
+```tsx
+const myFlow = defineFlow({
+  id: "checkout",
+  start: "cart",
+  steps: {
+    cart: { next: "shipping" },
+    shipping: { next: "payment" },
+    payment: { next: "confirm" },
+    confirm: {}
+  }
+});
+
+// In your component
+<Flow flow={myFlow}>
+  {({ renderStep }) => renderStep({
+    cart: <CartStep />,
+    shipping: <ShippingStep />,
+    // ❌ TypeScript Error: Missing properties 'payment', 'confirm'
+  })}
+</Flow>
+
+// ✅ Must provide ALL steps
+{({ renderStep }) => renderStep({
+  cart: <CartStep />,
+  shipping: <ShippingStep />,
+  payment: <PaymentStep />,
+  confirm: <ConfirmStep />
+})}
+```
+
+<Aside type="tip">
+  **Why this matters:** You can never accidentally forget to implement a step. Adding a new step to your flow? TypeScript immediately tells you where to add the component.
+</Aside>
+
+### 2. Navigation is fully type-safe
+
+Each step knows **exactly** which steps it can navigate to. TypeScript enforces this at compile time.
+
+There are two ways to control navigation:
+
+#### Component navigation
+
+You control navigation in your components. When you define multiple `next` options, TypeScript enforces which steps are valid:
+
+```tsx
+type SurveyContext = {
+  score?: number;
+};
+
+const surveyFlow = defineFlow({
+  id: "survey",
+  start: "intro",
+  steps: {
+    intro: { next: "question1" },
+    question1: { next: ["question2", "results"] },  // Can go to 2 places
+    question2: { next: "results" },
+    results: {}
+  }
+}).with<SurveyContext>();
+
+function Question1() {
+  // Use the flow-specific hook with step parameter
+  const { next, context } = surveyFlow.useFlow({ step: "question1" });
+  
+  const handleNext = () => {
+    // Decide where to go based on logic
+    if (context.score && context.score > 80) {
+      next("results");    // ✅ Valid - skip question2
+    } else {
+      next("question2");  // ✅ Valid - continue to next question
+    }
+    
+    // TypeScript prevents invalid navigation
+    next("intro");        // ❌ Error: Argument not assignable to '"question2" | "results"'
+    next("invalid");      // ❌ Error: Not a valid next step
+  };
+  
+  return <button onClick={handleNext}>Next</button>;
+}
+```
+
+#### Context navigation
+
+Navigation is controlled automatically by context via resolvers.
+
+<Aside type="tip">
+  **Component navigation overrides context navigation:** When you provide an explicit target to `next(target)`, it takes precedence over any resolver function. The resolver is only used when you call `next()` without arguments.
+</Aside>
+
+```tsx
+type UserFlowContext = {
+  userType?: "business" | "personal";
+  isVerified?: boolean;
+};
+
+const userFlow = defineFlow({
+  id: "user-flow",
+  start: "choose",
+  steps: {
+    choose: { next: ["business", "personal"] },
+    business: { next: ["verify", "complete"] },
+    personal: { next: "complete" },
+    verify: { next: "complete" },
+    complete: {}
+  }
+}).with<UserFlowContext>((steps) => ({
+  resolvers: {
+    // Resolvers are type-safe - can only return steps from the 'next' array
+    choose: (ctx) => 
+      ctx.userType === "business" 
+        ? steps.business  // ✅ Valid - in next: ["business", "personal"]
+        : steps.personal, // ✅ Valid
+      // steps.verify would be ❌ Error - not in next array
+    
+    business: (ctx) =>
+      ctx.isVerified 
+        ? steps.complete  // ✅ Valid - in next: ["verify", "complete"]
+        : steps.verify    // ✅ Valid
+      // steps.personal would be ❌ Error - not in next array
+  }
+}));
+
+function ChooseStep() {
+  const { setContext, next } = userFlow.useFlow({ step: "choose" });
+  
+  // Call next() without arguments - resolver handles the navigation
+  return (
+    <button onClick={() => {
+      setContext({ userType: "business" });
+      next(); // Automatically goes to correct step based on context
+    }}>
+      Business Account
+    </button>
+  );
+}
+
+function BusinessStep() {
+  const { context, next } = userFlow.useFlow({ step: "business" });
+  
+  // You can combine both approaches:
+  // 1. Call next() without args - uses resolver (automatic)
+  next(); // Uses resolver based on context.isVerified
+  
+  // 2. Call next(target) - overrides resolver (manual)
+  next("verify");     // ✅ Ignores resolver, goes directly to verify
+  next("complete");   // ✅ Ignores resolver, goes directly to complete
+  next("personal");   // ❌ Error: Not a valid next step from business
+}
+```
+
+<Aside type="tip">
+  **Why this matters:** No more runtime errors from navigating to invalid steps. Refactoring is safe - change your flow structure and TypeScript shows you exactly what needs updating.
+</Aside>
+
+### 3. Context is fully typed
+
+When using `.with<Context>()`, your context is automatically typed in all components:
+
+```tsx
+type CheckoutContext = {
+  items: CartItem[];
+  total: number;
+};
+
+const checkoutFlow = defineFlow({
+  id: "checkout",
+  start: "cart",
+  steps: {
+    cart: { next: "shipping" },
+    shipping: { next: "payment" },
+    payment: {}
+  }
+}).with<CheckoutContext>();
+
+function ShippingStep() {
+  const { context, setContext } = checkoutFlow.useFlow({ step: "shipping" });
+  
+  console.log(context.total);         // ✅ number
+  setContext({ total: 99.99 });       // ✅ Valid
+  setContext({ total: "99.99" });     // ❌ Error: Type 'string' not assignable
+  setContext({ invalid: true });      // ❌ Error: Property doesn't exist
+}
+```
+
+## Setting up TypeScript
+
+### Recommended: Flow hook with automatic context typing
+
+The best approach uses `.with<Context>()` to bind your context type to the flow, giving you **automatic** context typing and step-specific navigation:
+
+```tsx
+import { defineFlow } from "@useflow/react";
+
+// 1. Define your context type
+type OnboardingContext = {
+  email: string;
+  name: string;
+  preferences?: {
+    theme: "light" | "dark";
+    notifications: boolean;
+  };
+};
+
+// 2. Create your flow with context type
+export const onboardingFlow = defineFlow({
+  id: "onboarding",
+  start: "email",
+  steps: {
+    email: { next: "profile" },
+    profile: { next: "preferences" },
+    preferences: { next: "complete" },
+    complete: {}
+  }
+}).with<OnboardingContext>();
+
+// 3. Use the flow's hook - context is automatically typed!
+function ProfileStep() {
+  // ✅ Context is automatically OnboardingContext
+  // ✅ Step-specific navigation types
+  const { context, setContext, next } = onboardingFlow.useFlow({ step: "profile" });
+  
+  return (
+    <div>
+      <input
+        value={context.name} // Already typed as string
+        onChange={(e) => setContext({ name: e.target.value })}
+      />
+      <button onClick={() => next()}>Continue</button>
+    </div>
+  );
+}
+```
+
+<Aside type="tip">
+  **Why `.with<Context>()`?** You get automatic context typing in every component that uses `myFlow.useFlow()` - no need to specify the generic on every hook call. Plus, you get step-specific navigation types.
+</Aside>
+
+### Alternative: Generic useFlow hook
+
+If you prefer, you can use the generic `useFlow` hook and specify the context type manually:
+
+```tsx
+import { defineFlow, useFlow } from "@useflow/react";
+
+type OnboardingContext = {
+  email: string;
+  name: string;
+};
+
+// Flow without .with<Context>()
+export const onboardingFlow = defineFlow({
+  id: "onboarding",
+  start: "email",
+  steps: {
+    email: { next: "profile" },
+    profile: { next: "complete" },
+    complete: {}
+  }
+});
+
+function ProfileStep() {
+  // ⚠️ Must specify context type on every usage
+  // ⚠️ No step-specific navigation types
+  const { context, setContext, next } = useFlow<OnboardingContext>();
+  
+  return (
+    <div>
+      <input
+        value={context.name}
+        onChange={(e) => setContext({ name: e.target.value })}
+      />
+      <button onClick={() => next()}>Continue</button>
+    </div>
+  );
+}
+```
+
+<Aside type="caution">
+  **Tradeoff:** This approach requires manually specifying `<OnboardingContext>` in every component and doesn't provide step-specific navigation types.
+</Aside>
+
+## Best practices
+
+### 1. Always use the step parameter for navigation type safety
+
+```tsx
+// ✅ Best: Step-specific navigation types
+function MyStep() {
+  const { next } = myFlow.useFlow({ step: "currentStep" });
+  // TypeScript knows valid next steps for THIS specific step
+}
+
+// ⚠️ Less type safety: No step-specific validation
+function MyStep() {
+  const { next } = myFlow.useFlow();
+}
+```
+
+### 2. Make optional fields explicit
+
+```tsx
+type Context = {
+  // Required from start
+  email: string;
+  
+  // Added in later steps
+  name?: string;
+  age?: number;
+};
+
+// Initial context only needs required fields
+<Flow 
+  flow={myFlow}
+  initialContext={{ email: "" }} // ✅ Valid, optional fields can be omitted
+/>
+```
+
+## Common patterns
+
+### Discriminated unions for branching
+
+```tsx
+type CheckoutContext = 
+  | { type: "guest"; email: string }
+  | { type: "member"; userId: string; savedCards: Card[] };
+
+function PaymentStep() {
+  const { context } = useFlow<CheckoutContext>();
+  
+  if (context.type === "guest") {
+    // TypeScript knows: context.email exists, context.userId doesn't
+    return <GuestCheckout email={context.email} />;
+  } else {
+    // TypeScript knows: context.userId and savedCards exist
+    return <MemberCheckout cards={context.savedCards} />;
+  }
+}
+```
+
+## Troubleshooting
+
+### "Cannot navigate to step X"
+
+<Aside type="caution">
+  You're trying to navigate to a step that's not in the `next` array:
+</Aside>
+
+```tsx
+// Flow definition
+profile: { next: "preferences" }
+
+// Error in component
+next("welcome"); // ❌ Can't go backward with next()
+
+// Solution: Use back() or add to next array
+back(); // ✅ Goes to previous step
+```
+
+### "Missing properties in renderStep"
+
+You haven't provided components for all steps:
+
+```tsx
+// Check your flow definition for ALL steps
+const flow = defineFlow({
+  steps: {
+    a: { next: "b" },
+    b: { next: "c" },
+    c: {}  // Don't forget terminal steps!
+  }
+});
+
+// Must provide all three
+renderStep({
+  a: <A />,
+  b: <B />,
+  c: <C />  // Including terminal step
+});
+```
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Core Concepts"
+    description="Deep dive into flows and navigation"
+    href="/core-concepts/"
+  />
+  <LinkCard
+    title="Branching Flows"
+    description="Build complex conditional flows"
+    href="/guides/branching-flows"
+  />
+  <LinkCard
+    title="API Reference"
+    description="Complete type definitions"
+    href="/api-reference/define-flow"
+  />
+</CardGrid>

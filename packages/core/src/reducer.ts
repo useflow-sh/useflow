@@ -106,7 +106,7 @@ export function createInitialState<TContext extends FlowContext>(
  * @param state - Current flow state
  * @param action - Action to perform
  * @param definition - Flow definition
- * @param options - Optional runtime configuration (resolvers for context-driven branching)
+ * @param options - Optional runtime configuration (resolvers for context-driven navigation)
  * @returns New flow state
  */
 export function flowReducer<TContext extends FlowContext>(

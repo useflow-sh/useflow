@@ -20,15 +20,16 @@ In useFlow, branching is achieved by defining multiple possible next steps for a
 }
 ```
 
-## Context-driven branching
+## Context-driven navigation
 
-Context-driven branching uses a **resolve function** to automatically determine the next step based on the current context. The flow decides where to go without the component needing to know about routing logic.
+Context-driven navigation uses a **resolve function** to automatically determine the next step based on the current context.
+The flow decides where to go without the component needing to know about navigation logic.
 
 ### When to use
 
 - **Business logic determines the path** (user role, subscription tier, feature flags)
 - **Conditional steps** that should be shown/hidden based on data
-- **Separation of concerns** - keep routing logic out of UI components
+- **Separation of concerns** - keep navigation logic out of UI components
 - **Server-driven flows** where the backend determines the path
 
 ### Basic example
@@ -68,7 +69,7 @@ export const flow = defineFlow({
 
 ### Component implementation
 
-The component just calls `next()` with no arguments - the resolve function handles routing:
+The component just calls `next()` with no arguments - the resolve function handles navigation:
 
 ```tsx title="UserTypeStep.tsx"
 export function UserTypeStep() {
@@ -114,14 +115,14 @@ resolvers: {
 }
 ```
 
-## Component-driven branching
+## Component-driven navigation
 
-Component-driven branching puts routing control in the component's hands. The component explicitly chooses which step to navigate to by passing a target to `next()`.
+Component-driven navigation puts navigation control in the component's hands. The component explicitly chooses which step to navigate to by passing a target to `next()`.
 
 ### When to use
 
 - **User makes explicit navigation choice** (skip vs continue, save draft vs publish)
-- **UI-driven routing** where the button clicked determines the path
+- **UI-driven navigation** where the button clicked determines the path
 - **Dynamic branching** based on form validation or user interaction
 - **Multi-path flows** with clear user choice points
 
@@ -221,7 +222,7 @@ export const flow = defineFlow({
   }
 }).with((steps) => ({
   resolvers: {
-    // Automatic routing based on context
+    // Automatic navigation based on context
     userType: (ctx) =>
       ctx.userType === "business"
         ? steps.businessDetails
@@ -387,7 +388,7 @@ defineFlow({
 
 | Pattern | Best For | Example |
 |---------|----------|---------|
-| **Context-Driven** | Business logic, automatic decisions | User role routing, feature flags |
+| **Context-Driven** | Business logic, automatic decisions | User role navigation, feature flags |
 | **Component-Driven** | User choice, explicit actions | "Skip" vs "Continue", "Save" vs "Publish" |
 
 ### Keep resolve functions pure
@@ -450,7 +451,7 @@ export const flow = defineFlow({
 
 ### Use TypeScript for safety
 
-Leverage TypeScript to catch routing errors at compile time:
+Leverage TypeScript to catch navigation errors at compile time:
 
 ```typescript
 // Define context type with all possible branch conditions
@@ -497,7 +498,7 @@ export const onboardingFlow = defineFlow({
     profile: {
       next: "userType"
     },
-    // Context-driven: automatic routing based on userType
+    // Context-driven: automatic navigation based on userType
     userType: {
       next: ["businessDetails", "setupPreference"]
     },

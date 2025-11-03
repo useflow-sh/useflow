@@ -20,8 +20,8 @@ export type ContextUpdate<TContext extends FlowContext = FlowContext> =
  * Step transition configuration
  * - string: Single static destination - component calls next() with no args
  * - string[]: Multiple destinations - requires either:
- *   - resolve function for context-driven branching, OR
- *   - component calls next('target') with explicit target for component-driven branching
+ *   - resolve function for context-driven navigation, OR
+ *   - component calls next('target') with explicit target for component-driven navigation
  */
 export type StepTransition = string | readonly string[];
 

@@ -64,11 +64,12 @@ Build a complete onboarding flow in 3 simple steps:
      }
    }).with<OnboardingContext>((steps) => ({
      resolvers: {
-       // Automatic navigation based on context
+       // Type-safe: can only return steps in next array
        userType: (ctx) => 
          ctx.accountType === "business" 
-           ? steps.business 
-           : steps.personal
+           ? steps.business  // ✅ Valid
+           : steps.personal  // ✅ Valid
+       // steps.complete would be ❌ TypeScript error
      }
    }));
    ```
@@ -140,15 +141,16 @@ Build a complete onboarding flow in 3 simple steps:
      store: createLocalStorageStore() 
    });
 
-   <Flow flow={onboardingFlow} persister={persister}>
-     {({ renderStep }) => renderStep({
-       welcome: <WelcomeStep />,
-       userType: <UserTypeStep />,
-       business: <BusinessStep />,
-       personal: <PersonalStep />,
-       complete: <CompleteStep />
-     })}
-   </Flow>
+    <Flow flow={onboardingFlow} persister={persister}>
+      {({ renderStep }) => renderStep({
+        // TypeScript enforces all steps must be provided - can't miss any!
+        welcome: <WelcomeStep />,
+        userType: <UserTypeStep />,
+        business: <BusinessStep />,
+        personal: <PersonalStep />,
+        complete: <CompleteStep />
+      })}
+    </Flow>
    ```
 
 </Steps>
@@ -259,7 +261,7 @@ Build a complete onboarding flow in 3 simple steps:
 
 <CardGrid>
   <Card title="Remote Configuration" icon="setting">
-    Modify flows without deploying. Pdate step order and branching logic from your backend.
+    Modify flows without deploying. Update step order and branching logic from your backend.
   </Card>
   <Card title="A/B Testing" icon="random">
     Test flow variants. See which path converts best.

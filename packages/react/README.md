@@ -461,7 +461,7 @@ function WelcomeStep() {
 
 ## Advanced Usage
 
-### Context-Driven Branching
+### Context-Driven navigation
 
 Flow decides next step based on context using resolver functions:
 
@@ -503,7 +503,7 @@ const flow = defineFlow({
 
 **Type Safety:** The `.with<Context>()` method provides full type safety. The `steps` parameter gives you autocomplete for step names, and the `ctx` parameter is typed as your context.
 
-### Component-Driven Branching (Array Navigation)
+### Component-Driven navigation (Array Navigation)
 
 Component explicitly chooses which step to navigate to:
 
@@ -1737,7 +1737,7 @@ function ProfileStep() {
 See the [react-examples](../../examples/react-examples) directory for complete implementations:
 
 - **Simple Flow** - Linear step-by-step navigation
-- **Branching Flow** - Conditional navigation with context-driven and component-driven branching
+- **Branching Flow** - Conditional navigation with context-driven and component-driven navigation
 - **Task Flow** - Multiple flow instances with separate state
 - **Survey Flow** - Event hooks (onNext, onBack, onTransition)
 - **Flow Variants** - Runtime flow switching for A/B testing

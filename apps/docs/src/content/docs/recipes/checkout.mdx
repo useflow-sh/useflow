@@ -579,6 +579,97 @@ async function processPayment(data: any) {
 }
 ```
 
+### Review step
+
+```tsx title="ReviewStep.tsx"
+import { checkoutFlow } from "./flow";
+
+export function ReviewStep() {
+  const { context, next, back } = checkoutFlow.useFlow({
+    step: "review"
+  });
+
+  const handlePlaceOrder = async () => {
+    // Generate order ID and place order
+    const orderId = `ORD-${Date.now()}`;
+    next({ orderId, orderDate: Date.now() });
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6">Review Your Order</h2>
+      
+      {/* Order Items */}
+      <div className="mb-6">
+        <h3 className="font-semibold mb-3">Order Items</h3>
+        {context.items.map(item => (
+          <div key={item.id} className="flex justify-between py-2">
+            <span>{item.name} × {item.quantity}</span>
+            <span>${(item.price * item.quantity).toFixed(2)}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Shipping Address */}
+      <div className="mb-6">
+        <h3 className="font-semibold mb-2">Shipping Address</h3>
+        <p className="text-gray-600">
+          {context.shippingAddress?.fullName}<br />
+          {context.shippingAddress?.addressLine1}<br />
+          {context.shippingAddress?.city}, {context.shippingAddress?.state} {context.shippingAddress?.zipCode}
+        </p>
+      </div>
+
+      {/* Payment Method */}
+      <div className="mb-6">
+        <h3 className="font-semibold mb-2">Payment Method</h3>
+        <p className="text-gray-600">
+          {context.paymentMethod?.type === "card" 
+            ? `Card ending in ${context.paymentMethod.last4}` 
+            : "PayPal"}
+        </p>
+      </div>
+
+      {/* Order Total */}
+      <div className="border-t pt-4 mb-6">
+        <div className="flex justify-between py-1">
+          <span>Subtotal</span>
+          <span>${context.subtotal.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between py-1">
+          <span>Shipping</span>
+          <span>${context.shipping.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between py-1">
+          <span>Tax</span>
+          <span>${context.tax.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between font-bold text-lg pt-2 border-t">
+          <span>Total</span>
+          <span>${context.total.toFixed(2)}</span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-4">
+        <button
+          onClick={back}
+          className="flex-1 px-6 py-3 border rounded"
+        >
+          Back to Payment
+        </button>
+        <button
+          onClick={handlePlaceOrder}
+          className="flex-1 px-6 py-3 bg-blue-600 text-white rounded"
+        >
+          Place Order
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
 ### Confirmation step
 
 ```tsx title="ConfirmationStep.tsx"
@@ -717,7 +808,7 @@ export function CheckoutFlow({ initialCart }: { initialCart: any[] }) {
 ## Next steps
 
 - [Onboarding Flow](/recipes/onboarding)
-- [Form Validation](/recipes/form-validation)
+- [Survey Flow](/recipes/survey)
 - [Persistence Guide](/guides/persistence)
 - [Testing Guide](/guides/testing)
 

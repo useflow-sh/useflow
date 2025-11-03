@@ -67,7 +67,7 @@ const store = createMemoryStore();
 const persister = createPersister({ store });
 ```
 
-### React native asyncstorage
+### React Native AsyncStorage
 
 ```tsx
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -408,6 +408,113 @@ import { createDatabaseStore } from "./stores/database";
 const store = createDatabaseStore(myDatabase);
 const persister = createPersister({ store });
 ```
+
+## Serialization
+
+Flow state is serialized to JSON for storage. The default serializer handles most common types, but you may need a custom serializer for complex data.
+
+### Default serialization
+
+The default `JsonSerializer` uses `JSON.stringify()` and `JSON.parse()`:
+
+```tsx
+import { createPersister, JsonSerializer } from "@useflow/react";
+
+const persister = createPersister({
+  store,
+  serializer: JsonSerializer, // This is the default
+});
+```
+
+**What works:**
+- Primitives (string, number, boolean, null)
+- Objects and arrays
+- Nested structures
+
+**What doesn't work:**
+- Dates (serialized as strings)
+- Maps, Sets (lost during serialization)
+- Functions (stripped out)
+- Class instances (lose their methods)
+- Circular references (throws error)
+
+### Custom serializers
+
+Create custom serializers for complex data types:
+
+```tsx
+import type { FlowSerializer } from "@useflow/react";
+
+const customSerializer: FlowSerializer = {
+  serialize: (state) => {
+    // Transform before stringifying
+    const transformed = {
+      ...state,
+      context: {
+        ...state.context,
+        // Convert Date to ISO string
+        createdAt: state.context.createdAt?.toISOString(),
+        // Convert Map to array
+        preferences: state.context.preferences 
+          ? Array.from(state.context.preferences.entries())
+          : null,
+      },
+    };
+    return JSON.stringify(transformed);
+  },
+
+  deserialize: (data) => {
+    const parsed = JSON.parse(data);
+    // Transform back to original types
+    return {
+      ...parsed,
+      context: {
+        ...parsed.context,
+        // Restore Date
+        createdAt: parsed.context.createdAt 
+          ? new Date(parsed.context.createdAt)
+          : undefined,
+        // Restore Map
+        preferences: parsed.context.preferences
+          ? new Map(parsed.context.preferences)
+          : undefined,
+      },
+    };
+  },
+};
+
+const persister = createPersister({
+  store,
+  serializer: customSerializer,
+});
+```
+
+### SuperJSON for complex types
+
+For automatic handling of complex types, use [SuperJSON](https://github.com/blitz-js/superjson):
+
+```tsx
+import SuperJSON from "superjson";
+import type { FlowSerializer } from "@useflow/react";
+
+const superJsonSerializer: FlowSerializer = {
+  serialize: (state) => SuperJSON.stringify(state),
+  deserialize: (data) => SuperJSON.parse(data),
+};
+
+const persister = createPersister({
+  store,
+  serializer: superJsonSerializer,
+});
+```
+
+SuperJSON automatically handles:
+- Dates
+- RegExp
+- Maps, Sets
+- BigInt
+- Typed arrays
+- And more
 
 ### Key-value store adapter
 

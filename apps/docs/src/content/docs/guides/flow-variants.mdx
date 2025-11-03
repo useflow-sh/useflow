@@ -131,9 +131,9 @@ function App() {
 }
 ```
 
-## Reusing components
+## Providing components for all variants
 
-The key to flow variants is that **step components can be reused** across different flows. Components use the generic `useFlow()` hook instead of flow-specific hooks:
+When using flow variants, you must **provide components for all steps** across all variants. Components use the generic `useFlow()` hook to work with any flow:
 
 ```tsx
 // ✅ Flow-agnostic component - works with any flow
@@ -167,6 +167,10 @@ When you use `renderStep()`, you provide components for **all possible steps** a
   })
 }
 ```
+
+:::tip[TypeScript Enforcement]
+**TypeScript requires all steps from all variants to be provided.** If you forget a step that exists in any variant, you'll get a compile-time error. This ensures your app won't crash when users switch between variants.
+:::
 
 ## Common use cases
 
@@ -310,7 +314,7 @@ Your API can return different flow definitions based on:
 - User preferences
 
 :::tip[Resolver Functions]
-While flow definitions are JSON-serializable, **resolver functions** for context-driven branching must be defined in your code. Remote flows can specify which resolvers to use by name, and you map them in your application.
+While flow definitions are JSON-serializable, **resolver functions** for context-driven navigation must be defined in your code. Remote flows can specify which resolvers to use by name, and you map them in your application.
 :::
 
 ## Persistence with variants
@@ -352,7 +356,7 @@ Users can switch between variants and continue where they left off in each.
 
 ## Type safety
 
-TypeScript automatically infers the union of all step names when you use multiple flows:
+TypeScript automatically infers the union of all step names when you use multiple flows and **enforces that you provide components for every step**:
 
 ```tsx
 const standardFlow = defineFlow({
@@ -386,12 +390,15 @@ const selectedFlow = useExpress ? expressFlow : standardFlow;
     renderStep({
       welcome: <WelcomeStep />,
       account: <AccountStep />,
-      verification: <VerificationStep />, // Required even though only in standard
+      verification: <VerificationStep />, // ✅ Required even though only in standard
       complete: <CompleteStep />,
+      // Missing any step would be ❌ TypeScript Error
     })
   }
 </Flow>
 ```
+
+This prevents runtime errors when users switch between variants - if a component is missing, TypeScript catches it at compile time.
 
 ## Best practices
 
@@ -496,7 +503,7 @@ Check out the [Flow Variants demo]({REPO_EXAMPLES_URL}/react-examples/src/flows/
 
 ## Next steps
 
-- [Branching](/guides/branching) - Conditional navigation within flows
+- [Branching](/guides/branching-flows) - Conditional navigation within flows
 - [Persistence](/guides/persistence) - Save and restore flow progress
 - [Callbacks](/guides/callbacks) - React to flow events
 - [Migrations](/guides/migrations) - Handle flow structure changes

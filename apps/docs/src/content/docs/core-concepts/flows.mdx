@@ -75,7 +75,7 @@ steps: {
 
 There are **two ways** to handle branching:
 
-#### 1. Context-Driven Branching (with Resolvers)
+#### 1. Context-Driven navigation (with Resolvers)
 
 Flow automatically decides based on context:
 
@@ -101,7 +101,7 @@ const flow = defineFlow({
 }));
 ```
 
-#### 2. Component-Driven Branching (Explicit Navigation)
+#### 2. Component-Driven navigation (Explicit Navigation)
 
 Component explicitly chooses the destination:
 
@@ -118,7 +118,7 @@ function UserTypeStep() {
 }
 ```
 
-[Learn more about branching →](/guides/branching)
+[Learn more about branching →](/guides/branching-flows)
 
 ### Terminal steps
 
@@ -368,7 +368,7 @@ This enables:
 - **Feature flags**: Enable/disable steps remotely
 
 :::tip[Resolver Functions]
-While flow definitions are JSON-serializable, **resolver functions** for context-driven branching must be defined in your code. Remote flows can specify which resolvers to use by name, and you map them in your application.
+While flow definitions are JSON-serializable, **resolver functions** for context-driven navigation must be defined in your code. Remote flows can specify which resolvers to use by name, and you map them in your application.
 :::
 
 ## Flow definition vs runtime flow
@@ -433,7 +433,7 @@ export const onboardingFlow = defineFlow({
       next: 'userType' 
     },
     userType: { 
-      // Context-driven branching
+      // Context-driven navigation
       next: ['businessDetails', 'preferences'] 
     },
     businessDetails: { 
@@ -445,7 +445,7 @@ export const onboardingFlow = defineFlow({
     complete: {}
   }
 }).with<OnboardingContext>((steps) => ({
-  // Resolver for context-driven branching
+  // Resolver for context-driven navigation
   resolvers: {
     userType: (ctx) => 
       ctx.userType === 'business' 
@@ -537,6 +537,6 @@ const express = defineFlow({ id: 'onboarding', variantId: 'express', /* ... */ }
 - [**Steps & Transitions**](/core-concepts/steps) - Learn about step components
 - [**Context**](/core-concepts/context) - Manage shared state
 - [**Navigation**](/core-concepts/navigation) - Control flow movement
-- [**Branching Guide**](/guides/branching) - Deep dive into branching patterns
+- [**Branching Flows**](/guides/branching-flows) - Deep dive into branching patterns
 - [**Flow Variants**](/guides/flow-variants) - A/B testing and dynamic flows
 - [**Migrations Guide**](/guides/migrations) - Handle schema changes

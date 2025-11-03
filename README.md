@@ -8,7 +8,7 @@ useflow is a lightweight library for building multi-step flows like onboarding, 
 
 - 🎯 **Declarative flow definitions** - Define your flow steps once, components show/hide automatically
 - 🔒 **Type-safe** - Full TypeScript support with intelligent type inference
-- 🔄 **Flexible navigation** - Linear flows, conditional branching, and component-driven routing
+- 🔄 **Flexible navigation** - Linear flows, conditional component-driven and context-driven navigation
 - 💾 **Built-in persistence** - Save and restore flow progress with localStorage, sessionStorage, or custom storage
 - 🎨 **Intuitive API** - Simple `defineFlow()` and `<Flow>` component pattern
 - 📦 **Framework agnostic core** - React adapter included, other frameworks coming soon
@@ -179,7 +179,7 @@ See the [`@useflow/react` README](./packages/react/README.md#global-configuratio
 
 ## Advanced Features
 
-### Context-Driven Branching
+### Context-Driven navigation
 
 Navigate to different steps based on context values using resolver functions:
 
@@ -228,7 +228,7 @@ The `.with<Context>()` method is a **builder pattern** that:
 - ✅ Resolver return values are validated against step names
 - ✅ No string typos possible
 
-### Component-Driven Branching (Array Navigation)
+### Component-Driven navigation (Array Navigation)
 
 Let components explicitly choose which step to navigate to:
 
@@ -539,7 +539,7 @@ Control where the current step renders:
 See the [react-examples](./examples/react-examples) directory for complete working implementations:
 
 - **Simple Flow** - Linear step-by-step navigation
-- **Branching Flow** - Conditional navigation with context-driven branching
+- **Branching Flow** - Conditional navigation with context-driven navigation
 - **Task Flow** - Multiple flow instances with separate state
 - **Survey Flow** - Event hooks (onNext, onBack, onTransition)
 - **Flow Variants** - Runtime flow switching
@@ -633,7 +633,7 @@ useflow is inspired by:
 - ✅ Type-safe navigation out of the box
 - ✅ History management included
 - ✅ Well-tested state management
-- ✅ Conditional branching built-in
+- ✅ Conditional navidation built-in
 
 **vs XState:**
 

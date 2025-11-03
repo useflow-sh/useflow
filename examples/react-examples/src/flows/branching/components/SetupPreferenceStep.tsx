@@ -29,7 +29,7 @@ export function SetupPreferenceStep() {
   });
 
   const handleContinue = () => {
-    // Component-driven branching: component explicitly chooses destination
+    // Component-driven navigation: component explicitly chooses destination
     // next() is now typed as: (target: "preferences" | "complete") => void
     const target =
       context.setupPreference === "advanced" ? "preferences" : "complete";

@@ -5,13 +5,13 @@ import { defineFlow } from "@useflow/react";
  *
  * This flow showcases two types of branching:
  *
- * 1. **Context-Driven Branching** (userType step):
+ * 1. **Context-Driven navigation** (userType step):
  *    - Flow automatically decides next step based on context
  *    - Business users see businessDetails step, personal users skip it
  *    - Configured with: next: ["businessDetails", "setupPreference"] + resolve function
  *    - The resolve function is defined in runtimeConfig and returns the appropriate step
  *
- * 2. **Component-Driven Branching** (setupPreference step):
+ * 2. **Component-Driven navigation** (setupPreference step):
  *    - Component explicitly chooses which step to navigate to
  *    - Advanced setup calls next("preferences"), quick setup calls next("complete")
  *    - Configured with: next: ["preferences", "complete"]

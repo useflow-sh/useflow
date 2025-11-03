@@ -21,7 +21,7 @@ useFlow provides callback props at both the `Flow` component level and globally 
 
 ## Available callbacks
 
-### onNext
+### `onNext`
 
 Called when navigating forward (calling `next()` or `next(target)`):
 
@@ -56,7 +56,7 @@ Called when navigating forward (calling `next()` or `next(target)`):
 - Trigger validation feedback
 - Update progress indicators
 
-### onSkip
+### `onSkip`
 
 Called when skipping a step (calling `skip()` or `skip(target)`):
 
@@ -82,7 +82,7 @@ Called when skipping a step (calling `skip()` or `skip(target)`):
 - A/B test "Skip" vs "Continue" flows
 - Log feature adoption
 
-### onBack
+### `onBack`
 
 Called when navigating backward (calling `back()`):
 
@@ -109,7 +109,7 @@ Called when navigating backward (calling `back()`):
 - Log form correction behavior
 - Measure conversion funnel drop-off
 
-### onTransition
+### `onTransition`
 
 Called on **any** navigation (next, skip, or back):
 
@@ -148,7 +148,7 @@ Called on **any** navigation (next, skip, or back):
 - Update page titles
 - Track overall flow progression
 
-### onComplete
+### `onComplete`
 
 Called when the flow reaches a terminal step (step with no `next`):
 
@@ -189,7 +189,7 @@ Called when the flow reaches a terminal step (step with no `next`):
 - Redirect to next page
 - Clear saved state
 
-### onContextUpdate
+### `onContextUpdate`
 
 Called whenever context is updated via `setContext()`:
 
@@ -757,4 +757,4 @@ export function SurveyFlow() {
 - [Global Configuration](/guides/global-configuration) - Configure callbacks globally
 - [Persistence](/guides/persistence) - Use persistence callbacks
 - [Testing](/guides/testing) - Test flows with callbacks
-- [TypeScript](/getting-started/typescript) - Type-safe callbacks
+- [TypeScript](/getting-started/type-safety) - Type-safe callbacks

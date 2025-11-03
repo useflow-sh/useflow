@@ -84,7 +84,7 @@ type StepTransition =
   | string[];        // Multiple options (component-driven or context-driven)
 ```
 
-For context-driven branching with arrays, use the `resolve` property on `StepDefinition`.
+For context-driven navigation with arrays, use the `resolve` property on `StepDefinition`.
 
 #### `FlowState<TContext>`
 
@@ -183,9 +183,9 @@ const flow: FlowDefinition = {
 };
 ```
 
-### Context-Driven Branching
+### Context-Driven navigation
 
-Dynamic routing based on context using runtime resolvers (implemented by framework adapters like `@useflow/react`):
+Conditional navigation based on context using runtime resolvers (implemented by framework adapters like `@useflow/react`):
 
 ```typescript
 type Context = {
@@ -215,7 +215,7 @@ const resolvers = {
 
 **Note:** Framework adapters like `@useflow/react` provide the `defineFlow()` function with a `runtimeConfig` parameter for defining resolvers with type-safe step references.
 
-### Component-Driven Branching (Array Navigation)
+### Component-Driven navigation (Array Navigation)
 
 Component explicitly chooses which step to navigate to:
 

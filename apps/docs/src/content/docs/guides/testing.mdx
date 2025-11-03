@@ -203,7 +203,7 @@ it("should persist context across steps", () => {
 
 ## Testing branching
 
-### Testing context-driven branching
+### Testing context-driven navigation
 
 Test that resolve functions route correctly:
 
@@ -231,7 +231,7 @@ const branchingFlow = defineFlow({
 }));
 ```
 
-### Testing component-driven branching
+### Testing component-driven navigation
 
 Test explicit navigation targets:
 
@@ -342,10 +342,13 @@ Use `createMemoryStore()` for testing persistence without affecting actual brows
 Test that state persists and restores:
 
 ```tsx
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryStore, createPersister } from "@useflow/react";
+import { vi } from "vitest";
 
 it("should save and restore state", async () => {
   const store = createMemoryStore();
+  const setSpy = vi.spyOn(store, 'set');
   const persister = createPersister({ store });
 
   // First render: Navigate and save
@@ -368,7 +371,7 @@ it("should save and restore state", async () => {
 
   // Wait for save to complete
   await waitFor(() => {
-    expect(persister.save).toHaveBeenCalled();
+    expect(setSpy).toHaveBeenCalled();
   });
 
   unmount();
@@ -741,7 +744,7 @@ it("should match welcome step snapshot", () => {
 
 ## Next steps
 
-- [TypeScript](/getting-started/typescript) - Type-safe testing
+- [TypeScript](/getting-started/type-safety) - Type-safe testing
 - [Callbacks](/guides/callbacks) - Test flow callbacks
 - [Persistence](/guides/persistence) - Test persistence
-- [Branching](/guides/branching) - Test branching logic
+- [Branching](/guides/branching-flows) - Test branching logic

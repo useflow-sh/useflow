@@ -67,11 +67,11 @@ Welcome → Profile → Preferences → Complete
 **Complexity:** Intermediate  
 **Path:** `/branching`
 
-Demonstrates dynamic routing based on user choices.
+Demonstrates conditional navigation based on user choices.
 
 **Features:**
 
-- Context-driven branching (flow decides path)
+- Context-driven navigation (flow decides path)
 - Component-driven navigation (component chooses)
 - Conditional steps
 - State persistence
@@ -87,8 +87,8 @@ Setup: Skip to Complete OR Configure Preferences → Complete
 
 **Key Concepts:**
 
-- Context-driven branching: `next: ["details", "setup"], resolvers: (ctx) => ctx.userType === "business" ? "details" : "setup"`
-- Component-driven branching: `next: ["preferences", "complete"]` + `next("complete")`
+- Context-driven navigation: `next: ["details", "setup"], resolvers: (ctx) => ctx.userType === "business" ? "details" : "setup"`
+- Component-driven navigation: `next: ["preferences", "complete"]` + `next("complete")`
 - Multiple navigation patterns in one flow
 
 ---
@@ -433,7 +433,7 @@ Smooth slide-up animations defined in `index.css`:
 
 ## Navigation Patterns
 
-### Pattern 1: Context-Driven Branching
+### Pattern 1: Context-Driven navigation
 
 Flow automatically routes based on context using the `resolve` property:
 
@@ -455,7 +455,7 @@ function UserTypeStep() {
 }
 ```
 
-### Pattern 2: Component-Driven Branching
+### Pattern 2: Component-Driven navigation
 
 Component explicitly chooses destination:
 

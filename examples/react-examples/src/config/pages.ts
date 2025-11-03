@@ -90,9 +90,9 @@ export const pages: PageConfig[] = [
     isGalleryItem: true,
     galleryTitle: "Branching Flow",
     galleryDescription:
-      "Conditional navigation with context and component-driven branching",
+      "Conditional navigation with context and component-driven navigation",
     features: [
-      "Context-driven branching",
+      "Context-driven navigation",
       "Component-driven navigation",
       "Conditional steps",
       "State persistence (persister)",

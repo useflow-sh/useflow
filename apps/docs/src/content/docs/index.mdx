@@ -21,10 +21,11 @@ import { Card, CardGrid, Steps, Code, Tabs, TabItem } from "@astrojs/starlight/c
 
 <CardGrid stagger>
   <Card title="Declarative" icon="document">
-    Define your flow structure once. No more `if/else` chains scattered across components.
+    Centralized, declarative flow structure. No more conditional navigation
+    logic scattered across components.
   </Card>
   <Card title="Built-in Persistence" icon="seti:db">
-    Enable with 2 lines of code. Sers continue exactly where they left off.
+    Enable with 2 lines of code. Users continue exactly where they left off.
   </Card>
   <Card title="Type-Safe" icon="seti:typescript">
     Full TypeScript support. Your IDE knows every step, catches navigation errors at compile time.
@@ -63,7 +64,7 @@ Build a complete onboarding flow in 3 simple steps:
      }
    }).with<OnboardingContext>((steps) => ({
      resolvers: {
-       // Automatic routing based on context
+       // Automatic navigation based on context
        userType: (ctx) => 
          ctx.accountType === "business" 
            ? steps.business 
@@ -81,7 +82,7 @@ Build a complete onboarding flow in 3 simple steps:
      const { context, setContext, next } = useFlow();
      
      const handleSubmit = () => {
-       next(); // Automatically routes based on accountType
+       next(); // Automatically navigates based on accountType
      };
 
      return (
@@ -152,7 +153,7 @@ Build a complete onboarding flow in 3 simple steps:
 
 </Steps>
 
-**That's it!** Users can now close their browser and return exactly where they left off. No manual state management, no localStorage code, no routing logic.
+**That's it!** Users can now close their browser and return exactly where they left off. No manual state management, no localStorage code, no navigation logic.
 
 ## Perfect for
 

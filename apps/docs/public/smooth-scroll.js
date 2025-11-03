@@ -3,6 +3,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // Handle anchor links (within same page)
   document.querySelectorAll('a[href*="#"]').forEach((anchor) => {
     anchor.addEventListener("click", (e) => {
+      // Skip Starlight's tab buttons and other UI elements with role="tab"
+      if (anchor.getAttribute("role") === "tab") {
+        return;
+      }
+
       const href = anchor.getAttribute("href");
       if (href) {
         const hashIndex = href.indexOf("#");

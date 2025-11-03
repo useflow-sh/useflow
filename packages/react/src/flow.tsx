@@ -678,6 +678,9 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     isRestoring,
     steps,
     nextSteps,
+    // Computed navigation flags
+    canGoBack: flowState.path.length > 1,
+    canGoNext: nextSteps !== undefined,
     renderStep,
   };
 

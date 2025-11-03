@@ -146,10 +146,7 @@ Go back to the previous step:
 
 ```tsx
 function MyStep() {
-  const { next, back, path } = useFlow();
-  
-  // Check if we can go back by looking at path length
-  const canGoBack = path.length > 1;
+  const { next, back, canGoBack } = useFlow();
   
   return (
     <div>
@@ -326,14 +323,11 @@ function PreferencesStep() {
 
 ### Checking if back navigation is available
 
-You can check if back navigation is available by examining the path:
+You can check if back navigation is available using `canGoBack`:
 
 ```tsx
 function MyStep() {
-  const { back, path } = useFlow();
-  
-  // Can go back if we're not on the first step
-  const canGoBack = path.length > 1;
+  const { back, canGoBack } = useFlow();
   
   return (
     <div>
@@ -346,7 +340,7 @@ function MyStep() {
 ```
 
 Back navigation is available when:
-- Path has more than 1 entry (not on first step)
+- User is not on the first step
 - Flow status is "active"
 
 ### `nextSteps`
@@ -593,20 +587,20 @@ Add keyboard shortcuts:
 
 ```tsx
 function MyStep() {
-  const { next, back, path } = useFlow();
+  const { next, back, canGoBack } = useFlow();
   
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
         next();
-      } else if (e.key === 'Escape' && path.length > 1) {
+      } else if (e.key === 'Escape' && canGoBack) {
         back();
       }
     };
     
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [next, back, path]);
+  }, [next, back, canGoBack]);
   
   return <div>Press Enter to continue, Esc to go back</div>;
 }
@@ -772,10 +766,7 @@ When possible, allow users to go back:
 
 ```tsx
 function MyStep() {
-  const { next, back, path } = useFlow();
-  
-  // Check if we can go back
-  const canGoBack = path.length > 1;
+  const { next, back, canGoBack } = useFlow();
   
   return (
     <div className="navigation">

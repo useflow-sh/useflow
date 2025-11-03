@@ -315,7 +315,7 @@ const persister = createPersister({ store });
 
 ```tsx
 <Flow flow={myFlow}>
-  {({ renderStep, stepId, context, back, next, canGoBack }) => (
+  {({ renderStep, stepId, context, back, next, canGoBack, canGoNext }) => (
     <div className="custom-layout">
       <header>
         <h1>Step: {stepId}</h1>
@@ -333,7 +333,7 @@ const persister = createPersister({ store });
         <button onClick={back} disabled={!canGoBack}>
           Back
         </button>
-        <button onClick={() => next()}>
+        <button onClick={() => next()} disabled={!canGoNext}>
           Next
         </button>
       </footer>

@@ -67,6 +67,16 @@ export type UseFlowReturn<
   nextSteps: readonly TValidNextSteps[] | undefined;
 
   /**
+   * Whether the user can navigate back (true if path.length > 1)
+   */
+  canGoBack: boolean;
+
+  /**
+   * Whether the user can navigate forward (true if not on a terminal step)
+   */
+  canGoNext: boolean;
+
+  /**
    * Helper function to render the current step
    * Pass a record mapping step names to React elements
    *

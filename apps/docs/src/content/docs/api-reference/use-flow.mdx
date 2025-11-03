@@ -65,6 +65,10 @@ The hook returns an object containing:
   // Flow status
   status: "active" | "completed";
   
+  // Navigation availability
+  canGoBack: boolean;  // True if user can navigate back
+  canGoNext: boolean;  // True if user can navigate forward
+  
   // Timestamps
   startedAt: number;
   completedAt?: number;
@@ -249,20 +253,14 @@ function OptionalStep() {
 
 ```tsx
 function NavigableStep() {
-  const { next, back, path, nextSteps } = myFlow.useFlow({ step: "middle" });
-  
-  // Check if we can go back
-  const canGoBack = path.length > 1;
-  
-  // Check if we can go forward
-  const canGoForward = !!nextSteps && nextSteps.length > 0;
+  const { next, back, canGoBack, canGoNext } = myFlow.useFlow({ step: "middle" });
   
   return (
     <div>
       <button onClick={back} disabled={!canGoBack}>
         Back
       </button>
-      <button onClick={() => next()} disabled={!canGoForward}>
+      <button onClick={() => next()} disabled={!canGoNext}>
         Next
       </button>
     </div>

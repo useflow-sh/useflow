@@ -3246,4 +3246,190 @@ describe("metadata exposure", () => {
       '["stepC","stepD"]',
     );
   });
+
+  it("should indicate when user can navigate backwards", () => {
+    const flow = defineFlow({
+      id: "test",
+      start: "step1",
+      steps: {
+        step1: { next: "step2" },
+        step2: { next: "step3" },
+        step3: {},
+      },
+    });
+
+    function TestComponent() {
+      const { canGoBack, next, back, stepId } = useFlow();
+      return (
+        <div>
+          <div data-testid="stepId">{stepId}</div>
+          <div data-testid="canGoBack">{String(canGoBack)}</div>
+          <button type="button" onClick={() => next()} data-testid="next">
+            Next
+          </button>
+          <button type="button" onClick={() => back()} data-testid="back">
+            Back
+          </button>
+        </div>
+      );
+    }
+
+    render(
+      <Flow flow={flow} initialContext={{}}>
+        {({ renderStep }) =>
+          renderStep({
+            step1: <TestComponent />,
+            step2: <TestComponent />,
+            step3: <TestComponent />,
+          })
+        }
+      </Flow>,
+    );
+
+    // step1: canGoBack should be false (first step)
+    expect(screen.getByTestId("stepId")).toHaveTextContent("step1");
+    expect(screen.getByTestId("canGoBack")).toHaveTextContent("false");
+
+    // Navigate to step2
+    fireEvent.click(screen.getByTestId("next"));
+
+    // step2: canGoBack should be true (path.length > 1)
+    expect(screen.getByTestId("stepId")).toHaveTextContent("step2");
+    expect(screen.getByTestId("canGoBack")).toHaveTextContent("true");
+
+    // Navigate to step3
+    fireEvent.click(screen.getByTestId("next"));
+
+    // step3: canGoBack should be true
+    expect(screen.getByTestId("stepId")).toHaveTextContent("step3");
+    expect(screen.getByTestId("canGoBack")).toHaveTextContent("true");
+
+    // Navigate back to step2
+    fireEvent.click(screen.getByTestId("back"));
+
+    // step2: canGoBack should still be true
+    expect(screen.getByTestId("stepId")).toHaveTextContent("step2");
+    expect(screen.getByTestId("canGoBack")).toHaveTextContent("true");
+
+    // Navigate back to step1
+    fireEvent.click(screen.getByTestId("back"));
+
+    // step1: canGoBack should be false again
+    expect(screen.getByTestId("stepId")).toHaveTextContent("step1");
+    expect(screen.getByTestId("canGoBack")).toHaveTextContent("false");
+  });
+
+  it("should indicate when user can navigate forwards", () => {
+    const flow = defineFlow({
+      id: "test",
+      start: "step1",
+      steps: {
+        step1: { next: "step2" },
+        step2: { next: "step3" },
+        step3: {}, // Terminal step
+      },
+    });
+
+    function TestComponent() {
+      const { canGoNext, next, stepId } = useFlow();
+      return (
+        <div>
+          <div data-testid="stepId">{stepId}</div>
+          <div data-testid="canGoNext">{String(canGoNext)}</div>
+          <button type="button" onClick={() => next()} data-testid="next">
+            Next
+          </button>
+        </div>
+      );
+    }
+
+    render(
+      <Flow flow={flow} initialContext={{}}>
+        {({ renderStep }) =>
+          renderStep({
+            step1: <TestComponent />,
+            step2: <TestComponent />,
+            step3: <TestComponent />,
+          })
+        }
+      </Flow>,
+    );
+
+    // step1: canGoNext should be true (has next step)
+    expect(screen.getByTestId("stepId")).toHaveTextContent("step1");
+    expect(screen.getByTestId("canGoNext")).toHaveTextContent("true");
+
+    // Navigate to step2
+    fireEvent.click(screen.getByTestId("next"));
+
+    // step2: canGoNext should be true (has next step)
+    expect(screen.getByTestId("stepId")).toHaveTextContent("step2");
+    expect(screen.getByTestId("canGoNext")).toHaveTextContent("true");
+
+    // Navigate to step3
+    fireEvent.click(screen.getByTestId("next"));
+
+    // step3: canGoNext should be false (terminal step)
+    expect(screen.getByTestId("stepId")).toHaveTextContent("step3");
+    expect(screen.getByTestId("canGoNext")).toHaveTextContent("false");
+  });
+
+  it("should correctly track navigation availability throughout flow", () => {
+    const flow = defineFlow({
+      id: "test",
+      start: "start",
+      steps: {
+        start: { next: "middle" },
+        middle: { next: "end" },
+        end: {},
+      },
+    });
+
+    function TestComponent() {
+      const { canGoBack, canGoNext, next, back, stepId } = useFlow();
+      return (
+        <div>
+          <div data-testid="stepId">{stepId}</div>
+          <div data-testid="canGoBack">{String(canGoBack)}</div>
+          <div data-testid="canGoNext">{String(canGoNext)}</div>
+          <button type="button" onClick={() => next()} data-testid="next">
+            Next
+          </button>
+          <button type="button" onClick={() => back()} data-testid="back">
+            Back
+          </button>
+        </div>
+      );
+    }
+
+    render(
+      <Flow flow={flow} initialContext={{}}>
+        {({ renderStep }) =>
+          renderStep({
+            start: <TestComponent />,
+            middle: <TestComponent />,
+            end: <TestComponent />,
+          })
+        }
+      </Flow>,
+    );
+
+    // start: false, true
+    expect(screen.getByTestId("canGoBack")).toHaveTextContent("false");
+    expect(screen.getByTestId("canGoNext")).toHaveTextContent("true");
+
+    // Navigate to middle
+    fireEvent.click(screen.getByTestId("next"));
+
+    // middle: true, true
+    expect(screen.getByTestId("canGoBack")).toHaveTextContent("true");
+    expect(screen.getByTestId("canGoNext")).toHaveTextContent("true");
+
+    // Navigate to end
+    fireEvent.click(screen.getByTestId("next"));
+
+    // end: true, false
+    expect(screen.getByTestId("canGoBack")).toHaveTextContent("true");
+    expect(screen.getByTestId("canGoNext")).toHaveTextContent("false");
+  });
 });

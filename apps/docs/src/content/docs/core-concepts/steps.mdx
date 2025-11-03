@@ -40,11 +40,12 @@ function MyStep() {
     skip,        // Skip this step
     back,        // Go back
     reset,       // Start over
+    canGoBack,   // Whether back is available
+    canGoNext,   // Whether next is available
     
     // State
     context,     // Current context data
     stepId,      // Current step ID
-    canGoBack,   // Whether back is available
     status,      // Flow status: 'active' | 'complete'
     
     // Metadata
@@ -529,7 +530,7 @@ The route taken to reach the current step (used for back navigation):
 
 ```tsx
 function MyStep() {
-  const { path, back } = useFlow();
+  const { path, back, canGoBack } = useFlow();
   
   // path is the linear path to get here
   // (may be shorter than history if user went back)
@@ -539,7 +540,7 @@ function MyStep() {
   return (
     <div>
       <p>Path: {pathSteps.join(' → ')}</p>
-      {path.length > 1 && (
+      {canGoBack && (
         <button onClick={() => back()}>
           Back to {path[path.length - 2].stepId}
         </button>

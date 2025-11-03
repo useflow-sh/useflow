@@ -167,10 +167,7 @@ const flow = defineFlow({
 
 ```tsx
 function MyStep() {
-  const { back, path } = useFlow();
-
-  // Check path length before going back
-  const canGoBack = path.length > 1;
+  const { back, canGoBack } = useFlow();
 
   return (
     <button onClick={back} disabled={!canGoBack}>

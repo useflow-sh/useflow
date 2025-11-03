@@ -136,11 +136,9 @@ export function useFlowReducer<TContext extends FlowContext>(
     dispatch({ type: "RESET", initialContext: initialContextRef.current });
   }, []);
 
-  const currentStep = definition.steps[state.stepId];
-
   return {
     stepId: state.stepId,
-    step: currentStep || {},
+    step: definition.steps[state.stepId] ?? {},
     context: state.context,
     status: state.status,
     path: state.path,

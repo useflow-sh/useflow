@@ -411,15 +411,11 @@ export function FlowLayout({
   showProgress?: boolean;
   showNavigation?: boolean;
 }) {
-  const { stepId, steps, back, next, path, nextSteps } = useFlow();
+  const { stepId, steps, back, next, canGoBack, canGoNext } = useFlow();
   
   const stepKeys = Object.keys(steps);
   const currentIndex = stepKeys.indexOf(stepId);
   const progress = ((currentIndex + 1) / stepKeys.length) * 100;
-  
-  // Check navigation availability
-  const canGoBack = path.length > 1;
-  const canGoForward = !!nextSteps;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -444,7 +440,7 @@ export function FlowLayout({
             </button>
             <button 
               onClick={() => next()}
-              disabled={!canGoForward}
+              disabled={!canGoNext}
             >
               Next
             </button>
@@ -658,13 +654,10 @@ import { onboardingFlow } from "./flow";
 export function OnboardingFlow() {
   return (
     <Flow flow={onboardingFlow}>
-      {({ renderStep, stepId, steps, back, next, path }) => {
+      {({ renderStep, stepId, steps, back, next, canGoBack }) => {
         const stepKeys = Object.keys(steps);
         const currentIndex = stepKeys.indexOf(stepId);
         const progress = ((currentIndex + 1) / stepKeys.length) * 100;
-        
-        // Check if we can go back
-        const canGoBack = path.length > 1;
 
         return (
           <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">

@@ -181,7 +181,7 @@ See the [`@useflow/react` README](./packages/react/README.md#global-configuratio
 
 ### Context-Driven Branching
 
-Navigate to different steps based on context values using resolver functions in `runtimeConfig`:
+Navigate to different steps based on context values using resolver functions:
 
 ```tsx
 import { defineFlow } from "@useflow/react";
@@ -190,36 +190,43 @@ type Context = {
   accountType: "business" | "personal";
 };
 
-const flow = defineFlow(
-  {
-    id: "flow",
-    start: "userType",
-    steps: {
-      userType: {
-        next: ["businessDetails", "preferences"],
-      },
-      businessDetails: {
-        next: "preferences",
-      },
-      preferences: {
-        next: "complete",
-      },
-      complete: {},
+const flow = defineFlow({
+  id: "flow",
+  start: "userType",
+  steps: {
+    userType: {
+      next: ["businessDetails", "preferences"],
     },
+    businessDetails: {
+      next: "preferences",
+    },
+    preferences: {
+      next: "complete",
+    },
+    complete: {},
   },
-  (steps) => ({
-    resolve: {
-      // Type annotation on ctx parameter for type safety
-      userType: (ctx: Context) =>
-        ctx.accountType === "business"
-          ? steps.businessDetails
-          : steps.preferences,
-    },
-  })
-);
+}).with<Context>((steps) => ({
+  resolvers: {
+    userType: (ctx) =>
+      ctx.accountType === "business"
+        ? steps.businessDetails
+        : steps.preferences,
+  },
+}));
 ```
 
-**Type Safety:** By annotating the `ctx` parameter with your context type, you get full type safety. Resolvers return type-safe step references (`steps.businessDetails`) instead of string IDs.
+**How it works:**
+
+The `.with<Context>()` method is a **builder pattern** that:
+1. Takes a function that receives type-safe `steps` references
+2. Returns runtime configuration (resolvers, migration)
+3. Provides full type safety for both context and step names
+
+**Type Safety Benefits:**
+- ✅ `steps.businessDetails` autocompletes available step names
+- ✅ `ctx` parameter is typed as your `Context` type
+- ✅ Resolver return values are validated against step names
+- ✅ No string typos possible
 
 ### Component-Driven Branching (Array Navigation)
 

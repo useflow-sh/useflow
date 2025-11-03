@@ -14,7 +14,7 @@ export type ValidationResult = {
  */
 export function validatePersistedState<TContext extends FlowContext>(
   persisted: PersistedFlowState<TContext>,
-  definition: FlowDefinition<TContext>,
+  definition: FlowDefinition,
 ): ValidationResult {
   const errors: string[] = [];
   const stepNames = new Set(Object.keys(definition.steps));

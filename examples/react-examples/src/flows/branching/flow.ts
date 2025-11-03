@@ -37,40 +37,37 @@ export type BranchingFlowContext = {
   setupPreference?: "advanced" | "quick";
 };
 
-export const branchingFlow = defineFlow(
-  {
-    id: "branching-flow",
-    start: "welcome",
-    steps: {
-      welcome: {
-        next: "profile",
-      },
-      profile: {
-        next: "userType",
-      },
-      userType: {
-        // Context-driven: resolve function decides between businessDetails or setupPreference
-        next: ["businessDetails", "setupPreference"],
-      },
-      businessDetails: {
-        next: "setupPreference",
-      },
-      setupPreference: {
-        // Component-driven: component calls next("preferences") or next("complete")
-        next: ["preferences", "complete"],
-      },
-      preferences: {
-        next: "complete",
-      },
-      complete: {},
+export const branchingFlow = defineFlow({
+  id: "branching-flow",
+  start: "welcome",
+  steps: {
+    welcome: {
+      next: "profile",
     },
+    profile: {
+      next: "userType",
+    },
+    userType: {
+      // Context-driven: resolve function decides between businessDetails or setupPreference
+      next: ["businessDetails", "setupPreference"],
+    },
+    businessDetails: {
+      next: "setupPreference",
+    },
+    setupPreference: {
+      // Component-driven: component calls next("preferences") or next("complete")
+      next: ["preferences", "complete"],
+    },
+    preferences: {
+      next: "complete",
+    },
+    complete: {},
   },
-  (steps) => ({
-    resolve: {
-      userType: (ctx: BranchingFlowContext) =>
-        ctx.userType === "business"
-          ? steps.businessDetails
-          : steps.setupPreference,
-    },
-  }),
-);
+}).with<BranchingFlowContext>((steps) => ({
+  resolvers: {
+    userType: (ctx) =>
+      ctx.userType === "business"
+        ? steps.businessDetails
+        : steps.setupPreference,
+  },
+}));

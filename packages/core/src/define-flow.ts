@@ -6,22 +6,116 @@
  */
 
 import { validateFlowDefinition } from "./reducer";
-import type { FlowRuntimeConfig, RuntimeFlowDefinition } from "./runtime";
+import type {
+  FlowRuntimeConfig,
+  RuntimeFlowDefinition as RuntimeFlowDefinitionType,
+} from "./runtime";
 import type { FlowContext, FlowDefinition } from "./types";
 
 /**
- * Define a flow with optional runtime configuration
+ * Runtime flow definition
  *
- * Creates an enhanced flow definition that separates serializable config
- * from runtime behaviors (migrate, resolve functions)
+ * Provides a .with() method for adding typed runtime configuration
+ * (resolvers, migration) to a flow definition.
+ */
+export class RuntimeFlowDefinition<
+  TDefinition extends FlowDefinition = FlowDefinition,
+  TContext extends FlowContext = FlowContext,
+> implements RuntimeFlowDefinitionType<TDefinition, TContext>
+{
+  public readonly id: string;
+  public readonly config: TDefinition;
+  public readonly runtimeConfig?: RuntimeFlowDefinitionType<
+    TDefinition,
+    TContext
+  >["runtimeConfig"];
+
+  constructor(
+    config: TDefinition,
+    runtimeConfig?: RuntimeFlowDefinitionType<
+      TDefinition,
+      TContext
+    >["runtimeConfig"],
+  ) {
+    // Validate the flow definition immediately
+    validateFlowDefinition(config);
+
+    // Set properties
+    this.id = config.id;
+    this.config = config;
+    this.runtimeConfig = runtimeConfig;
+  }
+
+  /**
+   * Add typed runtime configuration (resolvers, migration)
+   *
+   * Creates a new RuntimeFlowDefinition instance with the specified context type
+   * and runtime configuration. The original instance remains unchanged (immutable).
+   *
+   * @param runtimeConfig - Function that receives type-safe step references and returns runtime behaviors
+   * @returns New RuntimeFlowDefinition instance with typed context
+   *
+   * @example
+   * ```ts
+   * type MyContext = { userType: "business" | "personal" };
+   *
+   * const flow = defineFlow({
+   *   id: "my-flow",
+   *   steps: {
+   *     start: { next: ["business", "personal"] },
+   *     business: { next: "complete" },
+   *     personal: { next: "complete" },
+   *     complete: {}
+   *   }
+   * })
+   * .with<MyContext>((steps) => ({
+   *   resolvers: {
+   *     start: (ctx) =>
+   *       ctx.userType === "business"
+   *         ? steps.business
+   *         : steps.personal
+   *   }
+   * }));
+   * ```
+   */
+  with<NewContext extends FlowContext = FlowContext>(
+    runtimeConfig?: FlowRuntimeConfig<TDefinition, NewContext>,
+  ): RuntimeFlowDefinition<TDefinition, NewContext> {
+    // Create step references object for type-safe step names
+    const stepRefs: Record<string, string> = {};
+    for (const stepName of Object.keys(this.config.steps)) {
+      stepRefs[stepName] = stepName;
+    }
+
+    // Get runtime configuration if provided
+    // biome-ignore lint/suspicious/noExplicitAny: Runtime type casting needed for step refs
+    const runtimeConfigResult = runtimeConfig?.(stepRefs as any);
+
+    // Return new class instance (immutable pattern)
+    return new RuntimeFlowDefinition<TDefinition, NewContext>(
+      this.config,
+      runtimeConfigResult
+        ? {
+            migration: runtimeConfigResult.migration,
+            resolvers: runtimeConfigResult.resolvers,
+          }
+        : undefined,
+    );
+  }
+}
+
+/**
+ * Define a flow with declarative configuration
+ *
+ * Returns a RuntimeFlowDefinition instance that can be used directly
+ * or chained with .with<TContext>() for typed runtime configuration
  *
  * @param config - Pure, JSON-serializable flow definition
- * @param runtimeConfig - Optional runtime configuration builder (receives type-safe step references)
- * @returns Enhanced flow definition with config and runtimeConfig behaviors
+ * @returns RuntimeFlowDefinition instance
  *
  * @example
  * ```ts
- * // Simple flow - no runtime config
+ * // Simple flow - use directly, no .with() needed
  * const simpleFlow = defineFlow({
  *   id: "simple",
  *   start: "welcome",
@@ -31,71 +125,44 @@ import type { FlowContext, FlowDefinition } from "./types";
  *   }
  * });
  *
- * // Complex flow - with runtime config
- * const complexFlow = defineFlow(
- *   {
- *     id: "onboarding",
- *     version: "v2",
- *     start: "welcome",
- *     steps: {
- *       welcome: { next: "userType" },
- *       userType: { next: ["business", "personal"] },
- *       business: { next: "complete" },
- *       personal: { next: "complete" },
- *       complete: {}
+ * // Flow with typed context and runtime config
+ * type MyContext = { userType: "business" | "personal" };
+ *
+ * const complexFlow = defineFlow({
+ *   id: "onboarding",
+ *   version: "v2",
+ *   start: "welcome",
+ *   steps: {
+ *     welcome: { next: "userType" },
+ *     userType: { next: ["business", "personal"] },
+ *     business: { next: "complete" },
+ *     personal: { next: "complete" },
+ *     complete: {}
+ *   }
+ * })
+ * .with<MyContext>((steps) => ({
+ *   migration: (state, fromVersion) => {
+ *     if (fromVersion === "v1") {
+ *       return {
+ *         ...state,
+ *         stepId: state.stepId === "profile"
+ *           ? steps.userType  // ✅ Type-safe!
+ *           : state.stepId
+ *       };
  *     }
+ *     return null;
  *   },
- *   (steps) => ({  // ← Type-safe step references
- *     migrate: (state, fromVersion) => {
- *       if (fromVersion === "v1") {
- *         return {
- *           ...state,
- *           stepId: state.stepId === "profile"
- *             ? steps.userType  // ✅ Type-safe!
- *             : state.stepId
- *         };
- *       }
- *       return null;
- *     },
- *     resolve: {
- *       userType: (ctx) =>
- *         ctx.type === "business"
- *           ? steps.business      // ✅ Autocomplete works!
- *           : steps.personal
- *     }
- *   })
- * );
+ *   resolvers: {
+ *     userType: (ctx) =>  // ctx is MyContext
+ *       ctx.userType === "business"
+ *         ? steps.business      // ✅ Autocomplete works!
+ *         : steps.personal
+ *   }
+ * }));
  * ```
  */
-export function defineFlow<
-  TContext extends FlowContext,
-  // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any step definition shape
-  const TDefinition extends FlowDefinition<TContext, any>,
->(
+export function defineFlow<const TDefinition extends FlowDefinition>(
   config: TDefinition,
-  runtimeConfig?: FlowRuntimeConfig<TDefinition, TContext>,
-): RuntimeFlowDefinition<TDefinition, TContext> {
-  // Validate the flow definition (catches config errors immediately)
-  validateFlowDefinition(config);
-
-  // Create step references object for type-safe step names
-  const stepRefs: Record<string, string> = {};
-  for (const stepName of Object.keys(config.steps)) {
-    stepRefs[stepName] = stepName;
-  }
-
-  // Get runtime configuration if provided
-  // biome-ignore lint/suspicious/noExplicitAny: Runtime type casting needed for step refs
-  const runtimeConfigResult = runtimeConfig?.(stepRefs as any);
-
-  return {
-    id: config.id,
-    config,
-    runtimeConfig: runtimeConfigResult
-      ? {
-          migrate: runtimeConfigResult.migrate,
-          resolvers: runtimeConfigResult.resolve,
-        }
-      : undefined,
-  };
+): RuntimeFlowDefinition<TDefinition, FlowContext> {
+  return new RuntimeFlowDefinition(config);
 }

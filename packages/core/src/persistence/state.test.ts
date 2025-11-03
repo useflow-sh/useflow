@@ -3,7 +3,7 @@ import type { FlowDefinition, PersistedFlowState } from "../types";
 import { validatePersistedState } from "./state";
 
 describe("validatePersistedState", () => {
-  const definition: FlowDefinition<{ name: string }> = {
+  const definition: FlowDefinition = {
     id: "test-flow",
     start: "welcome",
     steps: {

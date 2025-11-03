@@ -50,24 +50,27 @@ import type {
 } from "@useflow/core";
 ```
 
-#### `FlowDefinition<TContext>`
+#### `FlowDefinition`
 
 The flow configuration object defining your steps and transitions:
 
 ```typescript
-type FlowDefinition<TContext> = {
+type FlowDefinition = {
+  id: string;     // Unique flow identifier
   start: string;  // Initial step ID
-  steps: Record<string, StepDefinition<TContext>>;
+  version?: string; // Optional version for migrations
+  variantId?: string; // Optional variant identifier
+  steps: Record<string, StepDefinition>;
 };
 ```
 
-#### `StepDefinition<TContext>`
+#### `StepDefinition`
 
 Configuration for a single step:
 
 ```typescript
-type StepDefinition<TContext> = {
-  next?: StepTransition<TContext>;
+type StepDefinition = {
+  next?: StepTransition;
 };
 ```
 
@@ -169,7 +172,8 @@ const state = createInitialState(definition, { name: "", age: 0 });
 Simple step-to-step navigation:
 
 ```typescript
-const flow: FlowDefinition<Context> = {
+const flow: FlowDefinition = {
+  id: "linear-flow",
   start: "step1",
   steps: {
     step1: { next: "step2" },
@@ -189,7 +193,7 @@ type Context = {
   name: string;
 };
 
-const config: FlowDefinition<Context> = {
+const config: FlowDefinition = {
   id: "account-flow",
   start: "userType",
   steps: {
@@ -216,7 +220,8 @@ const resolvers = {
 Component explicitly chooses which step to navigate to:
 
 ```typescript
-const flow: FlowDefinition<Context> = {
+const flow: FlowDefinition = {
+  id: "setup-flow",
   start: "setup",
   steps: {
     setup: {
@@ -274,12 +279,11 @@ type MyContext = {
   };
 };
 
-const flow: FlowDefinition<MyContext> = {
+const flow: FlowDefinition = {
   id: "age-check-flow",
   start: "welcome",
   steps: {
     welcome: {
-      // TypeScript knows ctx has name, age, preferences
       next: ["adult", "minor"],
     },
     adult: { next: "complete" },

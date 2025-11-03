@@ -17,12 +17,12 @@ import {
   useRef,
   useState,
 } from "react";
+import type { RuntimeFlowDefinition } from "./define-flow";
 import { useFlowConfig } from "./provider";
 import type {
   ExtractAllStepNames,
   ExtractFlowContext,
   FlowDefinition,
-  RuntimeFlowDefinition,
   StepElements,
   StepInfo,
   UseFlowReturn,
@@ -67,8 +67,9 @@ export function useFlow<TContext extends FlowContext = FlowContext>(_options?: {
   return context;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-type FlowProps<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>> = {
+// Constraint using FlowDefinition without type parameter preserves steps structure
+// biome-ignore lint/suspicious/noExplicitAny: Generic constraint requires 'any' for flexible context type inference
+type FlowProps<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>> = {
   flow: TFlow;
   children: (
     state: Omit<
@@ -197,8 +198,8 @@ type LastActionType =
  * </Flow>
  * ```
  */
-// biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context type
-export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
+// biome-ignore lint/suspicious/noExplicitAny: Generic constraint requires 'any' for flexible context type inference
+export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   flow,
   initialContext,
   instanceId,
@@ -244,7 +245,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
   // Initialize flow state (restoration happens after mount)
   const flowState = useFlowReducer<ExtractFlowContext<TFlow>>(
     flowDefinitionWithoutComponents,
-    (initialContext ?? {}) as ExtractFlowContext<TFlow>,
+    initialContext ?? ({} as ExtractFlowContext<TFlow>),
     undefined, // initialState - restoration happens in useEffect
     // Safe cast: ResolverMap is a stricter compile-time type, runtime shape matches RuntimeResolverMap
     // biome-ignore lint/suspicious/noExplicitAny: Runtime resolver map is compatible
@@ -553,7 +554,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
       try {
         const state = await persister.restore(flow.id, {
           version: config.version,
-          migrate: flow.runtimeConfig?.migrate as MigrateFunction | undefined,
+          migrate: flow.runtimeConfig?.migration as MigrateFunction | undefined,
           instanceId,
           variantId: config.variantId,
         });
@@ -601,7 +602,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition<any>>>({
   }, [
     persister,
     flow.id,
-    flow.runtimeConfig?.migrate,
+    flow.runtimeConfig?.migration,
     instanceId,
     config,
     onPersistenceError,

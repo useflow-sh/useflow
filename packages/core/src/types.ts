@@ -121,7 +121,6 @@ export type PersistedFlowInstance<TContext extends FlowContext = FlowContext> =
  * in the runtime configuration to enable remote configs
  */
 export type FlowDefinition<
-  _TContext extends FlowContext = FlowContext,
   TSteps extends Record<string, StepDefinition<StepTransition>> = Record<
     string,
     StepDefinition<StepTransition>

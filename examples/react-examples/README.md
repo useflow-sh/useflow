@@ -87,7 +87,7 @@ Setup: Skip to Complete OR Configure Preferences → Complete
 
 **Key Concepts:**
 
-- Context-driven branching: `next: ["details", "setup"], resolve: (ctx) => ctx.userType === "business" ? "details" : "setup"`
+- Context-driven branching: `next: ["details", "setup"], resolvers: (ctx) => ctx.userType === "business" ? "details" : "setup"`
 - Component-driven branching: `next: ["preferences", "complete"]` + `next("complete")`
 - Multiple navigation patterns in one flow
 
@@ -441,7 +441,7 @@ Flow automatically routes based on context using the `resolve` property:
 // In flow definition
 userType: {
   next: ["businessDetails", "setupPreference"],
-  resolve: (ctx) => ctx.userType === "business" ? "businessDetails" : "setupPreference",
+  resolvers: (ctx) => ctx.userType === "business" ? "businessDetails" : "setupPreference",
 }
 
 // In component

@@ -291,25 +291,21 @@ describe("Flow", () => {
   });
 
   it("should support conditional next with function", () => {
-    const flow = defineFlow(
-      {
-        id: "test",
-        start: "profile",
-        steps: {
-          profile: {
-            next: ["business", "personal"],
-          },
-          business: {},
-          personal: {},
+    const flow = defineFlow({
+      id: "test",
+      start: "profile",
+      steps: {
+        profile: {
+          next: ["business", "personal"],
         },
+        business: {},
+        personal: {},
       },
-      (steps) => ({
-        resolve: {
-          profile: (ctx: { isBusiness: boolean }) =>
-            ctx.isBusiness ? steps.business : steps.personal,
-        },
-      }),
-    );
+    }).with<{ isBusiness: boolean }>((steps) => ({
+      resolvers: {
+        profile: (ctx) => (ctx.isBusiness ? steps.business : steps.personal),
+      },
+    }));
 
     function TestComponent() {
       const { stepId, next, setContext } = useFlow<{ isBusiness: boolean }>();
@@ -1741,21 +1737,18 @@ describe("Persistence", () => {
     expect(screen.getByText("Step 1")).toBeInTheDocument();
   });
 
-  it("should pass version and migrate to persister.restore", async () => {
-    const migrate = vi.fn((state) => state);
-    const flow = defineFlow(
-      {
-        id: "test-flow",
-        start: "step1",
-        version: "v2",
-        steps: {
-          step1: {},
-        },
-      } as const,
-      () => ({
-        migrate,
-      }),
-    );
+  it("should pass version and migration to persister.restore", async () => {
+    const migration = vi.fn((state) => state);
+    const flow = defineFlow({
+      id: "test-flow",
+      start: "step1",
+      version: "v2",
+      steps: {
+        step1: {},
+      },
+    } as const).with(() => ({
+      migration,
+    }));
 
     const persister = createMockPersister();
 
@@ -1773,7 +1766,7 @@ describe("Persistence", () => {
 
     expect(persister.restore).toHaveBeenCalledWith("test-flow", {
       version: "v2",
-      migrate: flow.runtimeConfig?.migrate,
+      migrate: flow.runtimeConfig?.migration,
     });
   });
 

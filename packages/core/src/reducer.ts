@@ -13,9 +13,7 @@ import type {
  * @param definition - Flow definition to validate
  * @throws Error if start step or any next references don't exist
  */
-export function validateFlowDefinition<TContext extends FlowContext>(
-  definition: FlowDefinition<TContext>,
-): void {
+export function validateFlowDefinition(definition: FlowDefinition): void {
   const stepNames = new Set(Object.keys(definition.steps));
   const errors: string[] = [];
 
@@ -81,7 +79,7 @@ function applyContextUpdate<TContext extends FlowContext>(
  * @returns Initial flow state
  */
 export function createInitialState<TContext extends FlowContext>(
-  definition: FlowDefinition<TContext>,
+  definition: FlowDefinition,
   initialContext: TContext,
 ): FlowState<TContext> {
   const now = Date.now();
@@ -114,7 +112,7 @@ export function createInitialState<TContext extends FlowContext>(
 export function flowReducer<TContext extends FlowContext>(
   state: FlowState<TContext>,
   action: FlowAction<TContext>,
-  definition: FlowDefinition<TContext>,
+  definition: FlowDefinition,
   options?: {
     resolvers?: RuntimeResolverMap<TContext>;
   },

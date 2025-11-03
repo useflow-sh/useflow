@@ -31,55 +31,7 @@ import type { FlowContext, FlowDefinition, PersistedFlowState } from "./types";
  * @param fromVersion - The version of the persisted state (from __meta.version)
  * @returns Migrated state with updated fields, or null to discard
  *
- * @example
- * ```ts
- * // Example 1: Simple context migration
- * const flow = defineFlow(
- *   {
- *     id: 'onboarding',
- *     version: 'v2',
- *     start: 'welcome',
- *     steps: { ... }
- *   },
- *   (steps) => ({
- *     migrate: (state, fromVersion) => {
- *       if (fromVersion === 'v1') {
- *         return {
- *           ...state,
- *           context: {
- *             ...state.context,
- *             emailAddress: state.context.email, // Renamed field
- *           },
- *         };
- *       }
- *       return null; // Unknown version, discard
- *     }
- *   })
- * );
- *
- * // Example 2: Migration with step name changes
- * const flow = defineFlow(
- *   {
- *     id: 'onboarding',
- *     version: 'v3',
- *     start: 'welcome',
- *     steps: { ... }
- *   },
- *   (steps) => ({
- *     migrate: (state, fromVersion) => {
- *       if (fromVersion === 'v2') {
- *         // Renamed step: 'userProfile' -> 'profile'
- *         return {
- *           ...state,
- *           stepId: state.stepId === 'userProfile' ? steps.profile : state.stepId,
- *           history: state.history.map(s => s === 'userProfile' ? steps.profile : s),
- *         };
- *       }
- *       return null;
- *     }
- *   })
- * );
- * ```
+ * @see defineFlow() for usage examples
  */
 export type MigrateFunction<TContext extends FlowContext = FlowContext> = (
   state: PersistedFlowState<TContext>,
@@ -94,24 +46,7 @@ export type MigrateFunction<TContext extends FlowContext = FlowContext> = (
  * @param context - Current flow context
  * @returns One of the step names from the next array, or undefined to stay on current step
  *
- * @example
- * ```ts
- * const flow = defineFlow(
- *   {
- *     steps: {
- *       userType: { next: ['business', 'personal'] }
- *     }
- *   },
- *   (steps) => ({
- *     resolve: {
- *       userType: (ctx) =>
- *         ctx.type === 'business'
- *           ? steps.business
- *           : steps.personal
- *     }
- *   })
- * );
- * ```
+ * @see defineFlow() for usage examples
  */
 export type ResolveFunction<
   TContext extends FlowContext = FlowContext,
@@ -135,32 +70,16 @@ export type RuntimeResolverMap<TContext extends FlowContext = FlowContext> =
  * The resolver functions can accept any context type (allowing for more specific
  * context types in individual resolvers), but must return one of the valid next steps.
  *
- * @example
- * ```ts
- * const flow = defineFlow(
- *   {
- *     steps: {
- *       userType: { next: ['business', 'personal'] },
- *       setupPreference: { next: ['advanced', 'complete'] }
- *     }
- *   },
- *   (steps) => ({
- *     resolve: {
- *       userType: (ctx) => ctx.type === 'business' ? steps.business : steps.personal,
- *       setupPreference: (ctx) => ctx.setup === 'advanced' ? steps.advanced : steps.complete
- *     }
- *   })
- * );
- * ```
+ * @see defineFlow() for usage examples
  */
 export type ResolverMap<
   // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any step definition shape
   TSteps extends Record<string, any> = Record<string, any>,
+  TContext extends FlowContext = FlowContext,
 > = {
   [K in keyof TSteps]?: TSteps[K] extends { next: infer N }
     ? N extends readonly (infer E)[]
-      ? // biome-ignore lint/suspicious/noExplicitAny: Allow any context type, enforce return type only
-        (context: any) => (E & string) | undefined
+      ? (context: TContext) => (E & string) | undefined
       : never
     : never;
 };
@@ -174,20 +93,7 @@ export type ResolverMap<
  * - Autocomplete support
  * - Renaming steps updates all references automatically
  *
- * @example
- * ```ts
- * // Instead of error-prone strings:
- * resolve: {
- *   userType: (ctx) => ctx.type === 'business' ? 'business' : 'personal'
- * }
- *
- * // Use type-safe step references:
- * (steps) => ({
- *   resolve: {
- *     userType: (ctx) => ctx.type === 'business' ? steps.business : steps.personal
- *   }
- * })
- * ```
+ * @see defineFlow() for usage examples
  */
 export type StepRefs<TSteps extends Record<string, unknown>> = {
   [K in keyof TSteps]: K;
@@ -198,50 +104,16 @@ export type StepRefs<TSteps extends Record<string, unknown>> = {
  * Callback that receives type-safe step references and returns runtime behaviors
  *
  * @param steps - Object with step names as properties (for type-safe references)
- * @returns Runtime configuration with migrate and/or resolve functions
+ * @returns Runtime configuration with migration and/or resolvers
  *
- * @example
- * ```ts
- * const flow = defineFlow(
- *   {
- *     id: 'onboarding',
- *     version: 'v2',
- *     start: 'welcome',
- *     steps: {
- *       welcome: { next: 'userType' },
- *       userType: { next: ['business', 'personal'] },
- *       business: { next: 'complete' },
- *       personal: { next: 'complete' },
- *       complete: {}
- *     }
- *   },
- *   (steps) => ({  // ← steps.welcome, steps.business, etc.
- *     migrate: (state, version) => {
- *       if (version === 'v1') {
- *         return {
- *           ...state,
- *           stepId: state.stepId === 'old' ? steps.welcome : state.stepId
- *         };
- *       }
- *       return null;
- *     },
- *     resolve: {
- *       userType: (ctx) =>
- *         ctx.type === 'business'
- *           ? steps.business
- *           : steps.personal
- *     }
- *   })
- * );
- * ```
+ * @see defineFlow() for usage examples
  */
 export type FlowRuntimeConfig<
-  // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context and step types
-  TDefinition extends FlowDefinition<any, any>,
+  TDefinition extends FlowDefinition,
   TContext extends FlowContext = FlowContext,
 > = (steps: StepRefs<TDefinition["steps"]>) => {
-  migrate?: MigrateFunction<TContext>;
-  resolve?: ResolverMap<TDefinition["steps"]>;
+  migration?: MigrateFunction<TContext>;
+  resolvers?: ResolverMap<TDefinition["steps"], TContext>;
 };
 
 /**
@@ -254,14 +126,13 @@ export type FlowRuntimeConfig<
  * @property runtimeConfig - Client-side runtime behaviors (migrate, resolvers)
  */
 export type RuntimeFlowDefinition<
-  // biome-ignore lint/suspicious/noExplicitAny: Generic constraint allows any context and step types for flexible flow definitions
-  TDefinition extends FlowDefinition<any, any> = FlowDefinition<any, any>,
+  TDefinition extends FlowDefinition,
   TContext extends FlowContext = FlowContext,
 > = {
   id: string;
   config: TDefinition;
   runtimeConfig?: {
-    migrate?: MigrateFunction<TContext>;
-    resolvers?: ResolverMap<TDefinition["steps"]>;
+    migration?: MigrateFunction<TContext>;
+    resolvers?: ResolverMap<TDefinition["steps"], TContext>;
   };
 };

@@ -34,7 +34,7 @@ export {
 } from "@useflow/core";
 
 // React-specific exports
-export { defineFlow } from "./define-flow";
+export { defineFlow, RuntimeFlowDefinition } from "./define-flow";
 export { Flow, useFlow } from "./flow";
 export type {
   FlowProviderConfig,
@@ -44,9 +44,7 @@ export type {
 export { FlowProvider, useFlowConfig } from "./provider";
 export type {
   ExtractAllStepNames,
-  ExtractFlowContext,
   FlowDefinition,
-  RuntimeFlowDefinition,
   StepElements,
   UseFlowReturn,
 } from "./types";

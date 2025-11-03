@@ -241,39 +241,49 @@ onStepTransition: ({
 
 ## API Reference
 
-### `defineFlow<TConfig>(config)`
+### `defineFlow(config)`
 
 Define a flow configuration with type-safe navigation. Returns a `RuntimeFlowDefinition` with a custom `useFlow` hook.
 
-**Usage with TypeScript:**
+**Basic Usage:**
 
 ```tsx
 import { defineFlow } from "@useflow/react";
 
+export const myFlow = defineFlow({
+  id: "my-flow",
+  start: "welcome",
+  steps: {
+    welcome: { next: "complete" },
+    complete: {},
+  },
+});
+```
+
+**With Runtime Configuration:**
+
+```tsx
 type MyContext = {
   userType?: "business" | "personal";
 };
 
-export const myFlow = defineFlow(
-  {
-    id: "my-flow",
-    start: "welcome",
-    steps: {
-      welcome: {
-        next: ["business", "personal"],
-      },
-      business: { next: "complete" },
-      personal: { next: "complete" },
-      complete: {},
+export const myFlow = defineFlow({
+  id: "my-flow",
+  start: "welcome",
+  steps: {
+    welcome: {
+      next: ["business", "personal"],
     },
+    business: { next: "complete" },
+    personal: { next: "complete" },
+    complete: {},
   },
-  (steps) => ({
-    resolve: {
-      welcome: (ctx: MyContext) =>
-        ctx.userType === "business" ? steps.business : steps.personal,
-    },
-  })
-);
+}).with<MyContext>((steps) => ({
+  resolvers: {
+    welcome: (ctx) =>
+      ctx.userType === "business" ? steps.business : steps.personal,
+  },
+}));
 ```
 
 **Returns:**
@@ -288,48 +298,52 @@ Main component that runs your flow using a render props pattern.
 **Props:**
 
 ```tsx
-type FlowProps<TConfig> = {
-  flow: RuntimeFlowDefinition<TConfig>; // From defineFlow()
-  initialContext?: ExtractFlowContext<TConfig>; // Optional, defaults to {}
+type FlowProps<TFlow> = {
+  flow: TFlow; // RuntimeFlowDefinition from defineFlow()
+  initialContext?: ExtractFlowContext<TFlow>; // Optional, defaults to {}
   instanceId?: string; // Optional unique identifier for reusable flows
-  onComplete?: (event: { context: ExtractFlowContext<TConfig> }) => void;
+  onComplete?: (event: { context: ExtractFlowContext<TDefinition> }) => void;
   onNext?: (event: {
     from: string;
     to: string;
-    oldContext: ExtractFlowContext<TConfig>;
-    newContext: ExtractFlowContext<TConfig>;
+    oldContext: ExtractFlowContext<TDefinition>;
+    newContext: ExtractFlowContext<TDefinition>;
   }) => void;
   onSkip?: (event: {
     from: string;
     to: string;
-    oldContext: ExtractFlowContext<TConfig>;
-    newContext: ExtractFlowContext<TConfig>;
+    oldContext: ExtractFlowContext<TDefinition>;
+    newContext: ExtractFlowContext<TDefinition>;
   }) => void;
   onBack?: (event: {
     from: string;
     to: string;
-    oldContext: ExtractFlowContext<TConfig>;
-    newContext: ExtractFlowContext<TConfig>;
+    oldContext: ExtractFlowContext<TDefinition>;
+    newContext: ExtractFlowContext<TDefinition>;
   }) => void;
   onTransition?: (event: {
     from: string;
     to: string;
     direction: "forward" | "backward";
-    oldContext: ExtractFlowContext<TConfig>;
-    newContext: ExtractFlowContext<TConfig>;
+    oldContext: ExtractFlowContext<TDefinition>;
+    newContext: ExtractFlowContext<TDefinition>;
   }) => void;
   onContextUpdate?: (event: {
-    oldContext: ExtractFlowContext<TConfig>;
-    newContext: ExtractFlowContext<TConfig>;
+    oldContext: ExtractFlowContext<TDefinition>;
+    newContext: ExtractFlowContext<TDefinition>;
   }) => void;
   persister?: FlowPersister; // Optional persistence
   saveMode?: "always" | "navigation" | "manual"; // Save strategy (default: "navigation")
   saveDebounce?: number; // Debounce delay in ms (default: 300)
-  onSave?: (state: PersistedFlowState<ExtractFlowContext<TConfig>>) => void;
-  onRestore?: (state: PersistedFlowState<ExtractFlowContext<TConfig>>) => void;
+  onSave?: (state: PersistedFlowState<ExtractFlowContext<TDefinition>>) => void;
+  onRestore?: (
+    state: PersistedFlowState<ExtractFlowContext<TDefinition>>
+  ) => void;
   onPersistenceError?: (error: Error) => void;
   loadingComponent?: ReactNode; // Show while restoring
-  children: (state: UseFlowReturn<ExtractFlowContext<TConfig>>) => ReactNode; // Render props function
+  children: (
+    state: UseFlowReturn<ExtractFlowContext<TDefinition>>
+  ) => ReactNode; // Render props function
 };
 ```
 
@@ -449,7 +463,7 @@ function WelcomeStep() {
 
 ### Context-Driven Branching
 
-Flow decides next step based on context using resolver functions in `runtimeConfig`:
+Flow decides next step based on context using resolver functions:
 
 ```tsx
 import { defineFlow } from "@useflow/react";
@@ -458,40 +472,36 @@ type Context = {
   accountType: "business" | "enterprise" | "personal";
 };
 
-const flow = defineFlow(
-  {
-    id: "flow",
-    start: "userType",
-    steps: {
-      userType: {
-        next: ["businessDetails", "enterpriseDetails", "preferences"],
-      },
-      businessDetails: {
-        next: "preferences",
-      },
-      enterpriseDetails: {
-        next: "preferences",
-      },
-      preferences: {
-        next: "complete",
-      },
-      complete: {},
+const flow = defineFlow({
+  id: "flow",
+  start: "userType",
+  steps: {
+    userType: {
+      next: ["businessDetails", "enterpriseDetails", "preferences"],
+    },
+    businessDetails: {
+      next: "preferences",
+    },
+    enterpriseDetails: {
+      next: "preferences",
+    },
+    preferences: {
+      next: "complete",
+    },
+    complete: {},
+  },
+}).with<Context>((steps) => ({
+  resolvers: {
+    userType: (ctx) => {
+      if (ctx.accountType === "business") return steps.businessDetails;
+      if (ctx.accountType === "enterprise") return steps.enterpriseDetails;
+      return steps.preferences;
     },
   },
-  (steps) => ({
-    resolve: {
-      // Type annotation on ctx parameter for type safety
-      userType: (ctx: Context) => {
-        if (ctx.accountType === "business") return steps.businessDetails;
-        if (ctx.accountType === "enterprise") return steps.enterpriseDetails;
-        return steps.preferences;
-      },
-    },
-  })
-);
+}));
 ```
 
-**Type Safety:** By annotating the `ctx` parameter with your context type (`ctx: Context`), you get full type safety. The resolver returns type-safe step references (`steps.businessDetails`) instead of string IDs.
+**Type Safety:** The `.with<Context>()` method provides full type safety. The `steps` parameter gives you autocomplete for step names, and the `ctx` parameter is typed as your context.
 
 ### Component-Driven Branching (Array Navigation)
 
@@ -1676,7 +1686,7 @@ const flow = defineFlow({
     welcome: {
       // TypeScript knows ctx has all MyContext properties
       next: ["adult", "minor"],
-      resolve: (ctx) => (ctx.age >= 18 ? "adult" : "minor"),
+      resolvers: (ctx) => (ctx.age >= 18 ? "adult" : "minor"),
     },
     adult: { next: "complete" },
     minor: { next: "complete" },

@@ -9,6 +9,8 @@ import {
   type HistoryEntry,
   type PathEntry,
   type RuntimeResolverMap,
+  type StepDefinition,
+  type StepTransition,
 } from "@useflow/core";
 import { useCallback, useReducer, useRef } from "react";
 
@@ -16,8 +18,12 @@ import { useCallback, useReducer, useRef } from "react";
  * FlowDefinition is an alias for core's FlowDefinition
  * Used for type constraints in defineFlow
  */
-export type FlowDefinition<TContext extends FlowContext = FlowContext> =
-  CoreFlowDefinition<TContext>;
+export type FlowDefinition<
+  TSteps extends Record<string, StepDefinition<StepTransition>> = Record<
+    string,
+    StepDefinition<StepTransition>
+  >,
+> = CoreFlowDefinition<TSteps>;
 
 /**
  * Return type for useFlowReducer hook
@@ -29,7 +35,7 @@ export type UseFlowReducerReturn<
   TValidNextSteps extends string = string,
 > = {
   stepId: string;
-  step: CoreFlowDefinition<TContext>["steps"][string];
+  step: CoreFlowDefinition["steps"][string];
   context: TContext;
   status: "active" | "complete";
   /** Path taken through the flow - used for back navigation */
@@ -70,7 +76,7 @@ export type UseFlowReducerReturn<
  * @returns Flow state and control functions
  */
 export function useFlowReducer<TContext extends FlowContext>(
-  definition: CoreFlowDefinition<TContext>,
+  definition: CoreFlowDefinition,
   initialContext: TContext,
   initialState?: FlowState<TContext>,
   resolvers?: RuntimeResolverMap<TContext>,

@@ -1,10 +1,10 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { type FlowDefinition, useFlowReducer } from "./use-flow-reducer";
+import { useFlowReducer } from "./use-flow-reducer";
 
 describe("useFlowReducer", () => {
   it("should initialize with start step", () => {
-    const definition: FlowDefinition<{ count: number }> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -14,7 +14,7 @@ describe("useFlowReducer", () => {
     };
 
     const { result } = renderHook(() =>
-      useFlowReducer(definition, { count: 0 }),
+      useFlowReducer<{ count: number }>(definition, { count: 0 }),
     );
 
     expect(result.current.stepId).toBe("first");
@@ -23,7 +23,7 @@ describe("useFlowReducer", () => {
   });
 
   it("should navigate with next()", () => {
-    const definition: FlowDefinition<{ count: number }> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -33,7 +33,7 @@ describe("useFlowReducer", () => {
     };
 
     const { result } = renderHook(() =>
-      useFlowReducer(definition, { count: 0 }),
+      useFlowReducer<{ count: number }>(definition, { count: 0 }),
     );
 
     act(() => {
@@ -44,7 +44,7 @@ describe("useFlowReducer", () => {
   });
 
   it("should navigate with next(target)", () => {
-    const definition: FlowDefinition<object> = {
+    const definition = {
       id: "test",
       start: "menu",
       steps: {
@@ -64,7 +64,7 @@ describe("useFlowReducer", () => {
   });
 
   it("should navigate with next(update)", () => {
-    const definition: FlowDefinition<{ name: string }> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -86,7 +86,7 @@ describe("useFlowReducer", () => {
   });
 
   it("should navigate with next(target, update)", () => {
-    const definition: FlowDefinition<{ choice: string }> = {
+    const definition = {
       id: "test",
       start: "menu",
       steps: {
@@ -109,7 +109,7 @@ describe("useFlowReducer", () => {
   });
 
   it("should go back with back()", () => {
-    const definition: FlowDefinition<object> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -134,7 +134,7 @@ describe("useFlowReducer", () => {
   });
 
   it("should skip with skip()", () => {
-    const definition: FlowDefinition<{ skipped: boolean }> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -159,7 +159,7 @@ describe("useFlowReducer", () => {
   });
 
   it("should skip with skip(update)", () => {
-    const definition: FlowDefinition<{ skipped: boolean }> = {
+    const definition = {
       id: "test",
       start: "preferences",
       steps: {
@@ -185,7 +185,7 @@ describe("useFlowReducer", () => {
   });
 
   it("should skip with skip(target, update)", () => {
-    const definition: FlowDefinition<{ choice: string }> = {
+    const definition = {
       id: "test",
       start: "menu",
       steps: {
@@ -212,7 +212,7 @@ describe("useFlowReducer", () => {
   });
 
   it("should update context with setContext()", () => {
-    const definition: FlowDefinition<{ count: number }> = {
+    const definition = {
       id: "test",
       start: "counter",
       steps: {
@@ -232,7 +232,7 @@ describe("useFlowReducer", () => {
   });
 
   it("should return empty object for step when stepId doesn't exist in definition", () => {
-    const definition: FlowDefinition<object> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -255,7 +255,7 @@ describe("useFlowReducer", () => {
   });
 
   it("should expose history array", () => {
-    const definition: FlowDefinition<object> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -377,7 +377,7 @@ describe("useFlowReducer", () => {
 
   describe("reset", () => {
     it("should reset to initial state", () => {
-      const definition: FlowDefinition<{ count: number; name: string }> = {
+      const definition = {
         id: "test",
         start: "first",
         steps: {
@@ -417,7 +417,7 @@ describe("useFlowReducer", () => {
     });
 
     it("should reset from completed state", () => {
-      const definition: FlowDefinition<{ value: string }> = {
+      const definition = {
         id: "test",
         start: "first",
         steps: {
@@ -448,7 +448,7 @@ describe("useFlowReducer", () => {
     });
 
     it("should use original initialContext, not re-render updates", () => {
-      const definition: FlowDefinition<{ counter: number }> = {
+      const definition = {
         id: "test",
         start: "step1",
         steps: {
@@ -483,7 +483,7 @@ describe("useFlowReducer", () => {
     });
 
     it("should allow navigation after reset", () => {
-      const definition: FlowDefinition<{ step: number }> = {
+      const definition = {
         id: "test",
         start: "a",
         steps: {
@@ -528,7 +528,7 @@ describe("useFlowReducer", () => {
     });
 
     it("should have stable reset callback", () => {
-      const definition: FlowDefinition<{ value: number }> = {
+      const definition = {
         id: "test",
         start: "first",
         steps: {

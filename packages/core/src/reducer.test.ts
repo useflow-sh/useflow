@@ -4,13 +4,11 @@ import {
   flowReducer,
   validateFlowDefinition,
 } from "./reducer";
-import type { FlowAction, FlowContext, FlowDefinition } from "./types";
+import type { FlowAction, FlowContext } from "./types";
 
 describe("flowReducer", () => {
   it("should initialize flow state correctly", () => {
-    type TestContext = { count: number };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "idle",
       steps: {
@@ -30,9 +28,7 @@ describe("flowReducer", () => {
   });
 
   it("should navigate to next step", () => {
-    type TestContext = { step: number };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -77,9 +73,7 @@ describe("flowReducer", () => {
   });
 
   it("should navigate back through history", () => {
-    type TestContext = { step: number };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -115,9 +109,7 @@ describe("flowReducer", () => {
   });
 
   it("should not go back from first step", () => {
-    type TestContext = { count: number };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -136,9 +128,7 @@ describe("flowReducer", () => {
   });
 
   it("should skip to next step and mark action as skip", () => {
-    type TestContext = { skipped: boolean };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -194,9 +184,7 @@ describe("flowReducer", () => {
   });
 
   it("should update context and skip with SKIP action", () => {
-    type TestContext = { name: string; skippedPreferences: boolean };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "profile",
       steps: {
@@ -237,9 +225,7 @@ describe("flowReducer", () => {
   });
 
   it("should skip with explicit target step", () => {
-    type TestContext = { choice: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "intro",
       steps: {
@@ -272,7 +258,7 @@ describe("flowReducer", () => {
   it("should skip with resolver function for context-driven branching", () => {
     type TestContext = { isPremium: boolean };
 
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "onboarding",
       steps: {
@@ -304,9 +290,7 @@ describe("flowReducer", () => {
   });
 
   it("should throw when skip has array next but no resolver and no target", () => {
-    type TestContext = { value: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "menu",
       steps: {
@@ -326,12 +310,11 @@ describe("flowReducer", () => {
   });
 
   it("should warn and stay on step when skip target is invalid", () => {
-    type TestContext = { value: string };
     const consoleWarnSpy = vi
       .spyOn(console, "warn")
       .mockImplementation(() => {});
 
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -352,9 +335,7 @@ describe("flowReducer", () => {
   });
 
   it("should throw when skip resolver returns invalid step", () => {
-    type TestContext = { choice: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "menu",
       steps: {
@@ -380,9 +361,7 @@ describe("flowReducer", () => {
   });
 
   it("should skip on final step and mark as complete", () => {
-    type TestContext = { value: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "final",
       steps: {
@@ -400,7 +379,7 @@ describe("flowReducer", () => {
   it("should stay on step when skip resolver returns undefined", () => {
     type TestContext = { shouldSkip: boolean };
 
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "conditional",
       steps: {
@@ -421,12 +400,11 @@ describe("flowReducer", () => {
   });
 
   it("should warn when skip target doesn't match string next", () => {
-    type TestContext = { value: string };
     const consoleWarnSpy = vi
       .spyOn(console, "warn")
       .mockImplementation(() => {});
 
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -452,12 +430,11 @@ describe("flowReducer", () => {
   });
 
   it("should warn when skip target not in array next", () => {
-    type TestContext = { value: string };
     const consoleWarnSpy = vi
       .spyOn(console, "warn")
       .mockImplementation(() => {});
 
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "menu",
       steps: {
@@ -484,9 +461,7 @@ describe("flowReducer", () => {
   });
 
   it("should update context with SET_CONTEXT", () => {
-    type TestContext = { name: string; age: number };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "profile",
       steps: {
@@ -512,9 +487,7 @@ describe("flowReducer", () => {
   });
 
   it("should update context and navigate with NEXT", () => {
-    type TestContext = { name: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "profile",
       steps: {
@@ -538,7 +511,7 @@ describe("flowReducer", () => {
   it("should support context-driven branching with resolve", () => {
     type TestContext = { isBusiness: boolean };
 
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "profile",
       steps: {
@@ -566,9 +539,7 @@ describe("flowReducer", () => {
   });
 
   it("should mark flow as done when reaching step with no next", () => {
-    type TestContext = { completed: boolean };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "active",
       steps: {
@@ -593,7 +564,7 @@ describe("flowReducer", () => {
   it("should stay on current step if resolve returns undefined", () => {
     type TestContext = { isValid: boolean };
 
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "form",
       steps: {
@@ -628,9 +599,7 @@ describe("flowReducer", () => {
   });
 
   it("should support updater function for context updates", () => {
-    type TestContext = { count: number; name: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "counter",
       steps: {
@@ -667,9 +636,7 @@ describe("flowReducer", () => {
   });
 
   it("should support updater function with NEXT action", () => {
-    type TestContext = { count: number; timestamp: number };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "form",
       steps: {
@@ -698,7 +665,7 @@ describe("flowReducer", () => {
   it("should support updater function with context-driven navigation", () => {
     type TestContext = { score: number };
 
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "game",
       steps: {
@@ -747,7 +714,7 @@ describe("flowReducer", () => {
   });
 
   it("should still support object updates (shallow merge)", () => {
-    const definition: FlowDefinition<FlowContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -772,7 +739,7 @@ describe("flowReducer", () => {
   });
 
   it("should support array-based next with target selection", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "choice",
       steps: {
@@ -798,7 +765,7 @@ describe("flowReducer", () => {
   });
 
   it("should throw when array next has no resolve and no explicit target", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "choice",
       steps: {
@@ -824,7 +791,7 @@ describe("flowReducer", () => {
   });
 
   it("should warn and stay on step when target is not in array", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "choice",
       steps: {
@@ -858,7 +825,7 @@ describe("flowReducer", () => {
   it("should support array-based navigation with context updates", () => {
     type TestContext = { choice: string };
 
-    const flow: FlowDefinition<TestContext> = {
+    const flow = {
       id: "test",
       start: "menu",
       steps: {
@@ -886,7 +853,7 @@ describe("flowReducer", () => {
   });
 
   it("should support array-based navigation across multiple steps", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "start",
       steps: {
@@ -938,7 +905,7 @@ describe("flowReducer", () => {
       setupChoice?: string;
     };
 
-    const flow: FlowDefinition<TestContext> = {
+    const flow = {
       id: "test",
       start: "userType",
       steps: {
@@ -994,7 +961,7 @@ describe("flowReducer", () => {
   });
 
   it("should validate target against string next (single destination)", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "step1",
       steps: {
@@ -1034,7 +1001,7 @@ describe("flowReducer", () => {
   });
 
   it("should handle array navigation with back()", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "menu",
       steps: {
@@ -1073,7 +1040,7 @@ describe("flowReducer", () => {
   it("should validate target against next array", () => {
     type TestContext = { userType: "business" | "personal" };
 
-    const flow: FlowDefinition<TestContext> = {
+    const flow = {
       id: "test",
       start: "profile",
       steps: {
@@ -1118,7 +1085,7 @@ describe("flowReducer", () => {
   it("should allow explicit target even with resolve function", () => {
     type TestContext = { score: number };
 
-    const flow: FlowDefinition<TestContext> = {
+    const flow = {
       id: "test",
       start: "game",
       steps: {
@@ -1147,7 +1114,7 @@ describe("flowReducer", () => {
   });
 
   it("should return state unchanged for unknown action types", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "test",
       steps: {
@@ -1177,7 +1144,7 @@ describe("flowReducer", () => {
 
 describe("validateFlowDefinition", () => {
   it("should throw error when start step doesn't exist", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "missing",
       steps: {
@@ -1191,7 +1158,7 @@ describe("validateFlowDefinition", () => {
   });
 
   it("should throw error when string next references non-existent step", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "first",
       steps: {
@@ -1206,7 +1173,7 @@ describe("validateFlowDefinition", () => {
   });
 
   it("should throw error when array next references non-existent step", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "first",
       steps: {
@@ -1221,7 +1188,7 @@ describe("validateFlowDefinition", () => {
   });
 
   it("should not throw for valid flow definition", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "first",
       steps: {
@@ -1236,7 +1203,7 @@ describe("validateFlowDefinition", () => {
   });
 
   it("should not validate resolve returns (can't check statically)", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "first",
       steps: {
@@ -1253,7 +1220,7 @@ describe("validateFlowDefinition", () => {
   });
 
   it("should throw multiple errors at once", () => {
-    const flow: FlowDefinition<FlowContext> = {
+    const flow = {
       id: "test",
       start: "missing",
       steps: {
@@ -1272,7 +1239,7 @@ describe("RESET action", () => {
   it("should reset flow to initial state", () => {
     type TestContext = { count: number; name: string };
 
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -1335,7 +1302,7 @@ describe("RESET action", () => {
   it("should reset from completed state", () => {
     type TestContext = { value: string };
 
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -1371,7 +1338,7 @@ describe("RESET action", () => {
   it("should reset context to provided initial context, not current context", () => {
     type TestContext = { counter: number };
 
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "step1",
       steps: {
@@ -1408,7 +1375,7 @@ describe("RESET action", () => {
   it("should allow navigation after reset", () => {
     type TestContext = { step: number };
 
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "a",
       steps: {
@@ -1454,7 +1421,7 @@ describe("resolve property", () => {
   it("should validate that resolve returns value from next array", () => {
     type TestContext = { choice: string };
 
-    const flow: FlowDefinition<TestContext> = {
+    const flow = {
       id: "test",
       start: "choice",
       steps: {
@@ -1483,7 +1450,7 @@ describe("resolve property", () => {
   it("should use resolve when no explicit target provided", () => {
     type TestContext = { userType: "business" | "personal" };
 
-    const flow: FlowDefinition<TestContext> = {
+    const flow = {
       id: "test",
       start: "choice",
       steps: {
@@ -1511,7 +1478,7 @@ describe("resolve property", () => {
   it("should allow explicit target to override resolve", () => {
     type TestContext = { score: number };
 
-    const flow: FlowDefinition<TestContext> = {
+    const flow = {
       id: "test",
       start: "game",
       steps: {
@@ -1539,7 +1506,7 @@ describe("resolve property", () => {
   it("should stay on step when resolve returns undefined", () => {
     type TestContext = { ready: boolean };
 
-    const flow: FlowDefinition<TestContext> = {
+    const flow = {
       id: "test",
       start: "waiting",
       steps: {
@@ -1570,9 +1537,9 @@ describe("resolve property", () => {
   });
 
   it("should use resolve with context updates during NEXT", () => {
-    type TestContext = { status: string };
+    type TestContext = { status: "ready" | "pending" };
 
-    const flow: FlowDefinition<TestContext> = {
+    const flow = {
       id: "test",
       start: "start",
       steps: {
@@ -1605,9 +1572,7 @@ describe("resolve property", () => {
 
 describe("Flow timestamps", () => {
   it("should set startedAt when flow is initialized", () => {
-    type TestContext = { value: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -1626,9 +1591,7 @@ describe("Flow timestamps", () => {
   });
 
   it("should set completedAt when flow reaches final step via NEXT", () => {
-    type TestContext = { value: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -1652,9 +1615,7 @@ describe("Flow timestamps", () => {
   });
 
   it("should set completedAt when flow reaches final step via SKIP", () => {
-    type TestContext = { value: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -1678,9 +1639,7 @@ describe("Flow timestamps", () => {
   });
 
   it("should set completedAt when navigating to final step from intermediate step", () => {
-    type TestContext = { value: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -1710,9 +1669,7 @@ describe("Flow timestamps", () => {
   });
 
   it("should preserve timestamps when navigating back", () => {
-    type TestContext = { value: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -1736,9 +1693,7 @@ describe("Flow timestamps", () => {
   });
 
   it("should reset timestamps when flow is reset", () => {
-    type TestContext = { value: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -1773,9 +1728,7 @@ describe("Flow timestamps", () => {
   });
 
   it("should calculate flow duration from timestamps", () => {
-    type TestContext = { value: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {
@@ -1797,9 +1750,7 @@ describe("Flow timestamps", () => {
   });
 
   it("should calculate flow duration from timestamps", async () => {
-    type TestContext = { value: string };
-
-    const definition: FlowDefinition<TestContext> = {
+    const definition = {
       id: "test",
       start: "first",
       steps: {

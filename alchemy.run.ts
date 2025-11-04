@@ -6,29 +6,38 @@ const app = await alchemy("useflow");
 const domain =
   app.stage === "production" ? "useflow.sh" : `${app.stage}.useflow.sh`;
 
-const docsDomain = `docs.${domain}`;
+const REPO_URL = "https://github.com/useflow-sh/useflow";
+const DOMAINS = {
+  DOCS: `docs.${domain}`,
+  DEMOS: `demo.${domain}`,
+};
 const docs = await Website("docs", {
   assets: "dist",
   cwd: "./apps/docs",
   build: "bun run build",
   bindings: {
-    DOCS_URL: `https://${docsDomain}`,
+    DOCS_URL: `https://${DOMAINS.DOCS}`,
+    DEMOS_URL: `https://${DOMAINS.DEMOS}`,
+    REPO_URL: REPO_URL,
   },
   dev: {
     command: "bun run dev",
   },
-  domains: [docsDomain],
+  domains: [DOMAINS.DOCS],
 });
 
-const demosDomain = `demo.${domain}`;
 const demos = await Vite("demos", {
   assets: "dist",
   cwd: "./examples/react-examples",
   build: "bun run build",
+  bindings: {
+    VITE_DOCS_URL: `https://${DOMAINS.DOCS}`,
+    VITE_REPO_URL: REPO_URL,
+  },
   dev: {
     command: "bun run dev",
   },
-  domains: [demosDomain],
+  domains: [DOMAINS.DEMOS],
 });
 
 if (!app.local) {

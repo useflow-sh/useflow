@@ -6,9 +6,9 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import starlightThemeObsidian from "starlight-theme-obsidian";
 
-// Repository constants
-const REPO_URL = "https://github.com/useflow-sh/useflow";
-const DOCS_URL = process.env.DOCS_URL;
+const REPO_URL = process.env.REPO_URL ?? "";
+const DOCS_URL = process.env.DOCS_URL ?? "";
+const DEMOS_URL = process.env.DEMOS_URL ?? "";
 
 // https://astro.build/config
 export default defineConfig({
@@ -18,6 +18,7 @@ export default defineConfig({
     defaultStrategy: "hover",
   },
   vite: {
+    // @ts-expect-error - Tailwind plugin is valid
     plugins: [tailwindcss()],
     ssr: {
       noExternal: ["zod"],
@@ -78,11 +79,19 @@ export default defineConfig({
           },
         },
       ],
+      editLink: {
+        baseUrl: `${REPO_URL}/edit/main/apps/docs`,
+      },
       social: [
         {
           icon: "github",
           label: "GitHub",
           href: REPO_URL,
+        },
+        {
+          icon: "rocket",
+          label: "Live Demos",
+          href: DEMOS_URL,
         },
       ],
       sidebar: [

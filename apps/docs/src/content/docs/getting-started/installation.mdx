@@ -4,6 +4,8 @@ description: How to install useFlow in your React project
 ---
 
 import { Tabs, TabItem, Aside, Badge } from '@astrojs/starlight/components';
+import { DEMOS_URL } from '../../../constants';
+import { LinkCard } from '@astrojs/starlight/components';
 
 Install useFlow using your preferred package manager.
 
@@ -56,7 +58,19 @@ useFlow is written in TypeScript and includes type definitions out of the box. N
 
 ## Next steps
 
-Check out the [Quick Start](/getting-started/quick-start) guide to create a working onboarding flow in 5 minutes.
+
+
+<LinkCard
+  title="Quick Start 🚀"
+  description="Build your first flow. Ship a working flow in minutes!"
+  href="/getting-started/quick-start"
+/>
+
+<LinkCard
+  title="Try Interactive Demos"
+  description="See useFlow in action with real-time flows you can interact with."
+  href={DEMOS_URL}
+/>
 
 Other resources:
 - [Type Safety](/getting-started/type-safety) - Get full type safety for your flows

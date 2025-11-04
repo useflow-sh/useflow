@@ -3,7 +3,14 @@ title: Recipes
 description: Real-world examples and patterns for common use cases
 ---
 
-import { REPO_EXAMPLES_URL } from '../../../constants';
+import { DEMOS_URL } from '../../../constants';
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard
+  title="Try Interactive Demos 🚀"
+  description="See useFlow in action with real-time flows you can interact with."
+  href={DEMOS_URL}
+/>
 
 Recipes provide complete, production-ready examples for common flow patterns. Each recipe includes working code with detailed explanations.
 

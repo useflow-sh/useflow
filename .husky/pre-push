@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 echo "🔍 Running type checks..."
-bun run check-types || exit 1
+bun run typecheck || exit 1
 
 echo "🧪 Running tests..."
 bun run test || exit 1

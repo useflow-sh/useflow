@@ -10,7 +10,7 @@
   "type": "module",
   "scripts": {
     "build": "tsdown",
-    "check-types": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

@@ -27,7 +27,7 @@ bun x ultracite fix
 FORMAT_EXIT_CODE=$?
 
 # Run type checking
-bun run check-types
+bun run typecheck
 TYPECHECK_EXIT_CODE=$?
 
 # Restore working directory state

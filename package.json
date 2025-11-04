@@ -32,7 +32,7 @@
     "check": "biome check --write .",
     "build": "turbo build",
     "build:docs": "bun run build --filter=docs",
-    "check-types": "turbo check-types --log-order=stream",
+    "typecheck": "turbo typecheck --log-order=stream",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

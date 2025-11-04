@@ -34,6 +34,10 @@ export default defineConfig({
       title: "useFlow",
       description:
         "Type-safe, declarative multi-step flows for React applications",
+      tableOfContents: {
+        minHeadingLevel: 2,
+        maxHeadingLevel: 4,
+      },
       customCss: [
         // Tailwind base styles and Starlight compatibility
         "./src/styles/global.css",
@@ -85,7 +89,6 @@ export default defineConfig({
         {
           label: "Getting Started",
           items: [
-            { label: "Overview", link: "/getting-started/overview" },
             { label: "Why useFlow?", link: "/getting-started/why-useflow" },
             { label: "Installation", link: "/getting-started/installation" },
             { label: "Quick Start", link: "/getting-started/quick-start" },

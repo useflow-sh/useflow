@@ -7,105 +7,280 @@ Building multi-step flows in React is surprisingly complex. useFlow eliminates t
 
 ## The hidden complexity of multi-step flows
 
-Every React app eventually needs multi-step flows - onboarding, checkout, surveys. They seem simple at first, but quickly become a maintenance nightmare:
+Every React app eventually needs multi-step flows - onboarding, checkout, surveys. They seem simple at first, but quickly become a maintenance nightmare.
 
-### The manual approach starts simple...
+### The manual approach: a cautionary tale
 
+#### **Week 1:** "This is simple!"
 ```tsx
-// Week 1: "This is fine!"
 function OnboardingFlow() {
-  const [step, setStep] = useState("welcome");
-  const [data, setData] = useState({});
-
-  if (step === "welcome") return <Welcome onNext={() => setStep("profile")} />;
-  if (step === "profile") return <Profile onNext={() => setStep("complete")} />;
-  // ...easy enough
+  const [step, setStep] = useState('welcome');
+  const [formData, setFormData] = useState({});
+  
+  const handleNext = () => {
+    if (step === 'welcome') setStep('userType');
+    else if (step === 'userType') setStep('complete');
+  };
+  
+  if (step === 'welcome') return <Welcome onNext={handleNext} />;
+  if (step === 'userType') return <UserType onNext={handleNext} />;
+  if (step === 'complete') return <Complete />;
 }
 ```
 
-### ...then reality hits
-
-```tsx
-// Week 3: "We need persistence so users don't lose progress"
+#### **Week 2:** "Business vs personal accounts need different steps"
+```tsx ins={"⚠️ Flow structure buried in if/else chains":8-18} ins={22-23} del={7}
 function OnboardingFlow() {
-  const [step, setStep] = useState(() => {
-    const saved = localStorage.getItem("onboarding-step");
-    return saved || "welcome";
-  });
-  const [data, setData] = useState(() => {
-    const saved = localStorage.getItem("onboarding-data");
-    return saved ? JSON.parse(saved) : {};
-  });
+  const [step, setStep] = useState('welcome');
+  const [formData, setFormData] = useState({});
+  
+  const handleNext = () => {
+    if (step === 'welcome') setStep('userType');
+    else if (step === 'userType') setStep('complete');
 
-  // Manual save on every change
-  useEffect(() => {
-    localStorage.setItem("onboarding-step", step);
-    localStorage.setItem("onboarding-data", JSON.stringify(data));
-  }, [step, data]);
-
-  // Week 4: "We need back navigation"
-  const [history, setHistory] = useState([]);
-
-  // Week 5: "We need branching based on user type"
-  // Week 6: "We need analytics tracking"
-  // Week 7: "Why is this 500 lines of code??"
-
-  // ... hundreds more lines of tangled logic
+    else if (step === 'userType') {
+      if (formData.accountType === 'business') {
+        setStep('business');
+      } else {
+        setStep('personal');
+      }
+    }
+    else if (step === 'business') setStep('complete');
+    else if (step === 'personal') setStep('complete');
+    // Can you visualize the flow? What are all possible paths?
+  };
+  
+  if (step === 'welcome') return <Welcome onNext={handleNext} />;
+  if (step === 'userType') return <UserType onNext={handleNext} />;
+  if (step === 'business') return <Business onNext={handleNext} />;
+  if (step === 'personal') return <Personal onNext={handleNext} />;
+  if (step === 'complete') return <Complete />;
 }
+```
+
+#### **Week 3:** "We need persistence so users don't lose progress"
+```tsx ins={4-14} del={2-3}
+function OnboardingFlow() {
+  const [step, setStep] = useState('welcome');
+  const [formData, setFormData] = useState({});
+  const [step, setStep] = useState(() => 
+    localStorage.getItem('onboarding-step') || 'welcome'
+  );
+  const [formData, setFormData] = useState(() => 
+    JSON.parse(localStorage.getItem('onboarding-data') || '{}')
+  );
+  
+  useEffect(() => {
+    localStorage.setItem('onboarding-step', step);
+    localStorage.setItem('onboarding-data', JSON.stringify(formData));
+  }, [step, formData]);
+  
+  const handleNext = () => {
+    if (step === 'welcome') setStep('userType');
+    else if (step === 'userType') {
+      if (formData.accountType === 'business') {
+        setStep('business');
+      } else {
+        setStep('personal');
+      }
+    }
+    else if (step === 'business') setStep('complete');
+    else if (step === 'personal') setStep('complete');
+  };
+  
+  if (step === 'welcome') return <Welcome onNext={handleNext} />;
+  if (step === 'userType') return <UserType onNext={handleNext} />;
+  if (step === 'business') return <Business onNext={handleNext} />;
+  if (step === 'personal') return <Personal onNext={handleNext} />;
+  if (step === 'complete') return <Complete />;
+}
+```
+
+#### **Week 4:** "Users want a back button"
+```tsx ins={9-11, 17-18, 33-37} ins="onBack={handleBack}" del={8, 16}
+function OnboardingFlow() {
+  const [step, setStep] = useState(() => 
+    localStorage.getItem('onboarding-step') || 'welcome'
+  );
+  const [formData, setFormData] = useState(() => 
+    JSON.parse(localStorage.getItem('onboarding-data') || '{}')
+  );
+  const [stepHistory, setStepHistory] = useState(['welcome']);
+  const [stepHistory, setStepHistory] = useState(() => 
+    JSON.parse(localStorage.getItem('onboarding-history') || '["welcome"]')
+  );
+  
+  useEffect(() => {
+    localStorage.setItem('onboarding-step', step);
+    localStorage.setItem('onboarding-data', JSON.stringify(formData));
+  }, [step, formData]);
+    localStorage.setItem('onboarding-history', JSON.stringify(stepHistory));
+  }, [step, formData, stepHistory]);
+  
+  const handleNext = () => {
+    if (step === 'welcome') setStep('userType');
+    else if (step === 'userType') {
+      if (formData.accountType === 'business') {
+        setStep('business');
+      } else {
+        setStep('personal');
+      }
+    }
+    else if (step === 'business') setStep('complete');
+    else if (step === 'personal') setStep('complete');
+  };
+  
+  const handleBack = () => {
+    const newHistory = stepHistory.slice(0, -1);
+    setStepHistory(newHistory);
+    setStep(newHistory[newHistory.length - 1]);
+  };
+  
+  if (step === 'welcome') return <Welcome onNext={handleNext} />;
+  if (step === 'userType') return <UserType onNext={handleNext} onBack={handleBack} />;
+  if (step === 'business') return <Business onNext={handleNext} onBack={handleBack} />;
+  if (step === 'personal') return <Personal onNext={handleNext} onBack={handleBack} />;
+  if (step === 'complete') return <Complete />;
+}
+```
+
+#### **Week 5:** "We need to track drop-off points"
+```tsx ins={"⚠️ Now managing: step state, history, localStorage, and analytics":27-31}
+function OnboardingFlow() {
+  const [step, setStep] = useState(() => 
+    localStorage.getItem('onboarding-step') || 'welcome'
+  );
+  const [formData, setFormData] = useState(() => 
+    JSON.parse(localStorage.getItem('onboarding-data') || '{}')
+  );
+  const [stepHistory, setStepHistory] = useState(['welcome']);
+  const [stepHistory, setStepHistory] = useState(() => 
+    JSON.parse(localStorage.getItem('onboarding-history') || '["welcome"]')
+  );
+  
+  useEffect(() => {
+    localStorage.setItem('onboarding-step', step);
+    localStorage.setItem('onboarding-data', JSON.stringify(formData));
+    localStorage.setItem('onboarding-history', JSON.stringify(stepHistory));
+  }, [step, formData, stepHistory]);
+  
+  const handleNext = () => {
+    let nextStep;
+    if (step === 'welcome') nextStep = 'userType';
+    else if (step === 'userType') {
+      nextStep = formData.accountType === 'business' ? 'business' : 'personal';
+    }
+    else if (step === 'business') nextStep = 'complete';
+    else if (step === 'personal') nextStep = 'complete';
+    
+    analytics.track('step_completed', { 
+      from: step, 
+      to: nextStep 
+    });
+    
+    setStepHistory([...stepHistory, nextStep]);
+    setStep(nextStep);
+  };
+  
+  const handleBack = () => {
+    const newHistory = stepHistory.slice(0, -1);
+    setStepHistory(newHistory);
+    setStep(newHistory[newHistory.length - 1]);
+  };
+  
+  if (step === 'welcome') return <Welcome onNext={handleNext} />;
+  if (step === 'userType') return <UserType onNext={handleNext} onBack={handleBack} />;
+  if (step === 'business') return <Business onNext={handleNext} onBack={handleBack} />;
+  if (step === 'personal') return <Personal onNext={handleNext} onBack={handleBack} />;
+  if (step === 'complete') return <Complete />;
+}
+```
+
+#### **Week 6:** "Add email verification between userType and business"
+```tsx
+// ⚠️ Update handleNext if/else chains to add emailVerify step
+// ⚠️ Update conditional rendering to add EmailVerify component
+// Already 50+ lines and growing of just state management and navigation logic...
+```
+
+#### **Week 8:** "We need a checkout flow now"
+```tsx
+// Option 1: Copy-paste all 50+ lines of navigation logic
+// - Duplicate code to maintain across flows
+// - Fix a bug? Update it in multiple places
+
+// Option 2: Extract a reusable flow abstraction
+// - Build state management, persistence, history, analytics
+// - Congratulations, you just built a less feature-rich version of useFlow and now have to maintain it :)
 ```
 
 ### The real cost
 
-**What starts as 20 lines becomes 500+ lines of:**
+**The result:** 50+ lines of state management per flow, before you even write your UI. Want 3 flows?
+That's 150+ lines of complex logic. No reusability. No type safety. Each flow is unique with its own bugs.
 
-- ❌ **Lost user progress** - No built-in persistence means angry users
-- ❌ **No analytics visibility** - Can't see where users drop off
-- ❌ **Debugging nightmares** - No history of what happened
-- ❌ **Prop drilling hell** - Passing callbacks through every component
-- ❌ **Type safety? Forget it** - Strings everywhere, runtime errors
-- ❌ **Testing complexity** - Mocking all that state logic
-- ❌ **New developer confusion** - "Where does this flow go?"
+- ❌ **No reusability** - Each flow is a unique snowflake with its own bugs
+- ❌ **No type safety** - Typo 'bussiness' instead of 'business'? Runtime error
+- ❌ **Hard to visualize** - Flow structure buried in if/else chains
+- ❌ **Fragile** - Add/remove a step? Update 5+ places or risk breaking the flow
+- ❌ **Time sink** - Building flow infrastructure instead of shipping features
 
 ## The useFlow solution
 
-**Same functionality, 80% less code, with superpowers built-in:**
+**More functionality with less complexity:**
 
 ```tsx
-import { defineFlow, Flow } from '@useflow/react';
-import { createLocalStorageStore, createPersister } from '@useflow/react';
+import { defineFlow, Flow, createLocalStorageStore, createPersister } from '@useflow/react';
 
-// 1. Declarative flow definition (type-safe!)
+type OnboardingContext = {
+  email?: string;
+  accountType?: "business" | "personal";
+  company?: string;
+};
+
+// 1. Declarative flow definition - see the entire flow at a glance
 const onboardingFlow = defineFlow({
   id: "onboarding",
   start: "welcome",
   steps: {
-    welcome: { next: "profile" },
-    profile: { next: "preferences" },
-    preferences: { next: "complete" },
+    welcome: { next: "userType" },
+    userType: { next: ["business", "personal"] }, // Branching!
+    business: { next: "complete" },
+    personal: { next: "complete" },
     complete: {}
   }
-});
+}).with<OnboardingContext>((steps) => ({
+  resolvers: {
+    // Type-safe: can only return steps in next array
+    userType: (ctx) => 
+      ctx.accountType === "business" 
+        ? steps.business
+        : steps.personal
+  }
+}));
 
-// 2. Automatic everything
+// 2. Automatic history and navigation
+// Add persistence & analytics in 2 lines!
 function App() {
   return (
     <Flow
       flow={onboardingFlow}
-      persister={createPersister({ store: createLocalStorageStore() })} // ✅ Persistence in 1 line!
-      onNext={({ from, to }) => {              // ✅ Analytics in 1 line!
-        analytics.track('flow_step', { from, to });
-      }}
+      persister={createPersister({ store: createLocalStorageStore() })}
+      onNext={({ from, to }) => analytics.track('step_completed', { from, to })}
     >
       {({ renderStep }) => renderStep({
         welcome: <WelcomeStep />,
-        profile: <ProfileStep />,
-        preferences: <PreferencesStep />,
+        userType: <UserTypeStep />,
+        business: <BusinessStep />,
+        personal: <PersonalStep />,
         complete: <CompleteStep />
       })}
     </Flow>
   );
 }
 ```
+
+**That's it.** Persistence, history, analytics, and type-safe navigation built-in. No manual state management. No localStorage code. No navigation logic scattered across components.
 
 ## What you get out of the box
 
@@ -120,7 +295,7 @@ function App() {
 
 **Real impact:** Users can close their browser, lose connection, or come back days later - they continue exactly where they left off. This alone can increase completion rates by 40%.
 
-### Analytics without the instrumentation
+### Drop-in analytics
 
 ```tsx
 <Flow
@@ -158,14 +333,14 @@ setContext({ invalid: "field" }); // ❌ TypeScript error
 ### Complete history for debugging
 
 ```tsx
-const { history, path } = useFlow();
+const { history } = useFlow();
 
 // See everything that happened
 console.log(history);
 // [
-//   { step: "welcome", action: "next", timestamp: ... },
-//   { step: "profile", action: "back", timestamp: ... },
-//   { step: "welcome", action: "next", timestamp: ... },
+//   { stepId: "welcome", action: "next", startedAt: 1699564800000, completedAt: 1699564805000 },
+//   { stepId: "userType", action: "back", startedAt: 1699564805000, completedAt: 1699564810000 },
+//   { stepId: "welcome", startedAt: 1699564810000 },
 // ]
 ```
 
@@ -209,82 +384,98 @@ No nested ifs, no complex state machines. Just declare the branches.
 
 ## Alternatives
 
-### Building from scratch
+### Routing Libraries (React Router, TanStack Router)
 
-**From scratch:**
+Each step as a route sounds good until:
+- No shared state without Context/Redux
+- No built-in persistence
+- Browser back button breaks flow logic
+- Still building all navigation logic yourself
 
-- 🔴 200+ lines of boilerplate
-- 🔴 No built-in persistence
-- 🔴 Manual type definitions
-- 🔴 Reinvent navigation, history, branching
+**Better for:** Page navigation, not multi-step processes.
 
-**useFlow:**
+### Form Libraries (TanStack Form, React Hook Form)
 
-- ✅ 20 lines to get started
-- ✅ Persistence included
-- ✅ Type inference
-- ✅ Battle-tested patterns
+TanStack Form, React Hook Form, etc. are great for forms, but:
+- Don't handle step navigation
+- No progress persistence
+- No flow branching logic
 
-### Xstate
+**Best approach:** Use them *with* useFlow for validation.
 
-**XState:**
-
-- Complex state machine library
-- Steep learning curve
-- Overkill for linear/branching flows
-- Better for complex state logic
-
-**useFlow:**
-
-- Built specifically for multi-step UI flows
-- Simple, declarative API
-- Type-safe by default
-- 5 minute learning curve
-
-### With form libraries (not mutually exclusive!)
-
-**useFlow + react-hook-form/TanStack Form:**
-
-useFlow **complements** form libraries perfectly. Use your favorite form library for validation and field management, while useFlow handles the multi-step flow:
-
+**Example with TanStack Form:**
 ```tsx
-// Use TanStack Form for the form logic
-function ProfileStep() {
+import { useForm } from '@tanstack/react-form';
+
+function UserTypeStep() {
   const { context, setContext, next, back } = useFlow();
+  
   const form = useForm({
     defaultValues: {
-      name: context.name || "",
       email: context.email || "",
+      accountType: context.accountType || "",
     },
-    onSubmit: async (values) => {
-      // Update flow context with validated form data
+    onSubmit: async ({ value }) => {
       setContext({
-        name: values.name,
-        email: values.email,
+        email: value.email,
+        accountType: value.accountType,
       });
-
-      // Then navigate to next step
-      next();
+      next(); // useFlow handles navigation
     },
   });
 
   return (
-    <form onSubmit={form.handleSubmit}>
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      form.handleSubmit();
+    }}>
       {/* TanStack Form handles validation */}
-      <form.Field name="name" />
-      <form.Field name="email" />
-
+      <form.Field name="email">
+        {(field) => (
+          <input
+            value={field.state.value}
+            onChange={(e) => field.handleChange(e.target.value)}
+          />
+        )}
+      </form.Field>
+      <form.Field name="accountType">
+        {(field) => (
+          <select
+            value={field.state.value}
+            onChange={(e) => field.handleChange(e.target.value)}
+          >
+            <option value="">Choose account type</option>
+            <option value="personal">Personal</option>
+            <option value="business">Business</option>
+          </select>
+        )}
+      </form.Field>
+      
       {/* useFlow handles multi-step navigation */}
-      <button onClick={back}>Previous Step</button>
-      <button type="submit">Next Step</button>
+      <button type="button" onClick={back}>Back</button>
+      <button type="submit">Continue</button>
     </form>
   );
 }
 ```
 
-- **Form libraries:** Handle field validation, form state, submissions
+- **TanStack Form:** Handles field validation, form state, submissions
 - **useFlow:** Handles step navigation, flow persistence, shared context
 - **Together:** Complete multi-step form solution with data flowing between steps
+
+### XState
+
+General state machine library:
+- Steep learning curve (actors, events, guards)
+- No built-in persistence
+- Designed for complex state logic
+- Not purpose-built for multi-step UI flows
+
+**Better for:** Complex state machines with parallel states and intricate business logic.
+
+---
+
+**useFlow gives you everything out of the box:** navigation, persistence, branching, TypeScript safety, and it's under 5KB.
 
 ## Ready to get started?
 

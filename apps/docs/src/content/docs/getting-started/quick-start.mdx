@@ -6,6 +6,8 @@ description: Build your first flow in 5 minutes
 import InstallTabs from '../../../components/InstallTabs.astro';
 import { Steps, Aside, LinkCard, CardGrid } from '@astrojs/starlight/components';
 
+useFlow is a declarative, type-safe library for building multi-step flows in React with **built-in persistence**. Whether you're building onboarding, checkout, surveys, or wizards, useFlow eliminates the complexity while providing exceptional developer experience.
+
 This guide will walk you through building a complete onboarding flow from scratch. You'll learn the fundamentals of useFlow by creating a working application.
 
 ## What we're building
@@ -263,19 +265,15 @@ A simple 3-step onboarding flow:
 ```tsx title="App.tsx"
 import { Flow, createLocalStorageStore, createPersister } from "@useflow/react";
 
-// Create persister - users continue where they left off!
-const persister = createPersister({ 
-  store: createLocalStorageStore(localStorage) 
-});
-
 export function App() {
   return (
     <Flow
       flow={onboardingFlow}
-      persister={persister} // ✨ That's it!
+      // ✅ Add persistence in 1 line!
+      persister={createPersister({ store: createLocalStorageStore(localStorage) })} 
       initialContext={{ name: "", email: "" }}
     >
-      {/* ... rest of your app */}
+      {/* 💡 Render your steps here */}
     </Flow>
   );
 }
@@ -296,13 +294,10 @@ export function App() {
   flow={onboardingFlow}
   persister={persister}
   initialContext={{ name: "", email: "" }}
-  onNext={({ from, to }) => {
-    // Track with any analytics platform
-    analytics.track('step_completed', { from, to });
-  }}
-  onComplete={() => {
-    analytics.track('onboarding_completed');
-  }}
+  // ✅ Track with any analytics platform
+  onNext={({ from, to }) => analytics.track('step_completed', { from, to })} 
+  // ✅ Track completion
+  onComplete={() => analytics.track('onboarding_completed')} 
 >
   {/* ... */}
 </Flow>
@@ -319,7 +314,7 @@ export function App() {
 ✅ How to navigate with **next()** and **back()**  
 ✅ How to manage context with **setContext()**  
 ✅ How to render steps with the **Flow** component  
-✅ How to add persistence in 2 lines  
+✅ How to add persistence in 1 line  
 ✅ How to add analytics tracking instantly  
 
 ## Next steps
@@ -373,65 +368,141 @@ export const onboardingFlow = defineFlow({
   },
 });
 
-// App.tsx
-import { Flow, useFlow } from "@useflow/react";
-import { useState } from "react";
+// WelcomeStep.tsx
+import { useFlow } from "@useflow/react";
 
-function WelcomeStep() {
+export function WelcomeStep() {
   const { next } = useFlow();
+
   return (
     <div>
-      <h1>Welcome!</h1>
+      <h1>Welcome to Our App!</h1>
+      <p>Let's get you set up in just a few steps.</p>
       <button onClick={() => next()}>Get Started</button>
     </div>
   );
 }
 
-function ProfileStep() {
+// ProfileStep.tsx
+import { useFlow } from "@useflow/react";
+import { useState } from "react";
+
+type OnboardingContext = {
+  name: string;
+  email: string;
+};
+
+export function ProfileStep() {
   const { context, next, back, setContext } = useFlow<OnboardingContext>();
   
+  // Local state for form validation
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleSubmit = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!context.name) newErrors.name = "Name is required";
+    if (!context.email) newErrors.email = "Email is required";
+    if (context.email && !context.email.includes("@")) {
+      newErrors.email = "Invalid email";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    next(); // Proceed to next step
+  };
+
   return (
     <div>
-      <h1>Profile</h1>
-      <input
-        value={context.name}
-        onChange={(e) => setContext({ name: e.target.value })}
-        placeholder="Name"
-      />
-      <input
-        value={context.email}
-        onChange={(e) => setContext({ email: e.target.value })}
-        placeholder="Email"
-      />
-      <button onClick={() => back()}>Back</button>
-      <button onClick={() => next()}>Continue</button>
+      <h1>Create Your Profile</h1>
+      
+      <div>
+        <label>
+          Name
+          <input
+            type="text"
+            value={context.name}
+            onChange={(e) => setContext({ name: e.target.value })}
+            placeholder="Your name"
+          />
+        </label>
+        {errors.name && <span style={{ color: "red" }}>{errors.name}</span>}
+      </div>
+
+      <div>
+        <label>
+          Email
+          <input
+            type="email"
+            value={context.email}
+            onChange={(e) => setContext({ email: e.target.value })}
+            placeholder="your@email.com"
+          />
+        </label>
+        {errors.email && <span style={{ color: "red" }}>{errors.email}</span>}
+      </div>
+
+      <div>
+        <button onClick={() => back()}>Back</button>
+        <button onClick={handleSubmit}>Continue</button>
+      </div>
     </div>
   );
 }
 
-function CompleteStep() {
+// CompleteStep.tsx
+import { useFlow } from "@useflow/react";
+
+type OnboardingContext = {
+  name: string;
+  email: string;
+};
+
+export function CompleteStep() {
   const { context } = useFlow<OnboardingContext>();
+
   return (
     <div>
-      <h1>Done, {context.name}!</h1>
-      <p>Email: {context.email}</p>
+      <h1>All Set, {context.name}!</h1>
+      <p>We've sent a confirmation to {context.email}</p>
+      <button onClick={() => window.location.href = "/dashboard"}>
+        Go to Dashboard
+      </button>
     </div>
   );
 }
+
+// App.tsx
+import { Flow } from "@useflow/react";
+import { onboardingFlow } from "./flow";
+import { WelcomeStep } from "./WelcomeStep";
+import { ProfileStep } from "./ProfileStep";
+import { CompleteStep } from "./CompleteStep";
 
 export function App() {
   return (
     <Flow
       flow={onboardingFlow}
-      initialContext={{ name: "", email: "" }}
+      initialContext={{
+        name: "",
+        email: "",
+      }}
+      onComplete={() => {
+        console.log("Onboarding completed!");
+      }}
     >
-      {({ renderStep }) =>
-        renderStep({
-          welcome: <WelcomeStep />,
-          profile: <ProfileStep />,
-          complete: <CompleteStep />,
-        })
-      }
+      {({ renderStep }) => (
+        <div style={{ maxWidth: "600px", margin: "0 auto", padding: "20px" }}>
+          {renderStep({
+            welcome: <WelcomeStep />,
+            profile: <ProfileStep />,
+            complete: <CompleteStep />,
+          })}
+        </div>
+      )}
     </Flow>
   );
 }

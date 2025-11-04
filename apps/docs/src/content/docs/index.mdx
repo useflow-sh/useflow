@@ -3,10 +3,10 @@ title: useFlow
 description: Type-safe, declarative multi-step flows for React applications with built-in persistence
 template: splash
 hero:
-  tagline: Easiest way to build complex app flows.
+  tagline: Build multi-step flows without the complexity.
   actions:
     - text: Get Started
-      link: /getting-started/overview
+      link: /getting-started/quick-start
       icon: right-arrow
       variant: primary
     - text: View on GitHub
@@ -17,18 +17,17 @@ hero:
 
 import { Card, CardGrid, Steps, Code, Tabs, TabItem, LinkCard } from "@astrojs/starlight/components";
 
-## Build multi-step flows without the complexity
+## Focus on your UI, not navigation logic.
 
 <CardGrid stagger>
   <Card title="Declarative" icon="document">
-    Centralized, declarative flow structure. No more conditional navigation
-    logic scattered across components.
+    Define your flow in one place. Navigation logic lives in your flow config, not scattered across components.
   </Card>
   <Card title="Built-in Persistence" icon="seti:db">
-    Enable with 2 lines of code. Users continue exactly where they left off.
+    Two lines of code. Users resume exactly where they left off.
   </Card>
   <Card title="Type-Safe" icon="seti:typescript">
-    Full TypeScript support. Your IDE knows every step, catches navigation errors at compile time.
+    Full TypeScript support. Autocomplete for step names, compile-time navigation errors.
   </Card>
   <Card title="Lightweight" icon="rocket">
     Under 5KB gzipped. Zero dependencies. Just React.
@@ -41,9 +40,9 @@ Build a complete onboarding flow in 3 simple steps:
 
 <Steps>
 
-1. ### Define your flow with branching
+1. ### Define your flow with navigation logic
 
-   ```tsx
+   ```tsx {14, 20, 23-27}
    import { defineFlow } from "@useflow/react";
 
    type OnboardingContext = {
@@ -57,33 +56,34 @@ Build a complete onboarding flow in 3 simple steps:
      start: "welcome",
      steps: {
        welcome: { next: "userType" },
-       userType: { next: ["business", "personal"] }, // Branching!
+       userType: { next: ["business", "personal"] }, // 💡 Define all possible next steps
        business: { next: "complete" },
        personal: { next: "complete" },
        complete: {}
      }
+      // 💡 Set the context type
    }).with<OnboardingContext>((steps) => ({
      resolvers: {
-       // Type-safe: can only return steps in next array
+       // 💡 Type-safe: can only return steps in next array
        userType: (ctx) => 
          ctx.accountType === "business" 
            ? steps.business  // ✅ Valid
            : steps.personal  // ✅ Valid
-       // steps.complete would be ❌ TypeScript error
+          // steps.complete would be a TypeScript error ❌
      }
    }));
    ```
 
 2. ### Create your step components
 
-   ```tsx
-   import { useFlow } from "@useflow/react";
+   ```tsx {4, 7, 16-17, 20-21, 29}
+   import { onboardingFlow } from "./flow";
 
    function UserTypeStep() {
-     const { context, setContext, next } = useFlow();
+     const { context, setContext, next } = onboardingFlow.useFlow({ step: "userType" });
      
      const handleSubmit = () => {
-       next(); // Automatically navigates based on accountType
+       next(); // ✅ Automatically navigates based on accountType
      };
 
      return (
@@ -92,11 +92,11 @@ Build a complete onboarding flow in 3 simple steps:
          <input
            type="email"
            placeholder="Email address"
-           value={context.email || ""}
+           value={context.email || ""} // 💡 TypeScript knows this is a string
            onChange={(e) => setContext({ email: e.target.value })}
          />
          <select 
-           value={context.accountType || ""}
+           value={context.accountType || ""} // 💡 TypeScript knows this is a string
            onChange={(e) => setContext({ accountType: e.target.value })}
          >
            <option value="">Choose account type</option>
@@ -112,9 +112,13 @@ Build a complete onboarding flow in 3 simple steps:
        </div>
      );
    }
+   ```
+
+   ```tsx {4, 12-13, 15-16}
+   import { onboardingFlow } from "./flow";
 
    function BusinessStep() {
-     const { context, setContext, next, back } = useFlow();
+     const { context, setContext, next, back } = onboardingFlow.useFlow({ step: "business" });
      
      return (
        <div>
@@ -122,40 +126,64 @@ Build a complete onboarding flow in 3 simple steps:
          <p>Welcome {context.email}!</p>
          <input
            placeholder="Company name"
-           value={context.company || ""}
+           value={context.company || ""} // 💡 TypeScript knows this is a string
            onChange={(e) => setContext({ company: e.target.value })}
          />
-         <button onClick={back}>Back</button>
-         <button onClick={next}>Continue</button>
+         <button onClick={back}>Back</button> 
+         <button onClick={next}>Continue</button> 
        </div>
      );
    }
    ```
-
-3. ### Add persistence with 2 lines
-
    ```tsx
+   // Complete step component
+   import { onboardingFlow } from "./flow";
+
+   function CompleteStep() {
+     const { context } = onboardingFlow.useFlow({ step: "complete" });
+
+     return (
+      <div>
+        <h1>All Set, {context.name}!</h1>
+        <p>Email: {context.email}</p>
+        {context.userType === "business" && (
+          <p>Company: {context.business?.companyName}</p>
+        )}
+      </div>
+    );
+   }
+   ```
+
+3. ### Map your steps to components & add persistence
+
+   ```tsx {7-8, 10-17}
    import { Flow, createLocalStorageStore, createPersister } from "@useflow/react";
+   import { onboardingFlow } from "./flow";
 
-   const persister = createPersister({ 
-     store: createLocalStorageStore() 
-   });
-
-    <Flow flow={onboardingFlow} persister={persister}>
-      {({ renderStep }) => renderStep({
-        // TypeScript enforces all steps must be provided - can't miss any!
-        welcome: <WelcomeStep />,
-        userType: <UserTypeStep />,
-        business: <BusinessStep />,
-        personal: <PersonalStep />,
-        complete: <CompleteStep />
-      })}
-    </Flow>
+   function App() {
+     return (
+       <Flow 
+         flow={onboardingFlow} 
+         // ✅ Add persistence in 1 line!
+         persister={createPersister({ store: createLocalStorageStore() })} 
+       >
+         {({ renderStep }) => renderStep({
+           // 💡 TypeScript enforces all steps must be provided - can't miss any!
+           welcome: <WelcomeStep />,
+           userType: <UserTypeStep />,
+           business: <BusinessStep />,
+           personal: <PersonalStep />,
+           complete: <CompleteStep />
+         })}
+       </Flow>
+     );
+   }
    ```
 
 </Steps>
 
-**That's it!** Users can now close their browser and return exactly where they left off. No manual state management, no localStorage code, no navigation logic.
+**That's it!** Users can now close their browser and return exactly where they left off.
+No manual state management, no localStorage code, no confusing navigation logic scattered across components.
 
 ## Perfect for
 
@@ -164,98 +192,6 @@ Build a complete onboarding flow in 3 simple steps:
 - 📝 **Surveys & forms** - Long questionnaires users can resume
 - ⚙️ **Configuration wizards** - Complex setup broken into steps
 - 📋 **Application processes** - Job applications, loan applications
-
-## Why not just use...?
-
-<Tabs>
-  <TabItem label="useState">
-    ```tsx
-    // Week 1: "This is simple!"
-    const [step, setStep] = useState('welcome');
-    const [formData, setFormData] = useState({});
-    
-    // Week 2: "We need persistence"
-    const [step, setStep] = useState(() => 
-      localStorage.getItem('onboarding-step') || 'welcome'
-    );
-    const [formData, setFormData] = useState(() => 
-      JSON.parse(localStorage.getItem('onboarding-data') || '{}')
-    );
-    
-    useEffect(() => {
-      localStorage.setItem('onboarding-step', step);
-      localStorage.setItem('onboarding-data', JSON.stringify(formData));
-    }, [step, formData]);
-    
-    // Week 3: "We need branching logic"
-    const handleNext = () => {
-      if (step === 'welcome') setStep('profile');
-      else if (step === 'profile') {
-        if (formData.accountType === 'business') {
-          setStep('companyInfo');
-        } else {
-          setStep('preferences');
-        }
-      }
-      else if (step === 'companyInfo') setStep('preferences');
-      else if (step === 'preferences') setStep('complete');
-    };
-    
-    // Week 4: "We need back button"
-    const [stepHistory, setStepHistory] = useState(['welcome']);
-    const handleBack = () => {
-      const newHistory = stepHistory.slice(0, -1);
-      setStepHistory(newHistory);
-      setStep(newHistory[newHistory.length - 1]);
-    };
-    
-    // Week 5: "We need analytics"
-    const handleNext = () => {
-      const nextStep = getNextStep(step, formData);
-      analytics.track('step_completed', { 
-        from: step, 
-        to: nextStep,
-        ...formData 
-      });
-      setStepHistory([...stepHistory, nextStep]);
-      setStep(nextStep);
-    };
-    
-    // Week 6: "Product wants to add email verification"
-    // Now updating logic in 5 different places...
-    // 300+ lines of tangled state management
-    ```
-    **Reality:** What starts as 3 lines becomes 300+ lines of fragile, interconnected logic.
-  </TabItem>
-  <TabItem label="React Router">
-    Each step as a route sounds good until:
-    - No shared state without Context/Redux
-    - No built-in persistence
-    - Browser back button breaks flow logic
-    - Still building all navigation logic yourself
-    
-    **Better for:** Page navigation, not multi-step processes.
-  </TabItem>
-  <TabItem label="Form Libraries">
-    React Hook Form, Formik, etc. are great for forms, but:
-    - Don't handle step navigation
-    - No progress persistence
-    - No flow branching logic
-    
-    **Best approach:** Use them *with* useFlow for validation.
-  </TabItem>
-  <TabItem label="XState">
-    General state machine library:
-    - Steep learning curve (actors, events, guards)
-    - No built-in persistence
-    - Designed for complex state logic
-    - Not purpose-built for multi-step UI flows
-    
-    **Better for:** Complex state machines with parallel states and intricate business logic.
-  </TabItem>
-</Tabs>
-
-**useFlow gives you everything out of the box:** navigation, persistence, branching, TypeScript safety, and it's under 5KB.
 
 ## Coming soon
 

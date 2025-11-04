@@ -11,50 +11,91 @@
   color: var(--color-foreground);
 }
 
+/* useFlow Brand Theme */
 @theme {
-  --color-background: oklch(100% 0 0);
-  --color-foreground: oklch(15% 0.01 285);
-  --color-card: oklch(100% 0 0);
-  --color-card-foreground: oklch(15% 0.01 285);
-  --color-popover: oklch(100% 0 0);
-  --color-popover-foreground: oklch(15% 0.01 285);
-  --color-primary: oklch(60% 0.2 285);
-  --color-primary-foreground: oklch(98% 0 0);
-  --color-secondary: oklch(96% 0.01 285);
-  --color-secondary-foreground: oklch(20% 0.01 285);
-  --color-muted: oklch(96% 0.01 285);
-  --color-muted-foreground: oklch(50% 0.01 285);
-  --color-accent: oklch(96% 0.01 285);
-  --color-accent-foreground: oklch(20% 0.01 285);
+  /* Primary color scale - Blue (#8fbfe0) */
+  --color-primary-50: #f0f7fb;
+  --color-primary-100: #d9ebf5;
+  --color-primary-200: #b3d6ea;
+  --color-primary-300: #8fbfe0; /* Brand blue */
+  --color-primary-400: #6aabcd;
+  --color-primary-500: #5a9ec4;
+  --color-primary-600: #4a8aad;
+  --color-primary-700: #3a7089;
+  --color-primary-800: #2d5669;
+  --color-primary-900: #1f3c4a;
+  --color-primary-950: #152834;
+
+  /* Secondary color scale - Teal (#6bc2b3) */
+  --color-secondary-50: #f0faf8;
+  --color-secondary-100: #d4f1ec;
+  --color-secondary-200: #a9e3d9;
+  --color-secondary-300: #6bc2b3; /* Brand teal */
+  --color-secondary-400: #4dab9c;
+  --color-secondary-500: #3d9688;
+  --color-secondary-600: #30796e;
+  --color-secondary-700: #265f57;
+  --color-secondary-800: #1d4842;
+  --color-secondary-900: #15332e;
+  --color-secondary-950: #0f2421;
+
+  /* Neutral color scale - Warm to cool gradient */
+  --color-neutral-50: #fafaf8;
+  --color-neutral-100: #f5f5f0; /* Light mode background */
+  --color-neutral-200: #ebebde;
+  --color-neutral-300: #ddddd0;
+  --color-neutral-400: #c8c8bb;
+  --color-neutral-500: #9d9d90;
+  --color-neutral-600: #75756b;
+  --color-neutral-700: #54544c;
+  --color-neutral-800: #3c3c36;
+  --color-neutral-900: #26252a; /* Dark mode background */
+  --color-neutral-950: #1c1b1e;
+
+  /* Semantic mappings for shadcn/ui components */
+  --color-background: var(--color-neutral-100);
+  --color-foreground: var(--color-neutral-900);
+  --color-card: var(--color-neutral-50);
+  --color-card-foreground: var(--color-neutral-900);
+  --color-popover: var(--color-neutral-50);
+  --color-popover-foreground: var(--color-neutral-900);
+  --color-primary: var(--color-primary-500);
+  --color-primary-foreground: var(--color-neutral-50);
+  --color-secondary: var(--color-secondary-500);
+  --color-secondary-foreground: var(--color-neutral-50);
+  --color-muted: var(--color-neutral-200);
+  --color-muted-foreground: var(--color-neutral-600);
+  --color-accent: var(--color-primary-100);
+  --color-accent-foreground: var(--color-primary-700);
   --color-destructive: oklch(60% 0.2 25);
-  --color-destructive-foreground: oklch(98% 0 0);
-  --color-border: oklch(90% 0.01 285);
-  --color-input: oklch(90% 0.01 285);
-  --color-ring: oklch(60% 0.2 285);
+  --color-destructive-foreground: var(--color-neutral-50);
+  --color-border: var(--color-neutral-300);
+  --color-input: var(--color-neutral-300);
+  --color-ring: var(--color-primary-500);
   --radius: 0.5rem;
 }
 
 .dark {
   @theme {
-    --color-background: oklch(15% 0.01 285);
-    --color-foreground: oklch(98% 0 0);
-    --color-card: oklch(15% 0.01 285);
-    --color-card-foreground: oklch(98% 0 0);
-    --color-popover: oklch(15% 0.01 285);
-    --color-popover-foreground: oklch(98% 0 0);
-    --color-primary: oklch(55% 0.2 285);
-    --color-primary-foreground: oklch(98% 0 0);
-    --color-secondary: oklch(25% 0.02 285);
-    --color-secondary-foreground: oklch(98% 0 0);
-    --color-muted: oklch(25% 0.02 285);
-    --color-muted-foreground: oklch(70% 0.01 285);
-    --color-accent: oklch(25% 0.02 285);
-    --color-accent-foreground: oklch(98% 0 0);
+    --color-background: var(--color-neutral-900);
+    --color-foreground: var(--color-neutral-50);
+    --color-card: var(--color-neutral-950);
+    --color-card-foreground: var(--color-neutral-50);
+    --color-popover: var(--color-neutral-950);
+    --color-popover-foreground: var(--color-neutral-50);
+    --color-primary: var(--color-primary-400);
+    --color-primary-foreground: var(--color-neutral-50);
+    --color-secondary: var(--color-secondary-400);
+    --color-secondary-foreground: var(--color-neutral-50);
+    --color-muted: var(--color-neutral-800);
+    --color-muted-foreground: var(--color-neutral-400);
+    --color-accent: var(--color-primary-800);
+    --color-accent-foreground: var(--color-primary-200);
     --color-destructive: oklch(40% 0.15 25);
-    --color-destructive-foreground: oklch(98% 0 0);
-    --color-border: oklch(25% 0.02 285);
-    --color-input: oklch(25% 0.02 285);
-    --color-ring: oklch(55% 0.2 285);
+    --color-destructive-foreground: var(--color-neutral-50);
+    --color-border: var(--color-neutral-700);
+    --color-input: var(--color-neutral-700);
+    --color-ring: var(--color-primary-400);
   }
 }
 

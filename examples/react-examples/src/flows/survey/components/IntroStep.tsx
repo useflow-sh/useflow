@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -19,8 +18,8 @@ export function IntroStep() {
   };
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader className="text-center">
+    <Card className="w-full border-0 bg-transparent shadow-none">
+      <CardHeader className="text-center pb-3">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
           <ClipboardList className="h-6 w-6 text-primary" />
         </div>
@@ -39,12 +38,12 @@ export function IntroStep() {
             <li>• Your feedback helps us improve</li>
           </ul>
         </div>
+        <div className="flex justify-center">
+          <Button onClick={handleStart} size="lg">
+            Start Survey
+          </Button>
+        </div>
       </CardContent>
-      <CardFooter className="justify-center">
-        <Button onClick={handleStart} size="lg">
-          Start Survey
-        </Button>
-      </CardFooter>
     </Card>
   );
 }

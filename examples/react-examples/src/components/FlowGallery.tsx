@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getGalleryItems } from "@/config/pages";
+import { EXTERNAL_LINKS } from "@/constants";
 import { store } from "@/lib/storage";
 
 const CATEGORY_INFO = {
@@ -69,17 +70,17 @@ export function FlowGallery() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50">
       <div className="container mx-auto px-4 py-12 md:py-16">
         <header className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            useFlow Examples
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary-400 to-secondary-400 bg-clip-text text-transparent">
+            useFlow Gallery
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
             Explore different flow patterns and implementations
           </p>
           <div className="flex flex-col items-center gap-3">
             <p className="text-sm text-muted-foreground max-w-2xl mx-auto bg-muted/50 rounded-lg px-4 py-2 inline-block">
-              💾 Most flows use local storage persistence. <br />
-              Refresh the page and your progress will be restored where you left
-              off.
+              💡 These are demo flows with no real backend. <br />
+              Progress is stored in local storage and persists across page
+              refreshes.
             </p>
             <Button
               variant="outline"
@@ -123,9 +124,10 @@ export function FlowGallery() {
                       <Link
                         key={page.id}
                         to={page.path}
-                        className="block group"
+                        className="block group relative"
                       >
-                        <Card className="h-full transition-all duration-200 hover:shadow-xl hover:-translate-y-1 flex flex-col">
+                        <div className="absolute -inset-[1px] bg-gradient-to-r from-primary/50 via-secondary/50 to-primary/50 bg-[length:200%_100%] rounded-lg opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-500 group-hover:animate-[gradient_3s_ease-in-out_infinite]" />
+                        <Card className="relative h-full transition-all duration-200 hover:shadow-xl hover:-translate-y-1 flex flex-col border-border/50">
                           <CardHeader>
                             <div className="flex items-start justify-between mb-3">
                               <div className="p-2 bg-primary/10 rounded-lg text-primary">
@@ -190,7 +192,9 @@ export function FlowGallery() {
           <p>
             Built with{" "}
             <a
-              href="https://github.com/yourusername/useflow"
+              href={EXTERNAL_LINKS.find((link) => link.label === "GitHub")?.url}
+              target="_blank"
+              rel="noopener noreferrer"
               className="underline hover:text-foreground transition-colors"
             >
               @useflow/react

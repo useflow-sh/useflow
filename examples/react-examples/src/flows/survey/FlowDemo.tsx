@@ -1,6 +1,10 @@
 import { Flow } from "@useflow/react";
 import { BarChart3 } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
+import { AnimateFlowStep } from "@/components/AnimateFlowStep";
+import { FlowInspector } from "@/components/FlowInspector";
+import { LoadingView } from "@/components/LoadingView";
+import { FlowContainer, PageLayout } from "@/components/layout";
 import {
   Card,
   CardContent,
@@ -8,9 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AnimateFlowStep } from "../../components/AnimateFlowStep";
-import { FlowInspector } from "../../components/FlowInspector";
-import { LoadingView } from "../../components/LoadingView";
 
 import { IntroStep } from "./components/IntroStep";
 import { QuestionStep } from "./components/QuestionStep";
@@ -197,31 +198,34 @@ export function SurveyFlowDemo() {
               position="right"
             />
 
-            <div className="min-h-screen p-4 lg:p-8">
-              {/* Progress Tracker - Fixed at the top */}
-              <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-b z-40 px-8 py-4">
-                <div className="max-w-4xl mx-auto">
-                  <div className="flex items-center justify-between mb-2">
+            <PageLayout>
+              {/* Progress Tracker - Fixed below header */}
+              <div className="fixed top-16 left-0 right-0 bg-background/95 backdrop-blur-sm border-b border-border/40 z-30">
+                <div className="max-w-2xl mx-auto px-4 sm:px-8 py-3 sm:py-4">
+                  <div className="flex items-start justify-between mb-2">
                     {steps.map((step, index) => (
-                      <div key={step.id} className="flex items-center flex-1">
+                      <React.Fragment key={step.id}>
                         <div className="flex flex-col items-center">
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
+                            className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-semibold transition-colors ${
                               index < currentStepIndex
                                 ? "bg-primary text-primary-foreground"
                                 : index === currentStepIndex
-                                  ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+                                  ? "bg-primary text-primary-foreground ring-2 sm:ring-4 ring-primary/20"
                                   : "bg-muted text-muted-foreground"
                             }`}
                           >
                             {index + 1}
                           </div>
-                          <span className="text-xs mt-1 text-muted-foreground hidden sm:block">
+                          <span className="text-[10px] sm:text-xs mt-1 text-muted-foreground hidden md:block">
                             {step.label}
                           </span>
                         </div>
                         {index < steps.length - 1 && (
-                          <div className="flex-1 h-0.5 mx-2 bg-muted relative">
+                          <div
+                            className="flex-1 h-0.5 mx-2 bg-muted relative self-start"
+                            style={{ marginTop: "14px" }}
+                          >
                             <div
                               className={`absolute inset-0 bg-primary transition-all duration-300 ${
                                 index < currentStepIndex ? "w-full" : "w-0"
@@ -229,7 +233,7 @@ export function SurveyFlowDemo() {
                             />
                           </div>
                         )}
-                      </div>
+                      </React.Fragment>
                     ))}
                   </div>
                 </div>
@@ -237,7 +241,7 @@ export function SurveyFlowDemo() {
 
               {/* Event Log - Fixed to the bottom-left corner */}
               <div className="hidden lg:block fixed left-4 bottom-4 w-80 z-50">
-                <Card className="bg-background/80 backdrop-blur-sm">
+                <Card className="bg-background/80 backdrop-blur-sm border-border/40">
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <BarChart3 className="h-5 w-5 text-primary" />
@@ -303,62 +307,64 @@ export function SurveyFlowDemo() {
                 </Card>
               </div>
 
-              {/* Main Survey - centered in viewport */}
-              <div className="flex items-center justify-center min-h-screen">
-                <AnimateFlowStep>
-                  {renderStep({
-                    intro: <IntroStep />,
-                    question1: (
-                      <QuestionStep
-                        stepId="question1"
-                        questionNumber={1}
-                        title="How satisfied are you with our product overall?"
-                        description="Rate your overall experience from 1 (not satisfied) to 5 (very satisfied)"
-                        contextKey="q1_satisfaction"
-                      />
-                    ),
-                    question2: (
-                      <QuestionStep
-                        stepId="question2"
-                        questionNumber={2}
-                        title="How likely are you to recommend us to others?"
-                        description="Rate from 1 (not likely) to 5 (very likely)"
-                        contextKey="q2_recommend"
-                      />
-                    ),
-                    question3: (
-                      <QuestionStep
-                        stepId="question3"
-                        questionNumber={3}
-                        title="How would you rate our features and functionality?"
-                        description="Rate from 1 (poor) to 5 (excellent)"
-                        contextKey="q3_features"
-                      />
-                    ),
-                    question4: (
-                      <QuestionStep
-                        stepId="question4"
-                        questionNumber={4}
-                        title="How would you rate our customer support?"
-                        description="Rate from 1 (poor) to 5 (excellent)"
-                        contextKey="q4_support"
-                      />
-                    ),
-                    results: (
-                      <ResultsStep
-                        satisfaction={context.q1_satisfaction}
-                        recommend={context.q2_recommend}
-                        features={context.q3_features}
-                        support={context.q4_support}
-                        startedAt={startedAt}
-                        completedAt={completedAt}
-                        onRestart={handleRestart}
-                      />
-                    ),
-                  })}
-                </AnimateFlowStep>
+              {/* Main Survey - with top padding for header + progress */}
+              <div className="pt-24 sm:pt-28">
+                <FlowContainer maxWidth="2xl">
+                  <AnimateFlowStep>
+                    {renderStep({
+                      intro: <IntroStep />,
+                      question1: (
+                        <QuestionStep
+                          stepId="question1"
+                          questionNumber={1}
+                          title="How satisfied are you with our product overall?"
+                          description="Rate your overall experience from 1 (not satisfied) to 5 (very satisfied)"
+                          contextKey="q1_satisfaction"
+                        />
+                      ),
+                      question2: (
+                        <QuestionStep
+                          stepId="question2"
+                          questionNumber={2}
+                          title="How likely are you to recommend us to others?"
+                          description="Rate from 1 (not likely) to 5 (very likely)"
+                          contextKey="q2_recommend"
+                        />
+                      ),
+                      question3: (
+                        <QuestionStep
+                          stepId="question3"
+                          questionNumber={3}
+                          title="How would you rate our features and functionality?"
+                          description="Rate from 1 (poor) to 5 (excellent)"
+                          contextKey="q3_features"
+                        />
+                      ),
+                      question4: (
+                        <QuestionStep
+                          stepId="question4"
+                          questionNumber={4}
+                          title="How would you rate our customer support?"
+                          description="Rate from 1 (poor) to 5 (excellent)"
+                          contextKey="q4_support"
+                        />
+                      ),
+                      results: (
+                        <ResultsStep
+                          satisfaction={context.q1_satisfaction}
+                          recommend={context.q2_recommend}
+                          features={context.q3_features}
+                          support={context.q4_support}
+                          startedAt={startedAt}
+                          completedAt={completedAt}
+                          onRestart={handleRestart}
+                        />
+                      ),
+                    })}
+                  </AnimateFlowStep>
+                </FlowContainer>
               </div>
-            </div>
+            </PageLayout>
           </>
         );
       }}

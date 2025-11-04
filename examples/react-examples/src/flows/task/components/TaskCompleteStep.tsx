@@ -23,7 +23,7 @@ export function TaskCompleteStep({
   onViewAll,
 }: TaskCompleteStepProps) {
   return (
-    <Card className="w-full max-w-2xl border-0">
+    <Card className="w-full border-0">
       <CardHeader className="text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
           <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />

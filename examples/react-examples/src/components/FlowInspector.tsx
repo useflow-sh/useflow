@@ -40,10 +40,28 @@ export function FlowInspector({
     startedAt,
     completedAt,
   } = useFlow();
-  const [showDebug, setShowDebug] = useState(true);
+  // Default to closed on mobile, open on desktop
+  const [showDebug, setShowDebug] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth >= 768; // 768px is 'md' breakpoint
+    }
+    return true;
+  });
   const [persistedState, setPersistedState] =
     useState<PersistedFlowState | null>(null);
   const [, setTick] = useState(0);
+
+  // Update showDebug when window resizes
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768 && showDebug) {
+        setShowDebug(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [showDebug]);
 
   // Update elapsed time every second when flow is active
   useEffect(() => {
@@ -77,28 +95,44 @@ export function FlowInspector({
     window.location.reload();
   };
 
-  const handleClearAllFlows = async () => {
-    if (!store) return;
-    await store.removeAll?.();
-    setPersistedState(null);
-    window.location.reload();
-  };
-
   const positionClass =
-    position === "right" ? "bottom-4 right-4" : "bottom-4 left-4";
+    position === "right"
+      ? "bottom-4 right-4 sm:right-4"
+      : "bottom-4 left-4 sm:left-4";
 
   return (
     <Card
-      className={`fixed ${positionClass} w-96 z-50 text-sm max-h-[calc(100vh-2rem)] flex flex-col bg-background/80 backdrop-blur-sm`}
+      className={`fixed ${positionClass} z-40 text-sm bg-card/80 backdrop-blur-sm shadow-lg transition-all duration-300 flex flex-col-reverse border-border/40 ${
+        showDebug
+          ? "min-w-[300px] max-w-[calc(100vw-2rem)] sm:max-w-md"
+          : "w-[180px]"
+      }`}
     >
+      {/* Header Button - at bottom */}
+      <CardHeader className="py-1.5 px-3 sm:px-4">
+        <button
+          onClick={() => setShowDebug(!showDebug)}
+          className="w-full flex justify-between items-center text-left p-0 bg-transparent border-none cursor-pointer hover:opacity-80 transition-opacity"
+        >
+          <CardTitle className="text-sm">🔍 Flow Inspector</CardTitle>
+          <span
+            className="text-muted-foreground transition-transform duration-300 text-xs"
+            style={{ transform: showDebug ? "rotate(0deg)" : "rotate(180deg)" }}
+          >
+            ▲
+          </span>
+        </button>
+      </CardHeader>
+
+      {/* Content Drawer - expands above header */}
       <div
-        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+        className={`transition-all duration-300 ease-in-out flex flex-col overflow-hidden ${
           showDebug
-            ? "max-h-[calc(100vh-6rem)] opacity-100"
+            ? "max-h-[calc(100vh-8rem)] opacity-100"
             : "max-h-0 opacity-0"
         }`}
       >
-        <CardContent className="space-y-4 pb-2 p-6 overflow-y-auto">
+        <CardContent className="space-y-4 pb-2 p-3 sm:p-6 overflow-y-auto flex-1">
           {/* Current Flow State */}
           <div className="space-y-2">
             <CardDescription className="font-semibold text-xs uppercase tracking-wide">
@@ -205,32 +239,9 @@ export function FlowInspector({
             >
               Clear Current Flow
             </Button>
-            <Button
-              onClick={handleClearAllFlows}
-              variant="destructive"
-              size="sm"
-              className="w-full"
-            >
-              Clear All Flows
-            </Button>
           </div>
         </CardContent>
       </div>
-
-      <CardHeader className="py-2">
-        <button
-          onClick={() => setShowDebug(!showDebug)}
-          className="w-full flex justify-between items-center text-left p-0 bg-transparent border-none cursor-pointer hover:opacity-80 transition-opacity"
-        >
-          <CardTitle className="text-base">Flow Inspector</CardTitle>
-          <span
-            className="text-muted-foreground transition-transform duration-300"
-            style={{ transform: showDebug ? "rotate(0deg)" : "rotate(180deg)" }}
-          >
-            ▲
-          </span>
-        </button>
-      </CardHeader>
     </Card>
   );
 }

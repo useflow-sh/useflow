@@ -1,13 +1,6 @@
 import { OptionSelector } from "@/components/OptionSelector";
+import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { branchingFlow } from "../flow";
 
 const userTypeOptions = [
@@ -29,32 +22,29 @@ export function UserTypeStep() {
   });
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader>
-        <CardTitle>How will you use this app?</CardTitle>
-        <CardDescription>
-          Choose your account type to customize your experience.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <OptionSelector
-          options={userTypeOptions}
-          selectedValue={context.userType}
-          onSelect={(value) => setContext({ userType: value })}
-        />
-      </CardContent>
-      <CardFooter className="flex gap-2">
-        <Button variant="outline" onClick={() => back()} className="flex-1">
-          Back
-        </Button>
-        <Button
-          onClick={() => next()}
-          disabled={!context.userType}
-          className="flex-1"
-        >
-          Continue
-        </Button>
-      </CardFooter>
-    </Card>
+    <StepCard
+      title="How will you use this app?"
+      description="Choose your account type to customize your experience."
+      footer={
+        <div className="flex gap-2 w-full">
+          <Button variant="outline" onClick={() => back()} className="flex-1">
+            Back
+          </Button>
+          <Button
+            onClick={() => next()}
+            disabled={!context.userType}
+            className="flex-1"
+          >
+            Continue
+          </Button>
+        </div>
+      }
+    >
+      <OptionSelector
+        options={userTypeOptions}
+        selectedValue={context.userType}
+        onSelect={(value) => setContext({ userType: value })}
+      />
+    </StepCard>
   );
 }

@@ -19,8 +19,8 @@ export function SurveyStep() {
   const [primaryUse, setPrimaryUse] = useState("");
 
   return (
-    <Card>
-      <CardHeader className="text-center">
+    <Card className="w-full border-0 bg-transparent shadow-none">
+      <CardHeader className="text-center pb-3">
         <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
           <BarChart3 className="w-6 h-6 text-green-600" />
         </div>
@@ -29,7 +29,7 @@ export function SurveyStep() {
           Help us understand how we can serve you better (optional)
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         <div className="space-y-3">
           <Label className="text-sm font-medium">
             How did you hear about us?

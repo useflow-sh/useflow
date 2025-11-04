@@ -1,13 +1,6 @@
 import { OptionSelector } from "@/components/OptionSelector";
+import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { branchingFlow } from "../flow";
 
 const setupOptions = [
@@ -38,30 +31,29 @@ export function SetupPreferenceStep() {
   };
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader>
-        <CardTitle>How would you like to proceed?</CardTitle>
-        <CardDescription>Choose your setup path.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <OptionSelector
-          options={setupOptions}
-          selectedValue={context.setupPreference}
-          onSelect={(value) => setContext({ setupPreference: value })}
-        />
-      </CardContent>
-      <CardFooter className="flex gap-2">
-        <Button variant="outline" onClick={() => back()} className="flex-1">
-          Back
-        </Button>
-        <Button
-          onClick={handleContinue}
-          disabled={!context.setupPreference}
-          className="flex-1"
-        >
-          Continue
-        </Button>
-      </CardFooter>
-    </Card>
+    <StepCard
+      title="How would you like to proceed?"
+      description="Choose your setup path."
+      footer={
+        <div className="flex gap-2 w-full">
+          <Button variant="outline" onClick={() => back()} className="flex-1">
+            Back
+          </Button>
+          <Button
+            onClick={handleContinue}
+            disabled={!context.setupPreference}
+            className="flex-1"
+          >
+            Continue
+          </Button>
+        </div>
+      }
+    >
+      <OptionSelector
+        options={setupOptions}
+        selectedValue={context.setupPreference}
+        onSelect={(value) => setContext({ setupPreference: value })}
+      />
+    </StepCard>
   );
 }

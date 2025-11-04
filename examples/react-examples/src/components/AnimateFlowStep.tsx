@@ -27,7 +27,8 @@ export function AnimateFlowStep({ children }: { children: ReactElement }) {
   return (
     <div
       key={stepId}
-      className="w-full max-w-3xl mx-auto px-16 py-8 animate-[fadeIn_0.7s_ease-in-out_both]"
+      className="animate-[fadeIn_0.7s_ease-in-out_both]"
+      style={{ scrollMarginTop: "2rem" }}
     >
       {children}
     </div>

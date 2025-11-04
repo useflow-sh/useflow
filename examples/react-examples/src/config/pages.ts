@@ -75,7 +75,7 @@ export const pages: PageConfig[] = [
       "Linear step progression",
       "Context updates (setContext)",
       "Navigation control (next/back)",
-      "State persistence (persister)",
+      "State persistence",
     ],
     complexityLabel: "Simple",
   },
@@ -95,9 +95,9 @@ export const pages: PageConfig[] = [
       "Context-driven navigation",
       "Component-driven navigation",
       "Conditional steps",
-      "State persistence (persister)",
+      "State persistence",
     ],
-    complexityLabel: "Intermediate",
+    complexityLabel: "Simple",
   },
   {
     id: "task",
@@ -112,10 +112,9 @@ export const pages: PageConfig[] = [
     galleryDescription:
       "Multiple independent flow instances with separate state",
     features: [
-      "Reusable flow instances (instanceId)",
+      "Reusable flow instances",
       "Independent state per instance",
-      "Resume incomplete flows",
-      "Per-instance persistence",
+      "Resume incomplete flows (drafts)",
     ],
     complexityLabel: "Intermediate",
   },
@@ -132,15 +131,14 @@ export const pages: PageConfig[] = [
     galleryDescription:
       "Event hooks demonstration with onNext, onBack, onTransition, and onComplete",
     features: [
-      "Event hooks (onNext, onBack, onTransition, onComplete)",
+      "Event hooks (analytics simulation)",
       "Progress tracking with transitions",
-      "State persistence (persister)",
-      "Event-driven UI updates",
+      "State persistence",
     ],
-    complexityLabel: "Intermediate",
+    complexityLabel: "Advanced",
   },
   {
-    id: "dynamic",
+    id: "variants",
     label: "Flow Variants",
     path: "/variants",
     icon: Workflow,
@@ -153,11 +151,10 @@ export const pages: PageConfig[] = [
       "Reuse components across multiple flow definitions with runtime switching",
     features: [
       "Multiple flow definitions",
-      "Shared component library",
-      "Runtime flow switching",
-      "Role-based or feature-flagged flows",
+      "Shared step components",
+      "Runtime flow switching based on state",
     ],
-    complexityLabel: "Advanced",
+    complexityLabel: "Intermediate",
   },
   {
     id: "remote",
@@ -177,7 +174,7 @@ export const pages: PageConfig[] = [
       "TanStack Query integration",
       "Change flows without deployment",
     ],
-    complexityLabel: "Advanced",
+    complexityLabel: "Intermediate",
   },
 ];
 

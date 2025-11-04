@@ -1,6 +1,10 @@
 import { Flow, useFlowConfig } from "@useflow/react";
-import { ArrowLeft, ChevronDown, ListTodo, Plus } from "lucide-react";
+import { ArrowLeft, ChevronDown, ListTodo, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { AnimateFlowStep } from "@/components/AnimateFlowStep";
+import { FlowInspector } from "@/components/FlowInspector";
+import { LoadingView } from "@/components/LoadingView";
+import { FlowContainer, PageLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,11 +13,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AnimateFlowStep } from "../../components/AnimateFlowStep";
-import { FlowInspector } from "../../components/FlowInspector";
-import { LoadingView } from "../../components/LoadingView";
 import { AssignStep } from "./components/AssignStep";
 import { DetailsStep } from "./components/DetailsStep";
+import { PriorityStep } from "./components/PriorityStep";
 import { ReviewStep } from "./components/ReviewStep";
 import { TaskCompleteStep } from "./components/TaskCompleteStep";
 import { TaskTypeStep } from "./components/TaskTypeStep";
@@ -175,7 +177,7 @@ export function TaskFlowDemo() {
   if (!activeTaskId) {
     return (
       <div className="min-h-screen flex flex-col p-4">
-        <Card className="w-full max-w-2xl mx-auto border-0 flex flex-col max-h-screen">
+        <Card className="w-full max-w-2xl mx-auto border-0 bg-transparent shadow-none flex flex-col max-h-screen">
           {/* Fixed Header */}
           <CardHeader className="text-center flex-shrink-0">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -199,25 +201,27 @@ export function TaskFlowDemo() {
           <CardContent className="flex-1 overflow-y-auto space-y-6 pt-0">
             {draftTasks.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold sticky top-0 bg-background py-2 z-10">
+                <h3 className="text-sm font-semibold">
                   Draft Tasks ({draftTasks.length})
                 </h3>
                 <div className="space-y-2">
                   {draftTasks.map((draft) => (
                     <div
                       key={draft.id ?? "base"}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-yellow-500/10 border-yellow-500/20"
+                      className="flex items-center justify-between p-3 rounded-lg border bg-primary/10 border-primary/30"
                     >
                       <div className="flex-1">
                         <p className="font-medium text-sm">
                           {draft.context.title || "Untitled Task"}
                         </p>
                         <p className="text-xs text-muted-foreground capitalize">
-                          {draft.context.taskType || "No type"} • On step:{" "}
-                          {draft.stepId}
+                          {draft.context.taskType || "No type"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          On step: {draft.stepId}
                         </p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         <Button
                           size="sm"
                           variant="outline"
@@ -226,11 +230,12 @@ export function TaskFlowDemo() {
                           Resume
                         </Button>
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="ghost"
                           onClick={() => handleDeleteDraft(draft.id)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
-                          Delete
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -241,7 +246,7 @@ export function TaskFlowDemo() {
 
             {completedTasks.length > 0 && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between sticky top-0 bg-background py-2 z-10">
+                <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold">
                     Created Tasks ({completedTasks.length})
                   </h3>
@@ -259,7 +264,7 @@ export function TaskFlowDemo() {
                     return (
                       <div
                         key={task.id}
-                        className="rounded-lg border bg-muted/30 overflow-hidden"
+                        className="rounded-lg border border-border/40 bg-muted/50 overflow-hidden"
                       >
                         <button
                           onClick={() =>
@@ -366,46 +371,50 @@ export function TaskFlowDemo() {
     >
       {({ renderStep, context }) => (
         <>
-          {/* Back to Task Manager Button */}
-          <div className="fixed top-4 left-4 z-50">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBackToManager}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Task Manager
-            </Button>
-          </div>
-
           <FlowInspector
             flowId={taskFlow.id}
             instanceId={activeTaskId}
             position="right"
           />
 
-          {/* Main content - centered in viewport */}
-          <div className="flex items-center justify-center min-h-screen">
-            <AnimateFlowStep>
-              {renderStep({
-                taskType: <TaskTypeStep />,
-                details: <DetailsStep />,
-                assign: <AssignStep />,
-                review: <ReviewStep />,
-                complete: (
-                  <TaskCompleteStep
-                    title={context.title}
-                    taskType={context.taskType}
-                    onCreateAnother={() =>
-                      handleCreateAnother(context as TaskFlowContext)
-                    }
-                    onViewAll={() => handleViewAll(context as TaskFlowContext)}
-                  />
-                ),
-              })}
-            </AnimateFlowStep>
-          </div>
+          {/* Main content - horizontally centered with responsive padding */}
+          <PageLayout>
+            <FlowContainer maxWidth="2xl">
+              {/* Back to Task Manager Button */}
+              <div className="mb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBackToManager}
+                  className="gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Task Manager
+                </Button>
+              </div>
+              <AnimateFlowStep>
+                {renderStep({
+                  taskType: <TaskTypeStep />,
+                  details: <DetailsStep />,
+                  priority: <PriorityStep />,
+                  assign: <AssignStep />,
+                  review: <ReviewStep />,
+                  complete: (
+                    <TaskCompleteStep
+                      title={context.title}
+                      taskType={context.taskType}
+                      onCreateAnother={() =>
+                        handleCreateAnother(context as TaskFlowContext)
+                      }
+                      onViewAll={() =>
+                        handleViewAll(context as TaskFlowContext)
+                      }
+                    />
+                  ),
+                })}
+              </AnimateFlowStep>
+            </FlowContainer>
+          </PageLayout>
         </>
       )}
     </Flow>

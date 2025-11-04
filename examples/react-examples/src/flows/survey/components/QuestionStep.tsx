@@ -3,7 +3,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -42,8 +41,8 @@ export function QuestionStep({
   const canProceed = currentValue !== undefined;
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader>
+    <Card className="w-full border-0 bg-transparent shadow-none">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-muted-foreground">
             Question {questionNumber} of 4
@@ -70,19 +69,19 @@ export function QuestionStep({
             <span>Extremely</span>
           </div>
         </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => back()} className="flex-1">
+            Back
+          </Button>
+          <Button
+            onClick={() => next()}
+            disabled={!canProceed}
+            className="flex-1"
+          >
+            {questionNumber === 4 ? "View Results" : "Continue"}
+          </Button>
+        </div>
       </CardContent>
-      <CardFooter className="flex gap-2">
-        <Button variant="outline" onClick={() => back()} className="flex-1">
-          Back
-        </Button>
-        <Button
-          onClick={() => next()}
-          disabled={!canProceed}
-          className="flex-1"
-        >
-          {questionNumber === 4 ? "View Results" : "Continue"}
-        </Button>
-      </CardFooter>
     </Card>
   );
 }

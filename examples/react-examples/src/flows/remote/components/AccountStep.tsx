@@ -42,8 +42,8 @@ export function AccountStep() {
   };
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader>
+    <Card className="w-full border-0 bg-transparent shadow-none">
+      <CardHeader className="pb-3">
         <CardTitle>Create Your Account</CardTitle>
         <CardDescription>Complete your profile to get started</CardDescription>
       </CardHeader>

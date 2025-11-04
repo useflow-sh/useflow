@@ -1,13 +1,6 @@
 import { useState } from "react";
+import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { branchingFlow } from "../flow";
@@ -35,14 +28,30 @@ export function BusinessDetailsStep() {
   const canProceed = industryInput !== "";
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader>
-        <CardTitle>Tell us about your business</CardTitle>
-        <CardDescription>
-          Help us personalize your business experience.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <StepCard
+      title="Tell us about your business"
+      description="Help us personalize your business experience."
+      footer={
+        <div className="flex gap-2 w-full">
+          <Button variant="outline" onClick={() => back()} className="flex-1">
+            Back
+          </Button>
+          <Button
+            onClick={() =>
+              next({
+                businessIndustry: industryInput,
+                companyName: companyInput,
+              })
+            }
+            disabled={!canProceed}
+            className="flex-1"
+          >
+            Continue
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="industry">Industry</Label>
           <select
@@ -71,21 +80,7 @@ export function BusinessDetailsStep() {
             placeholder="Your Company Inc."
           />
         </div>
-      </CardContent>
-      <CardFooter className="flex gap-2">
-        <Button variant="outline" onClick={() => back()} className="flex-1">
-          Back
-        </Button>
-        <Button
-          onClick={() =>
-            next({ businessIndustry: industryInput, companyName: companyInput })
-          }
-          disabled={!canProceed}
-          className="flex-1"
-        >
-          Continue
-        </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </StepCard>
   );
 }

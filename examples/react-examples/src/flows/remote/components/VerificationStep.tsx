@@ -62,8 +62,8 @@ export function VerificationStep() {
   };
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader>
+    <Card className="w-full border-0 bg-transparent shadow-none">
+      <CardHeader className="pb-3">
         <CardTitle>Verify Your Email</CardTitle>
         <CardDescription>
           We've sent a verification code to {context.email}

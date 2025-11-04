@@ -1,14 +1,7 @@
 import { useFlow } from "@useflow/react";
 import { useState } from "react";
+import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -25,34 +18,33 @@ export function ProfileStep() {
   const canProceed = nameInput !== "";
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader>
-        <CardTitle>Tell us about yourself</CardTitle>
-        <CardDescription>What should we call you?</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Your Name</Label>
-          <Input
-            id="name"
-            type="text"
-            value={nameInput}
-            onChange={handleNameChange}
-            placeholder="Enter your name"
-          />
+    <StepCard
+      title="Tell us about yourself"
+      description="What should we call you?"
+      footer={
+        <div className="flex gap-2 w-full">
+          <Button variant="outline" onClick={() => back()}>
+            Back
+          </Button>
+          <Button
+            onClick={() => next({ name: nameInput })}
+            disabled={!canProceed}
+          >
+            Continue
+          </Button>
         </div>
-      </CardContent>
-      <CardFooter className="gap-2">
-        <Button variant="outline" onClick={() => back()}>
-          Back
-        </Button>
-        <Button
-          onClick={() => next({ name: nameInput })}
-          disabled={!canProceed}
-        >
-          Continue
-        </Button>
-      </CardFooter>
-    </Card>
+      }
+    >
+      <div className="space-y-2">
+        <Label htmlFor="name">Your Name</Label>
+        <Input
+          id="name"
+          type="text"
+          value={nameInput}
+          onChange={handleNameChange}
+          placeholder="Enter your name"
+        />
+      </div>
+    </StepCard>
   );
 }

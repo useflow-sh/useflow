@@ -67,8 +67,8 @@ export function WelcomeStep() {
   };
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader className="text-center">
+    <Card className="w-full border-0 bg-transparent shadow-none">
+      <CardHeader className="text-center pb-3">
         <CardTitle className="text-2xl font-bold">
           Welcome! Let's Get Started
         </CardTitle>
@@ -76,7 +76,7 @@ export function WelcomeStep() {
           Let's get you set up with a personalized experience
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         <FormField
           id="email"
           label="Email Address"

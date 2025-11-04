@@ -40,6 +40,9 @@ export const taskFlow = defineFlow({
       next: "details",
     },
     details: {
+      next: "priority",
+    },
+    priority: {
       next: "assign",
     },
     assign: {

@@ -1,12 +1,5 @@
+import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { taskFlow } from "../flow";
 
 export function ReviewStep() {
@@ -15,12 +8,21 @@ export function ReviewStep() {
   });
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader>
-        <CardTitle>Review Task</CardTitle>
-        <CardDescription>Review the details before creating</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <StepCard
+      title="Review Task"
+      description="Review the details before creating"
+      footer={
+        <div className="flex gap-2 w-full">
+          <Button variant="outline" onClick={() => back()} className="flex-1">
+            Back
+          </Button>
+          <Button onClick={() => next()} className="flex-1">
+            Create Task
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
         <div>
           <h3 className="font-semibold mb-3">Task Summary:</h3>
           <dl className="space-y-2 text-sm">
@@ -52,15 +54,7 @@ export function ReviewStep() {
             {context.description}
           </p>
         </div>
-      </CardContent>
-      <CardFooter className="flex gap-2">
-        <Button variant="outline" onClick={() => back()} className="flex-1">
-          Back
-        </Button>
-        <Button onClick={() => next()} className="flex-1">
-          Create Task
-        </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </StepCard>
   );
 }

@@ -1,12 +1,5 @@
+import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 type CompleteStepProps = {
   name: string;
@@ -32,14 +25,20 @@ export function CompleteStep({
   onRestart,
 }: CompleteStepProps) {
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader className="text-center">
-        <CardTitle className="text-3xl">Welcome, {name}!</CardTitle>
-        <CardDescription className="text-base">
-          Your onboarding is complete.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <StepCard
+      title={`Welcome, ${name}!`}
+      description="Your onboarding is complete."
+      footer={
+        onRestart ? (
+          <div className="flex justify-center w-full">
+            <Button variant="outline" onClick={onRestart}>
+              Restart Onboarding
+            </Button>
+          </div>
+        ) : undefined
+      }
+    >
+      <div className="space-y-4">
         <div>
           <h3 className="font-semibold mb-2">Your Profile:</h3>
           <dl className="space-y-1 text-sm">
@@ -94,14 +93,7 @@ export function CompleteStep({
         <p className="text-sm text-muted-foreground">
           You're ready to start using the app!
         </p>
-      </CardContent>
-      {onRestart && (
-        <CardFooter className="justify-center">
-          <Button variant="outline" onClick={onRestart}>
-            Restart Onboarding
-          </Button>
-        </CardFooter>
-      )}
-    </Card>
+      </div>
+    </StepCard>
   );
 }

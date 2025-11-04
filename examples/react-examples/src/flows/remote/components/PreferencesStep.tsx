@@ -53,14 +53,14 @@ export function PreferencesStep() {
   };
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader>
+    <Card className="w-full border-0 bg-transparent shadow-none">
+      <CardHeader className="pb-3">
         <CardTitle>Customize Your Experience</CardTitle>
         <CardDescription>
           Set your preferences to customize your experience
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         <div className="space-y-3">
           <Label>Theme Preference</Label>
           <OptionSelector

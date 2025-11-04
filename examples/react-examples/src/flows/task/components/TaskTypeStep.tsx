@@ -1,13 +1,6 @@
 import { OptionSelector } from "@/components/OptionSelector";
+import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { taskFlow } from "../flow";
 
 const taskTypeOptions = [
@@ -39,21 +32,10 @@ export function TaskTypeStep() {
   };
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader>
-        <CardTitle>Create New Task</CardTitle>
-        <CardDescription>
-          What type of task would you like to create?
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <OptionSelector
-          options={taskTypeOptions}
-          selectedValue={context.taskType}
-          onSelect={(value) => setContext({ taskType: value })}
-        />
-      </CardContent>
-      <CardFooter>
+    <StepCard
+      title="Create New Task"
+      description="What type of task would you like to create?"
+      footer={
         <Button
           onClick={handleNext}
           disabled={!context.taskType}
@@ -61,7 +43,13 @@ export function TaskTypeStep() {
         >
           Continue
         </Button>
-      </CardFooter>
-    </Card>
+      }
+    >
+      <OptionSelector
+        options={taskTypeOptions}
+        selectedValue={context.taskType}
+        onSelect={(value) => setContext({ taskType: value })}
+      />
+    </StepCard>
   );
 }

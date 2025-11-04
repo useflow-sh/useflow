@@ -21,8 +21,8 @@ export function NewsletterStep() {
   const [subscribeEvents, setSubscribeEvents] = useState(false);
 
   return (
-    <Card>
-      <CardHeader className="text-center">
+    <Card className="w-full border-0 bg-transparent shadow-none">
+      <CardHeader className="text-center pb-3">
         <div className="mx-auto w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
           <Mail className="w-6 h-6 text-indigo-600" />
         </div>
@@ -31,7 +31,7 @@ export function NewsletterStep() {
           Subscribe to our newsletter for updates, tips, and exclusive content
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="newsletter-email">Email Address</Label>
           <Input

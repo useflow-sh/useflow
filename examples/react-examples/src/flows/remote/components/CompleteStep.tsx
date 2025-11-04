@@ -125,8 +125,8 @@ export function CompleteStep() {
     context.userType === "business" ? "Business" : "Personal";
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader className="text-center">
+    <Card className="w-full border-0 bg-transparent shadow-none">
+      <CardHeader className="text-center pb-3">
         <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
           <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
@@ -137,7 +137,7 @@ export function CompleteStep() {
           Your {userTypeLabel.toLowerCase()} account is ready to use
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         <div className="space-y-4">
           <h3 className="font-medium">
             Onboarding Journey ({completedSteps.length}{" "}

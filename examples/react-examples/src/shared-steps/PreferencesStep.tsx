@@ -1,14 +1,7 @@
 import { useFlow } from "@useflow/react";
 import { OptionSelector } from "@/components/OptionSelector";
+import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
@@ -38,14 +31,24 @@ export function PreferencesStep() {
   };
 
   return (
-    <Card className="w-full max-w-2xl border-0">
-      <CardHeader>
-        <CardTitle>Set Your Preferences</CardTitle>
-        <CardDescription>
-          Customize your experience (or skip to use defaults)
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <StepCard
+      title="Set Your Preferences"
+      description="Customize your experience (or skip to use defaults)"
+      footer={
+        <div className="flex gap-2 w-full">
+          <Button variant="outline" onClick={() => back()} className="flex-1">
+            Back
+          </Button>
+          <Button variant="ghost" onClick={handleSkip} className="flex-1">
+            Skip
+          </Button>
+          <Button onClick={() => next()} className="flex-1">
+            Continue
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-6">
         <div>
           <Label>Choose Your Theme</Label>
           <OptionSelector
@@ -72,18 +75,7 @@ export function PreferencesStep() {
             }
           />
         </div>
-      </CardContent>
-      <CardFooter className="flex gap-2">
-        <Button variant="outline" onClick={() => back()} className="flex-1">
-          Back
-        </Button>
-        <Button variant="ghost" onClick={handleSkip} className="flex-1">
-          Skip
-        </Button>
-        <Button onClick={() => next()} className="flex-1">
-          Continue
-        </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </StepCard>
   );
 }

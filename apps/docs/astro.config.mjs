@@ -55,7 +55,7 @@ export default defineConfig({
                 localStorage.setItem('starlight-theme', 'dark');
               }
               document.documentElement.dataset.theme = theme;
-              document.documentElement.style.backgroundColor = theme === 'light' ? '#f5f5f0' : '#26252a';
+              document.documentElement.style.backgroundColor = theme === 'light' ? '#f5f5f0' : '#23232b';
             })();
           `,
         },
@@ -63,7 +63,7 @@ export default defineConfig({
           tag: "style",
           content: `
             html, body {
-              background-color: #26252a !important;
+              background-color: #23232b !important;
             }
             html[data-theme='light'], 
             html[data-theme='light'] body {

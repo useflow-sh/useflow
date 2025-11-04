@@ -37,10 +37,20 @@ export function SideNav({ isOpen, onClose }: SideNavProps) {
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <Card className="h-full border-0 rounded-none flex flex-col">
+        <Card className="bg-background h-full border-0 rounded-none flex flex-col">
           <CardHeader>
-            <CardTitle>Navigation</CardTitle>
-            <CardDescription>useFlow Example Flows</CardDescription>
+            <CardTitle>
+              <div
+                className="text-xl font-bold bg-gradient-to-r from-primary-300 via-secondary-300 to-primary-300 bg-clip-text text-transparent bg-[length:200%_100%] animate-[gradient-flow_4s_linear_infinite]"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(90deg, var(--color-primary-300) 0%, var(--color-secondary-300) 25%, var(--color-primary-300) 50%, var(--color-secondary-300) 75%, var(--color-primary-300) 100%)",
+                }}
+              >
+                useFlow
+              </div>
+            </CardTitle>
+            <CardDescription>Example Flows</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 flex-1 overflow-y-auto">
             {navItems.map((item) => {

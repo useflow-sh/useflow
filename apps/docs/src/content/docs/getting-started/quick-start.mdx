@@ -5,6 +5,7 @@ description: Build your first flow in 5 minutes
 
 import InstallTabs from '../../../components/InstallTabs.astro';
 import { Steps, Aside, LinkCard, CardGrid } from '@astrojs/starlight/components';
+import { DEMOS_URL } from '../../../constants';
 
 useFlow is a declarative, type-safe library for building multi-step flows in React with **built-in persistence**. Whether you're building onboarding, checkout, surveys, or wizards, useFlow eliminates the complexity while providing exceptional developer experience.
 
@@ -280,7 +281,7 @@ export function App() {
 ```
 
 <Aside type="tip">
-  **Try it:** Fill out the form partially, refresh the page - you'll continue exactly where you left off! This alone can increase completion rates by 40%.
+  **Try it:** Fill out the form partially, refresh the page - you'll continue exactly where you left off!
 </Aside>
 
 ## Bonus: add analytics (15 seconds)
@@ -322,6 +323,11 @@ export function App() {
 Now that you've built your first flow, explore more advanced features:
 
 <CardGrid>
+  <LinkCard
+    title="Try Interactive Demos"
+    description="See useFlow in action with real-time flows you can interact with."
+    href={DEMOS_URL}
+  />
   <LinkCard
     title="Type Safety"
     description="Get full type safety for your flows"

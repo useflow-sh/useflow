@@ -45,12 +45,12 @@
   --color-neutral-200: #ebebde;
   --color-neutral-300: #ddddd0;
   --color-neutral-400: #c8c8bb;
-  --color-neutral-500: #9d9d90;
-  --color-neutral-600: #75756b;
-  --color-neutral-700: #54544c;
-  --color-neutral-800: #3c3c36;
-  --color-neutral-900: #26252a; /* Dark mode background */
-  --color-neutral-950: #1c1b1e;
+  --color-neutral-500: #9d9d9d; /* Starting to transition to neutral */
+  --color-neutral-600: #75757a; /* Slight cool shift */
+  --color-neutral-700: #52525a; /* More cool */
+  --color-neutral-800: #3a3a42; /* Cooler */
+  --color-neutral-900: #27272e; /* Dark mode background - cool */
+  --color-neutral-950: #1a1a20; /* Nearly black - cool */
 
   /* Semantic mappings for shadcn/ui components */
   --color-background: var(--color-neutral-100);

@@ -48,12 +48,12 @@
   --color-neutral-200: #ebebde; /* Light warm gray - inline code bg in light mode */
   --color-neutral-300: #ddddd0; /* Mid warm gray - borders */
   --color-neutral-400: #c8c8bb; /* Darker warm gray - transition */
-  --color-neutral-500: #9d9d90; /* Neutral mid-tone - shifting cooler */
-  --color-neutral-600: #75756b; /* Medium dark gray - smoother gradient */
-  --color-neutral-700: #54544c; /* Dark gray */
-  --color-neutral-800: #3c3c36; /* Darker neutral gray */
-  --color-neutral-900: #26252a; /* Very dark neutral gray - dark mode background */
-  --color-neutral-950: #1c1b1e; /* Nearly black neutral */
+  --color-neutral-500: #9d9d9d; /* Starting to transition to neutral */
+  --color-neutral-600: #75757a; /* Slight cool shift */
+  --color-neutral-700: #52525a; /* More cool */
+  --color-neutral-800: #3a3a42; /* Cooler */
+  --color-neutral-900: #27272e; /* Very dark neutral gray - dark mode background - cool */
+  --color-neutral-950: #1a1a20; /* Nearly black neutral - cool */
 
   /* Starlight compatibility - map to accent and gray */
   --color-accent-50: var(--color-primary-50);

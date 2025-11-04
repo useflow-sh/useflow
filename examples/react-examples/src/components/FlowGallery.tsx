@@ -70,7 +70,13 @@ export function FlowGallery() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50">
       <div className="container mx-auto px-4 py-12 md:py-16">
         <header className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary-400 to-secondary-400 bg-clip-text text-transparent">
+          <h1
+            className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary-300 via-secondary-300 to-primary-300 bg-clip-text text-transparent bg-[length:200%_100%] animate-[gradient-flow_4s_linear_infinite]"
+            style={{
+              backgroundImage:
+                "linear-gradient(90deg, var(--color-primary-300) 0%, var(--color-secondary-300) 25%, var(--color-primary-300) 50%, var(--color-secondary-300) 75%, var(--color-primary-300) 100%)",
+            }}
+          >
             useFlow Gallery
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4">

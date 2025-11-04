@@ -131,3 +131,13 @@
     background-position: 100% 50%;
   }
 }
+
+/* Gradient animation - continuous left to right flow (like docs) */
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: -200% 50%;
+  }
+}

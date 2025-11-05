@@ -4,15 +4,15 @@
 
 useFlow is a lightweight library for building multi-step flows like onboarding, checkout, surveys, and wizards with full TypeScript support.
 
-## Why useflow?
+## Why useFlow?
 
 **Start simple, scale up.** Begin with a linear flow and add conditional navigation, persistence, or callbacks as needed without refactoring your architecture.
 
-**Built for multi-step UI flows.** Unlike general-purpose state machines (XState), useflow is designed specifically for sequential user flows with simple, intuitive APIs for common patterns like navigation, history, and persistence.
+**Built for multi-step UI flows.** Unlike general-purpose state machines (XState), useFlow is designed specifically for sequential user flows with simple, intuitive APIs for common patterns like navigation, history, and persistence.
 
 **Type-safe by default.** Full TypeScript inference - step names autocomplete, invalid navigation throws compile-time errors, and context is fully typed throughout your flow.
 
-**Complements form libraries.** useflow works great with TanStack Form, React Hook Form, or any form library - useflow handles the multi-step navigation and state while your form library handles validation. Perfect for multi-page forms, checkouts, onboarding, and surveys.
+**Complements form libraries.** useFlow works great with TanStack Form, React Hook Form, or any form library - useFlow handles the multi-step navigation and state while your form library handles validation. Perfect for multi-page forms, checkouts, onboarding, and surveys.
 
 ## Features
 
@@ -80,7 +80,7 @@ function ProfileStep() {
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](./LICENSE)
+MIT License. See [LICENSE](./LICENSE) file for details
 
 ## Contributing
 

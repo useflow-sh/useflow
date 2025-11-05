@@ -1,13 +1,50 @@
 {
   "name": "@useflow/core",
   "version": "0.0.0",
+  "description": "Framework-agnostic state machine for multi-step flows",
+  "author": "Brian Cheung <bcheung.dev@gmail.com> (https://github.com/bcheung)",
+  "license": "MIT",
+  "homepage": "https://docs.useflow.sh",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/useflow-sh/useflow.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/useflow-sh/useflow/issues"
+  },
+  "keywords": [
+    "useflow",
+    "flow",
+    "state-machine",
+    "multi-step",
+    "wizard",
+    "stepper",
+    "onboarding",
+    "checkout",
+    "survey",
+    "typescript",
+    "form",
+    "navigation"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./src/index.ts"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "type": "module",
+  "sideEffects": false,
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",

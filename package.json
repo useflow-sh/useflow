@@ -41,7 +41,7 @@
     "clean": "turbo clean && rm -rf .turbo node_modules dist",
     "prepare": "husky || true",
     "changeset": "changeset",
-    "version": "changeset version && bun update",
+    "version": "changeset version && bun scripts/sync-lockfile.ts",
     "release": "bun run build && bun run release:publish",
     "release:publish": "for dir in packages/*; do (cd \"$dir\" && bun publish --access public || true); done && changeset tag"
   },

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Ask a Question
+    url: https://github.com/useflow-sh/useflow/discussions/new?category=q-a
+    about: Ask questions and get help from the community
+  - name: 📚 Documentation
+    url: https://docs.useflow.sh
+    about: Read the official documentation
+  - name: 🎮 Live Demos
+    url: https://demo.useflow.sh
+    about: See interactive examples

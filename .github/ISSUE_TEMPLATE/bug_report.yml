@@ -1,0 +1,62 @@
+name: Bug Report
+description: Report a bug or issue
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please search existing issues first to avoid duplicates.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear description of what's wrong
+      placeholder: When I do X, Y happens instead of Z
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Link to a minimal reproduction (CodeSandbox, StackBlitz) or steps to reproduce
+      placeholder: |
+        https://codesandbox.io/s/...
+        
+        OR steps:
+        1. Create a flow with...
+        2. Call next() when...
+        3. See error
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: useFlow version
+      description: Which version are you using?
+      placeholder: ex. 1.0.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Relevant environment details
+      placeholder: |
+        React: 18.2.0
+        TypeScript: 5.0.0
+        Browser: Chrome 120
+      render: bash
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before submitting
+      options:
+        - label: I've searched existing issues
+          required: true
+        - label: I've read the docs at https://docs.useflow.sh
+          required: true

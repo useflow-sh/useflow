@@ -1,7 +1,13 @@
 import alchemy from "alchemy";
 import { Vite, Website } from "alchemy/cloudflare";
+import { CloudflareStateStore } from "alchemy/state";
 
-const app = await alchemy("useflow");
+const app = await alchemy("useflow", {
+  // Only use CloudflareStateStore in CI, not locally
+  stateStore: process.env.CI
+    ? (scope) => new CloudflareStateStore(scope)
+    : undefined,
+});
 
 const domain =
   app.stage === "production" ? "useflow.sh" : `${app.stage}.useflow.sh`;

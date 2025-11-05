@@ -41,9 +41,9 @@
     "clean": "turbo clean && rm -rf .turbo node_modules dist",
     "prepare": "husky || true",
     "changeset": "changeset",
-    "version": "changeset version && bun install",
+    "version": "changeset version && bun update",
     "release": "bun run build && bun run release:publish",
-    "release:publish": "cd packages/core && bun publish --access public && cd ../react && bun publish --access public && changeset tag"
+    "release:publish": "for dir in packages/*; do (cd \"$dir\" && bun publish --access public || true); done && changeset tag"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.0",

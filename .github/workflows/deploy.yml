@@ -26,8 +26,11 @@ jobs:
       - name: Install Dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build Packages
+        run: bun run build --filter="./packages/*"
+
       - name: Deploy
-        run: bun alchemy deploy --stage production
+        run: bun run deploy:production
         env:
           CI: true
           ALCHEMY_PASSWORD: ${{ secrets.ALCHEMY_PASSWORD }}

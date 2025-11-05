@@ -29,6 +29,7 @@
   "scripts": {
     "dev": "bun alchemy dev",
     "deploy": "bun alchemy deploy",
+    "deploy:production": "bun alchemy deploy --stage production",
     "check": "biome check --write .",
     "build": "turbo build",
     "build:docs": "bun run build --filter=docs",

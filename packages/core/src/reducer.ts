@@ -160,9 +160,11 @@ export function flowReducer<TContext extends FlowContext>(
         if (nextStepId === undefined) {
           const allowed =
             typeof step.next === "string" ? step.next : step.next.join(", ");
-          console.warn(
-            `Invalid target "${action.target}" from step "${updatedState.stepId}". Allowed: ${allowed}`,
-          );
+          if (process.env.NODE_ENV !== "production") {
+            console.warn(
+              `Invalid target "${action.target}" from step "${updatedState.stepId}". Allowed: ${allowed}`,
+            );
+          }
           return updatedState;
         }
       } else {
@@ -285,9 +287,11 @@ export function flowReducer<TContext extends FlowContext>(
         if (nextStepId === undefined) {
           const allowed =
             typeof step.next === "string" ? step.next : step.next.join(", ");
-          console.warn(
-            `Invalid target "${action.target}" from step "${updatedState.stepId}". Allowed: ${allowed}`,
-          );
+          if (process.env.NODE_ENV !== "production") {
+            console.warn(
+              `Invalid target "${action.target}" from step "${updatedState.stepId}". Allowed: ${allowed}`,
+            );
+          }
           return updatedState;
         }
       } else {
@@ -442,9 +446,11 @@ export function flowReducer<TContext extends FlowContext>(
 
     default: {
       // Warn about unknown action types (should never happen with TypeScript)
-      console.warn(
-        `[flowReducer] Unknown action type: ${(action as { type?: string }).type}`,
-      );
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(
+          `[flowReducer] Unknown action type: ${(action as { type?: string }).type}`,
+        );
+      }
       return state;
     }
   }

@@ -334,10 +334,12 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
           variantId: config.variantId,
         });
       } catch (error) {
-        console.error(
-          "[Flow] Failed to remove persisted state on reset:",
-          error,
-        );
+        if (process.env.NODE_ENV !== "production") {
+          console.error(
+            "[Flow] Failed to remove persisted state on reset:",
+            error,
+          );
+        }
         onPersistenceError?.(error as Error);
       }
     }
@@ -382,7 +384,9 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
         );
       }
     } catch (error) {
-      console.error("[Flow] Failed to save state:", error);
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[Flow] Failed to save state:", error);
+      }
       onPersistenceError?.(error as Error);
     }
   }, [
@@ -566,10 +570,12 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
             flowDefinitionWithoutComponents,
           );
           if (!validation.valid) {
-            console.warn(
-              "[Flow] Persisted state validation failed:",
-              validation.errors,
-            );
+            if (process.env.NODE_ENV !== "production") {
+              console.warn(
+                "[Flow] Persisted state validation failed:",
+                validation.errors,
+              );
+            }
             onPersistenceError?.(
               new Error(
                 `Invalid persisted state: ${validation.errors?.join(", ")}`,
@@ -591,7 +597,9 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
           onRestore?.(typedState);
         }
       } catch (error) {
-        console.error("[Flow] Failed to restore state:", error);
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[Flow] Failed to restore state:", error);
+        }
         onPersistenceError?.(error as Error);
       } finally {
         setIsRestoring(false);

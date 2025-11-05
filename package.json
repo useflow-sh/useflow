@@ -38,10 +38,15 @@
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "clean": "turbo clean && rm -rf .turbo node_modules dist",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "changeset": "changeset",
+    "version": "changeset version && bun install",
+    "release": "bun run build && bun run release:publish",
+    "release:publish": "cd packages/core && bun publish --access public && cd ../react && bun publish --access public && changeset tag"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.0",
+    "@changesets/cli": "^2.29.7",
     "@cloudflare/workers-types": "catalog:",
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",

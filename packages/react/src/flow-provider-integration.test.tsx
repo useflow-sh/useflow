@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryStore, createPersister } from "@useflow/core";
 import { describe, expect, it, vi } from "vitest";
 import { defineFlow } from "./define-flow";
@@ -117,8 +117,9 @@ describe("Flow with Global Config", () => {
     );
 
     // Save should be debounced
-    await new Promise((resolve) => setTimeout(resolve, 150));
-    expect(saveSpy).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(saveSpy).toHaveBeenCalled();
+    });
   });
 
   it("calls global onFlowStart callback", async () => {
@@ -187,8 +188,7 @@ describe("Flow with Global Config", () => {
     );
 
     // Click next to complete the flow
-    const button = screen.getByText("Next");
-    button.click();
+    fireEvent.click(screen.getByText("Next"));
 
     await waitFor(() => {
       expect(onFlowComplete).toHaveBeenCalledWith(
@@ -225,8 +225,7 @@ describe("Flow with Global Config", () => {
       </FlowProvider>,
     );
 
-    const button = screen.getByText("Next");
-    button.click();
+    fireEvent.click(screen.getByText("Next"));
 
     await waitFor(() => {
       expect(onStepTransition).toHaveBeenCalledWith(
@@ -263,8 +262,7 @@ describe("Flow with Global Config", () => {
       </FlowProvider>,
     );
 
-    const button = screen.getByText("Skip");
-    button.click();
+    fireEvent.click(screen.getByText("Skip"));
 
     await waitFor(() => {
       expect(onStepTransition).toHaveBeenCalledWith(
@@ -323,16 +321,14 @@ describe("Flow with Global Config", () => {
     );
 
     // Navigate to step2
-    const nextButton1 = screen.getByText("Next");
-    nextButton1.click();
+    fireEvent.click(screen.getByText("Next"));
 
     await waitFor(() => {
       expect(screen.getByText("Step 2")).toBeInTheDocument();
     });
 
     // Navigate to step3
-    const nextButton2 = screen.getByText("Next");
-    nextButton2.click();
+    fireEvent.click(screen.getByText("Next"));
 
     await waitFor(() => {
       expect(screen.getByText("Step 3")).toBeInTheDocument();
@@ -342,8 +338,7 @@ describe("Flow with Global Config", () => {
     onStepTransition.mockClear();
 
     // Go back to step2
-    const backButton = screen.getByText("Back");
-    backButton.click();
+    fireEvent.click(screen.getByText("Back"));
 
     await waitFor(() => {
       expect(onStepTransition).toHaveBeenCalledWith(
@@ -455,8 +450,7 @@ it("includes variantId and instanceId in global callbacks", async () => {
     expect(screen.getByText("Next")).toBeInTheDocument();
   });
 
-  const button = screen.getByText("Next");
-  button.click();
+  fireEvent.click(screen.getByText("Next"));
 
   await waitFor(
     () => {

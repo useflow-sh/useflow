@@ -54,6 +54,7 @@
     "tsdown": "catalog:",
     "turbo": "^2.5.4",
     "ultracite": "6.0.0",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "catalog:"
   },
   "commitlint": {

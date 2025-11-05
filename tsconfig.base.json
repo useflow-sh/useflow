@@ -17,6 +17,10 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@useflow/core": ["./packages/core/src/index.ts"],
+      "@useflow/react": ["./packages/react/src/index.ts"]
+    }
   }
 }

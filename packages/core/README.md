@@ -1,6 +1,8 @@
 # @useflow/core
 
-Framework-agnostic flow state machine for multi-step experiences.
+**Framework-agnostic core for building type-safe multi-step flows**
+
+Pure TypeScript flow state machine with no framework dependencies. Powers `@useflow/react` and future framework adapters.
 
 ## Installation
 
@@ -8,16 +10,25 @@ Framework-agnostic flow state machine for multi-step experiences.
 npm install @useflow/core
 ```
 
-**Note:** Most users should install `@useflow/react` instead, which includes this package.
+> **Note:** Most users should install [`@useflow/react`](https://www.npmjs.com/package/@useflow/react) instead, which includes this package and provides React-specific hooks and components.
 
 ## What is this?
 
-Pure TypeScript flow logic with no framework dependencies. Powers the React adapter and future framework adapters (Vue, Svelte, etc.).
+This is the framework-agnostic core that powers useFlow. It provides:
 
-**Key exports:**
-- `flowReducer` - Pure reducer for managing flow state
-- Type definitions for flows, steps, and context
-- Persistence utilities
+- **Flow state machine** - Pure reducer for managing multi-step flow state
+- **Type definitions** - Full TypeScript types for flows, steps, and context
+- **Persistence utilities** - Save and restore flow progress with custom storage adapters
+- **Zero dependencies** - Lightweight and portable
+
+## When to use this package
+
+Use `@useflow/core` directly if you:
+- Want to build a custom framework adapter (Vue, Svelte, Angular, etc.)
+- Need framework-agnostic flow logic for testing
+- Are building a non-UI flow system
+
+For React applications, use [`@useflow/react`](https://www.npmjs.com/package/@useflow/react) instead.
 
 ## Usage
 
@@ -58,9 +69,9 @@ state = flowReducer(state, { type: "BACK" }, definition);
 
 ## Why Separate Core?
 
-- **Portability** - Same flow works in React, Vue, Svelte
-- **Testability** - Test logic without framework overhead
-- **Flexibility** - Build custom framework adapters
+- **Portability** - Same flow logic works across React, Vue, Svelte, etc.
+- **Testability** - Test flow logic without framework overhead
+- **Flexibility** - Build custom framework adapters on a solid foundation
 
 ## License
 

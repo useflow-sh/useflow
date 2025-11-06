@@ -1,6 +1,6 @@
 {
   "name": "@useflow/react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Type-safe, declarative multi-step flows for React",
   "author": "Brian Cheung <bcheung.dev@gmail.com> (https://github.com/bcheung)",
   "license": "MIT",

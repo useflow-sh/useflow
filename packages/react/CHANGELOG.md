@@ -1,5 +1,13 @@
 # @useflow/react
 
+## 0.1.1
+
+### Patch Changes
+
+- 419ec23: Fix workspace version package resolution
+- Updated dependencies [419ec23]
+  - @useflow/core@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

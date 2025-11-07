@@ -40,13 +40,13 @@ import { Card, CardGrid, Steps, Code, Tabs, TabItem, LinkCard } from "@astrojs/s
 
 ## See it in action
 
-Build a complete onboarding flow in 3 simple steps:
+Build a complete onboarding flow with conditional navigation in 3 simple steps:
 
 <Steps>
 
 1. ### Define your flow with navigation logic
 
-   ```tsx {14, 20, 23-27}
+   ```tsx {14, 20, 23-26}
    import { defineFlow } from "@useflow/react";
 
    type OnboardingContext = {
@@ -139,8 +139,7 @@ Build a complete onboarding flow in 3 simple steps:
      );
    }
    ```
-   ```tsx
-   // Complete step component
+   ```tsx {8-12}
    import { onboardingFlow } from "./flow";
 
    function CompleteStep() {
@@ -160,7 +159,7 @@ Build a complete onboarding flow in 3 simple steps:
 
 3. ### Map your steps to components & add persistence
 
-   ```tsx {7-8, 10-17}
+   ```tsx {7-9, 11-18}
    import { Flow, createLocalStorageStore, createPersister } from "@useflow/react";
    import { onboardingFlow } from "./flow";
 
@@ -187,27 +186,26 @@ Build a complete onboarding flow in 3 simple steps:
 </Steps>
 
 **That's it!** Users can now close their browser and return exactly where they left off.
-No manual state management, no localStorage code, no confusing navigation logic scattered across components.
+No manual state management, no confusing navigation logic scattered across components.
 
 ## Perfect for
 
 - 🚀 **Onboarding flows** - User registration with multiple steps
 - 🛒 **Checkout processes** - Cart, shipping, payment, confirmation  
 - 📝 **Surveys & forms** - Long questionnaires users can resume
-- ⚙️ **Configuration wizards** - Complex setup broken into steps
-- 📋 **Application processes** - Job applications, loan applications
+- ⚙️ **Configuration wizards** - Complex setup flows broken into simpler steps
 
 ## Coming soon
 
 <CardGrid>
   <Card title="Remote Configuration" icon="setting">
-    Modify flows without deploying. Update step order and branching logic from your backend.
+    Modify flows without redeploying.
   </Card>
   <Card title="A/B Testing" icon="random">
     Test flow variants. See which path converts best.
   </Card>
-  <Card title="Built-in Analytics" icon="seti:default">
-    Track completion rates and drop-offs. Own your analytics.
+  <Card title="Drop-in Analytics" icon="seti:default">
+    Track completion rates and drop-offs with a few lines of code.
   </Card>
 </CardGrid>
 

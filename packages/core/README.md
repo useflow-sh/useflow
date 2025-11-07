@@ -1,5 +1,9 @@
 # @useflow/core
 
+[![npm version](https://img.shields.io/npm/v/@useflow/core.svg)](https://www.npmjs.com/package/@useflow/core)
+[![npm downloads](https://img.shields.io/npm/dm/@useflow/core.svg)](https://www.npmjs.com/package/@useflow/core)
+[![license](https://img.shields.io/npm/l/@useflow/core.svg)](https://github.com/useflow-sh/useflow/blob/main/LICENSE)
+
 **Framework-agnostic core for building type-safe multi-step flows**
 
 Pure TypeScript flow state machine with no framework dependencies. Powers `@useflow/react` and future framework adapters.

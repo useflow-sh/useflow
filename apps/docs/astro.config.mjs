@@ -6,13 +6,9 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import starlightThemeObsidian from "starlight-theme-obsidian";
 
-const REPO_URL = process.env.REPO_URL ?? "";
-const DOCS_URL = process.env.DOCS_URL ?? "";
-const DEMOS_URL = process.env.DEMOS_URL ?? "";
-
 // https://astro.build/config
 export default defineConfig({
-  site: DOCS_URL,
+  site: "https://docs.useflow.sh",
   prefetch: {
     prefetchAll: true,
     defaultStrategy: "hover",
@@ -80,18 +76,18 @@ export default defineConfig({
         },
       ],
       editLink: {
-        baseUrl: `${REPO_URL}/edit/main/apps/docs`,
+        baseUrl: "https://github.com/useflow-sh/useflow/edit/main/apps/docs",
       },
       social: [
         {
           icon: "github",
           label: "GitHub",
-          href: REPO_URL,
+          href: "https://github.com/useflow-sh/useflow",
         },
         {
           icon: "rocket",
           label: "Live Demos",
-          href: DEMOS_URL,
+          href: "https://demo.useflow.sh",
         },
       ],
       sidebar: [

@@ -1,5 +1,11 @@
 # @useflow/core
 
+## 0.2.0
+
+### Minor Changes
+
+- 5d85e63: Refactor useFlow to useFlowState
+
 ## 0.1.1
 
 ### Patch Changes

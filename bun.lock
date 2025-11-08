@@ -74,7 +74,7 @@
     },
     "packages/core": {
       "name": "@useflow/core",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "devDependencies": {
         "@vitest/coverage-v8": "catalog:",
         "@vitest/ui": "catalog:",
@@ -87,7 +87,7 @@
     },
     "packages/react": {
       "name": "@useflow/react",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "dependencies": {
         "@useflow/core": "workspace:*",
       },

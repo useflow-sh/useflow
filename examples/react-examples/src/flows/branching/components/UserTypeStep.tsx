@@ -17,7 +17,7 @@ const userTypeOptions = [
 ] as const;
 
 export function UserTypeStep() {
-  const { context, next, back, setContext } = branchingFlow.useFlow({
+  const { context, next, back, setContext } = branchingFlow.useFlowState({
     step: "userType",
   });
 

@@ -11,7 +11,7 @@ import { defineFlow } from "@useflow/react";
  * 3. **Maintain consistent UI** while varying the navigation logic
  *
  * Key Concept:
- * - Components use the generic `useFlow()` hook (not flow.useFlow())
+ * - Components use the generic `useFlowState()` hook (not flow.useFlowState())
  * - This makes them flow-agnostic and reusable
  * - Different flows can arrange the same components in different orders
  *
@@ -52,7 +52,7 @@ import { defineFlow } from "@useflow/react";
  * - You must provide components for all steps from all flows
  * - Only the steps from the active flow will be rendered
  *
- * Components in flow variants use the generic useFlow() hook (not flow.useFlow())
+ * Components in flow variants use the generic useFlowState() hook (not flow.useFlowState())
  * to be reusable across both flow configurations.
  */
 

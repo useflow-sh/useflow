@@ -57,7 +57,7 @@ Welcome → Profile → Preferences → Complete
 **Key Concepts:**
 
 - Basic flow definition
-- Hook-based components (`useFlow`)
+- Hook-based components (`useFlowState`)
 - State management across steps
 
 ---
@@ -446,7 +446,7 @@ userType: {
 
 // In component
 function UserTypeStep() {
-  const { next, setContext } = useFlow();
+  const { next, setContext } = useFlowState();
 
   const handleSelect = (type: "business" | "personal") => {
     setContext({ userType: type });
@@ -467,7 +467,7 @@ setupPreference: {
 
 // In component
 function SetupPreferenceStep() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
 
   return (
     <>

@@ -82,7 +82,7 @@ export const onboardingFlow = defineFlow({
 import { onboardingFlow } from "./flow";
 
 export function WelcomeStep() {
-  const { next, setContext } = onboardingFlow.useFlow({
+  const { next, setContext } = onboardingFlow.useFlowState({
     step: "welcome"
   });
 
@@ -118,7 +118,7 @@ import { useState } from "react";
 import { onboardingFlow } from "./flow";
 
 export function ProfileStep() {
-  const { context, setContext, next, back } = onboardingFlow.useFlow({
+  const { context, setContext, next, back } = onboardingFlow.useFlowState({
     step: "profile"
   });
 
@@ -217,7 +217,7 @@ export function ProfileStep() {
 import { onboardingFlow } from "./flow";
 
 export function PreferencesStep() {
-  const { context, setContext, next, skip, back } = onboardingFlow.useFlow({
+  const { context, setContext, next, skip, back } = onboardingFlow.useFlowState({
     step: "preferences"
   });
 
@@ -319,7 +319,7 @@ export function PreferencesStep() {
 import { onboardingFlow } from "./flow";
 
 export function CompleteStep() {
-  const { context, reset } = onboardingFlow.useFlow({
+  const { context, reset } = onboardingFlow.useFlowState({
     step: "complete"
   });
 

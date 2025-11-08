@@ -22,7 +22,7 @@ export type StepInfo<TStepNames extends string = string> = {
  * - <ProfileStep name={userName} /> - a component with props
  * - <div>Hello world</div> - plain JSX
  *
- * To access flow state, use the useFlow() hook inside your component
+ * To access flow state, use the useFlowState() hook inside your component
  */
 export type StepElement = ReactElement;
 
@@ -35,8 +35,8 @@ export type StepElements<TStepNames extends string = string> = Record<
 >;
 
 /**
- * Return type for the public useFlow() hook
- * This is what users get when they call useFlow() from context
+ * Return type for the public useFlowState() hook
+ * This is what users get when they call useFlowState() from context
  *
  * Extends UseFlowReducerReturn with React-specific flow metadata
  */

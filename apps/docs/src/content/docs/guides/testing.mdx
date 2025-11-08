@@ -62,10 +62,10 @@ Test forward and backward navigation:
 
 ```tsx
 import { render, screen, fireEvent } from "@testing-library/react";
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 
 function NavigationTest() {
-  const { stepId, next, back } = useFlow();
+  const { stepId, next, back } = useFlowState();
   return (
     <div>
       <div data-testid="current-step">{stepId}</div>
@@ -130,7 +130,7 @@ Test that context updates correctly:
 
 ```tsx
 function ContextTest() {
-  const { context, setContext } = useFlow<{ name: string }>();
+  const { context, setContext } = useFlowState<{ name: string }>();
   return (
     <div>
       <div data-testid="name">{context.name}</div>
@@ -166,7 +166,7 @@ Test that context persists when navigating:
 ```tsx
 it("should persist context across steps", () => {
   function Step1() {
-    const { setContext, next } = useFlow();
+    const { setContext, next } = useFlowState();
     return (
       <button
         onClick={() => {
@@ -180,7 +180,7 @@ it("should persist context across steps", () => {
   }
 
   function Step2() {
-    const { context } = useFlow<{ email: string }>();
+    const { context } = useFlowState<{ email: string }>();
     return <div data-testid="email">{context.email}</div>;
   }
 
@@ -238,7 +238,7 @@ Test explicit navigation targets:
 ```tsx
 it("should navigate to explicit target", () => {
   function SetupStep() {
-    const { next } = useFlow();
+    const { next } = useFlowState();
     return (
       <div>
         <button onClick={() => next("advanced")}>Advanced</button>
@@ -278,7 +278,7 @@ it("should call onNext callback", () => {
   const onNext = vi.fn();
 
   function TestStep() {
-    const { next } = useFlow();
+    const { next } = useFlowState();
     return <button onClick={() => next()}>Next</button>;
   }
 
@@ -307,7 +307,7 @@ it("should call onComplete callback", () => {
   const onComplete = vi.fn();
 
   function FinalStep() {
-    const { next } = useFlow();
+    const { next } = useFlowState();
     return <button onClick={() => next()}>Finish</button>;
   }
 
@@ -438,7 +438,7 @@ it("should handle form input and navigation", async () => {
   const user = userEvent.setup();
 
   function ProfileStep() {
-    const { context, setContext, next } = useFlow();
+    const { context, setContext, next } = useFlowState();
     return (
       <div>
         <input
@@ -452,7 +452,7 @@ it("should handle form input and navigation", async () => {
   }
 
   function CompleteStep() {
-    const { context } = useFlow<{ name: string }>();
+    const { context } = useFlowState<{ name: string }>();
     return <div>Welcome, {context.name}!</div>;
   }
 
@@ -633,7 +633,7 @@ const persister = createMockPersister({
    <TabItem label="❌ Bad">
    ```tsx
    it("should call skip() function", () => {
-     const { skip } = renderHook(() => useFlow());
+     const { skip } = renderHook(() => useFlowState());
      skip();
      expect(skip).toHaveBeenCalled();
    });

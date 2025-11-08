@@ -1,10 +1,10 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import type { ReactElement } from "react";
 
 /**
  * AnimateFlowStep - A wrapper component that adds fade-in animations when steps change
  *
- * This component uses the useFlow hook to automatically get stepId and trigger animations
+ * This component uses the useFlowState hook to automatically get stepId and trigger animations
  * when transitioning between steps.
  *
  * @example
@@ -22,7 +22,7 @@ import type { ReactElement } from "react";
  * ```
  */
 export function AnimateFlowStep({ children }: { children: ReactElement }) {
-  const { stepId } = useFlow();
+  const { stepId } = useFlowState();
 
   return (
     <div

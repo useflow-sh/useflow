@@ -24,7 +24,7 @@ export function QuestionStep({
   description,
   contextKey,
 }: QuestionStepProps) {
-  const { context, next, back, setContext } = surveyFlow.useFlow({
+  const { context, next, back, setContext } = surveyFlow.useFlowState({
     step: stepId,
   });
 

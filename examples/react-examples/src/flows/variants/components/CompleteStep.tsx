@@ -1,10 +1,10 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { Clock, Zap } from "lucide-react";
 import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
 
 export function CompleteStep() {
-  const { context, reset } = useFlow({ step: "complete" });
+  const { context, reset } = useFlowState({ step: "complete" });
 
   // Determine which flow was used based on whether verification was completed
   const isStandardFlow = context.verificationCode !== undefined;

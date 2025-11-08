@@ -1,4 +1,4 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { useState } from "react";
 import { OptionSelector } from "@/components/OptionSelector";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ const themeOptions = [
  * - Business flow: includes preferences with business-specific options
  */
 export function PreferencesStep() {
-  const { context, next, back } = useFlow<RemoteOnboardingContext>();
+  const { context, next, back } = useFlowState<RemoteOnboardingContext>();
 
   const [preferences, setPreferences] = useState(
     context.preferences || {

@@ -79,7 +79,7 @@ Returns a `RuntimeFlowDefinition` object with:
   id: string;
   config: FlowDefinition;
   runtimeConfig?: FlowRuntimeConfig<TContext>;
-  useFlow: <TStep extends string>(options: { step: TStep }) => UseFlowReturn;
+  useFlowState: <TStep extends string>(options: { step: TStep }) => UseFlowReturn;
   with: <TContext>(runtimeConfig) => RuntimeFlowDefinition<FlowDefinition, TContext>;
 }
 ```
@@ -243,7 +243,7 @@ const flow = defineFlow({
 **Key Points:**
 - `defineFlow()` returns a `RuntimeFlowDefinition` 
 - `.with<TContext>()` returns a new `RuntimeFlowDefinition` with context type
-- Both return values have the same API (config, useFlow, etc.)
+- Both return values have the same API (config, useFlowState, etc.)
 - Immutable - `.with()` creates a new instance
 
 ## Type safety
@@ -265,7 +265,7 @@ const flow = defineFlow({
 
 // In components:
 function Step2() {
-  const { next } = flow.useFlow({ step: "step2" });
+  const { next } = flow.useFlowState({ step: "step2" });
   
   next("step3");  // ✅ Valid
   next("step4");  // ✅ Valid
@@ -371,7 +371,7 @@ defineFlow({
 ## See also
 
 - [Flow Component](/api-reference/flow-component) - Render flows
-- [useFlow Hook](/api-reference/use-flow) - Access flow state
+- [useFlowState Hook](/api-reference/use-flow-state) - Access flow state
 - [Type Safety](/getting-started/type-safety) - Type Safety guide
 - [Migrations](/guides/migrations) - Version management
 

@@ -73,7 +73,7 @@ The component just calls `next()` with no arguments - the resolve function handl
 
 ```tsx title="UserTypeStep.tsx"
 export function UserTypeStep() {
-  const { context, next, setContext } = flow.useFlow({
+  const { context, next, setContext } = flow.useFlowState({
     step: "userType"
   });
 
@@ -151,7 +151,7 @@ The component explicitly calls `next(target)` with the desired destination:
 
 ```tsx title="SetupPreferenceStep.tsx"
 export function SetupPreferenceStep() {
-  const { context, next, setContext } = flow.useFlow({
+  const { context, next, setContext } = flow.useFlowState({
     step: "setupPreference"
   });
 
@@ -270,7 +270,7 @@ defineFlow({
 
 ```tsx
 export function ActionStep() {
-  const { next } = flow.useFlow({ step: "action" });
+  const { next } = flow.useFlowState({ step: "action" });
 
   return (
     <div>
@@ -526,7 +526,7 @@ export const onboardingFlow = defineFlow({
 
 ```tsx title="SetupPreferenceStep.tsx"
 export function SetupPreferenceStep() {
-  const { context, next, back, setContext } = onboardingFlow.useFlow({
+  const { context, next, back, setContext } = onboardingFlow.useFlowState({
     step: "setupPreference"
   });
 

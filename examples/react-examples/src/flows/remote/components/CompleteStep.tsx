@@ -1,4 +1,4 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import {
   Bell,
   BookOpen,
@@ -29,7 +29,7 @@ import type { RemoteOnboardingContext } from "../types";
  * and adapts to show different information based on what steps were taken.
  */
 export function CompleteStep() {
-  const { context, reset, path } = useFlow<RemoteOnboardingContext>();
+  const { context, reset, path } = useFlowState<RemoteOnboardingContext>();
 
   const handleRestart = () => {
     reset();

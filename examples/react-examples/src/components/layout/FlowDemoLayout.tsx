@@ -1,4 +1,4 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import type { ReactNode } from "react";
 import { FlowInspector } from "@/components/FlowInspector";
 import { FlowVisualizer } from "@/components/FlowVisualizer";
@@ -32,7 +32,7 @@ export function FlowDemoLayout({
   showVisualizer = true,
   maxWidth = "2xl",
 }: FlowDemoLayoutProps) {
-  const { stepId } = useFlow();
+  const { stepId } = useFlowState();
 
   return (
     <>

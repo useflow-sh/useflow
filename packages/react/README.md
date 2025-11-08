@@ -6,7 +6,7 @@
 
 **Type-safe, declarative multi-step flows for React**
 
-Build onboarding, checkout, surveys, and wizards with full TypeScript support. useFlow handles the multi-step navigation and state management while you focus on building great UI.
+Build onboarding, checkout, surveys, and wizards with full TypeScript support. useFlowState handles the multi-step navigation and state management while you focus on building great UI.
 
 ## Installation
 
@@ -58,7 +58,7 @@ const onboardingFlow = defineFlow({
 import { onboardingFlow } from "./flow";
 
 function UserTypeStep() {
-  const { context, setContext, next } = onboardingFlow.useFlow({ step: "userType" });
+  const { context, setContext, next } = onboardingFlow.useFlowState({ step: "userType" });
   
   const handleSubmit = () => {
     next(); // ✅ Automatically navigates based on accountType
@@ -96,7 +96,7 @@ function UserTypeStep() {
 import { onboardingFlow } from "./flow";
 
 function BusinessStep() {
-  const { context, setContext, next, back } = onboardingFlow.useFlow({ step: "business" });
+  const { context, setContext, next, back } = onboardingFlow.useFlowState({ step: "business" });
   
   return (
     <div>
@@ -118,7 +118,7 @@ function BusinessStep() {
 import { onboardingFlow } from "./flow";
 
 function CompleteStep() {
-  const { context } = onboardingFlow.useFlow({ step: "complete" });
+  const { context } = onboardingFlow.useFlowState({ step: "complete" });
 
   return (
    <div>
@@ -178,7 +178,7 @@ No manual state management, no confusing navigation logic scattered across compo
 ## What's Included
 
 This package includes:
-- React hooks (`useFlow`, `useFlowReducer`)
+- React hooks (`useFlowState`, `useFlowReducer`)
 - Components (`<Flow>`, `<FlowProvider>`)
 - Flow definition utilities
 - Built on `@useflow/core` (framework-agnostic core)

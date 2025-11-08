@@ -130,7 +130,7 @@ Animate steps on mount/unmount using `stepId` as key:
 
 ```tsx
 function AnimateFlowStep({ children }: { children: ReactElement }) {
-  const { stepId } = useFlow();
+  const { stepId } = useFlowState();
 
   return (
     <div
@@ -177,7 +177,7 @@ Slide in from different directions based on navigation direction:
 import { useState, useEffect } from "react";
 
 function SlideFlowStep({ children }: { children: ReactElement }) {
-  const { stepId } = useFlow();
+  const { stepId } = useFlowState();
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 
   useEffect(() => {
@@ -400,7 +400,7 @@ Create a reusable layout wrapper:
 
 ```tsx title="components/FlowLayout.tsx"
 import { type ReactNode } from "react";
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 
 export function FlowLayout({ 
   children,
@@ -411,7 +411,7 @@ export function FlowLayout({
   showProgress?: boolean;
   showNavigation?: boolean;
 }) {
-  const { stepId, steps, back, next, canGoBack, canGoNext } = useFlow();
+  const { stepId, steps, back, next, canGoBack, canGoNext } = useFlowState();
   
   const stepKeys = Object.keys(steps);
   const currentIndex = stepKeys.indexOf(stepId);
@@ -588,7 +588,7 @@ Make layouts reusable across different flows:
 ```tsx
 // ✅ Good: Reusable layout
 function WizardLayout({ children }: { children: ReactNode }) {
-  const { stepId, back, next } = useFlow();
+  const { stepId, back, next } = useFlowState();
   return (
     <div className="wizard-layout">
       <header>Step: {stepId}</header>

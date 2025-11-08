@@ -1,4 +1,4 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { Building2, User } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import type { RemoteOnboardingContext } from "../types";
  * This step adds personalization and optional profile enhancements.
  */
 export function ProfileStep() {
-  const { context, next, back, skip } = useFlow<RemoteOnboardingContext>();
+  const { context, next, back, skip } = useFlowState<RemoteOnboardingContext>();
 
   // Profile fields not covered in AccountStep
   const [jobTitle, setJobTitle] = useState("");

@@ -77,7 +77,7 @@ type OnboardingContext = {
 };
 
 // Update context when navigating
-const { next, context } = flow.useFlow({ step: 'profile' });
+const { next, context } = flow.useFlowState({ step: 'profile' });
 
 next({ 
   name: 'Alice',
@@ -100,7 +100,7 @@ Navigation can be:
 - **Programmatic**: Triggered by your code
 
 ```tsx
-const { next, back, skip, canGoBack } = flow.useFlow({ step: 'profile' });
+const { next, back, skip, canGoBack } = flow.useFlowState({ step: 'profile' });
 
 // Move forward with data
 next({ name: 'Alice' });
@@ -143,7 +143,7 @@ const surveyFlow = defineFlow({
 
 // 3. Create a step component
 function Question1Step() {
-  const { next, context } = surveyFlow.useFlow({ step: 'question1' });
+  const { next, context } = surveyFlow.useFlowState({ step: 'question1' });
   
   return (
     <div>
@@ -190,7 +190,7 @@ Framework-agnostic core functionality:
 React-specific implementations:
 - `defineFlow()` function
 - `<Flow>` component
-- `useFlow()` hook
+- `useFlowState()` hook
 - `<FlowProvider>` for global config
 
 This separation means:

@@ -1,4 +1,4 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { useState } from "react";
 import { FormField } from "@/components/FormField";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import type { RemoteOnboardingContext } from "../types";
  * - Could have branching logic (business flow)
  */
 export function AccountStep() {
-  const { context, next, back } = useFlow<RemoteOnboardingContext>();
+  const { context, next, back } = useFlowState<RemoteOnboardingContext>();
   const [name, setName] = useState(context.name || "");
   const [nameError, setNameError] = useState("");
 

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { taskFlow } from "../flow";
 
 export function ReviewStep() {
-  const { context, next, back } = taskFlow.useFlow({
+  const { context, next, back } = taskFlow.useFlowState({
     step: "review",
   });
 

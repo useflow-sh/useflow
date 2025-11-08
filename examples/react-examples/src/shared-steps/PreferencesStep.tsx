@@ -1,4 +1,4 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { OptionSelector } from "@/components/OptionSelector";
 import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ const themeOptions = [
 ] as const;
 
 export function PreferencesStep() {
-  const { context, next, back, skip, setContext } = useFlow<{
+  const { context, next, back, skip, setContext } = useFlowState<{
     theme?: "light" | "dark";
     notifications: boolean;
     skippedPreferences?: boolean;

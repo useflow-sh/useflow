@@ -116,11 +116,11 @@ type CheckoutContext = BaseContext & {
 
 ### In step components
 
-Use the `useFlow()` hook to access context:
+Use the `useFlowState()` hook to access context:
 
 ```tsx
 function ProfileStep() {
-  const { context } = useFlow<OnboardingContext>();
+  const { context } = useFlowState<OnboardingContext>();
 
   // Access context data
   console.log(context.name);
@@ -144,7 +144,7 @@ const myFlow = defineFlow({
 });
 
 function MyStep() {
-  const { context } = myFlow.useFlow({ step: "profile" });
+  const { context } = myFlow.useFlowState({ step: "profile" });
 
   // ✅ TypeScript knows context is OnboardingContext
   console.log(context.name); // ✅ Valid
@@ -162,7 +162,7 @@ Pass an object to merge with current context:
 
 ```tsx
 function ProfileStep() {
-  const { next, context } = useFlow();
+  const { next, context } = useFlowState();
   const [name, setName] = useState("");
 
   const handleNext = () => {
@@ -183,7 +183,7 @@ Use a function for complex updates:
 
 ```tsx
 function PreferencesStep() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
 
   const handleNext = () => {
     // Function receives current context, returns new context
@@ -207,7 +207,7 @@ Update based on current context:
 
 ```tsx
 function MyStep() {
-  const { next, context } = useFlow();
+  const { next, context } = useFlowState();
 
   const handleNext = () => {
     next((ctx) => ({
@@ -236,7 +236,7 @@ Build up context across multiple steps:
 ```tsx
 // Step 1: Basic info
 function Step1() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
   return (
     <button onClick={() => next({ name: "Alice", email: "alice@example.com" })}>
       Continue
@@ -246,7 +246,7 @@ function Step1() {
 
 // Step 2: Add preferences
 function Step2() {
-  const { next, context } = useFlow();
+  const { next, context } = useFlowState();
   // context = { name: 'Alice', email: 'alice@example.com' }
 
   return (
@@ -258,7 +258,7 @@ function Step2() {
 
 // Step 3: Final context
 function Step3() {
-  const { context } = useFlow();
+  const { context } = useFlowState();
   // context = {
   //   name: 'Alice',
   //   email: 'alice@example.com',
@@ -296,7 +296,7 @@ Add fields only when needed:
 
 ```tsx
 function UserTypeStep() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
 
   const handleBusinessUser = () => {
     next({
@@ -331,7 +331,7 @@ Store navigation metadata in context:
 
 ```tsx
 function MyStep() {
-  const { next, stepId } = useFlow();
+  const { next, stepId } = useFlowState();
 
   const handleNext = () => {
     next((ctx) => ({
@@ -360,7 +360,7 @@ Clear fields when navigating back:
 
 ```tsx
 function BusinessDetailsStep() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
 
   const handleNext = () => {
     next((ctx) => {
@@ -543,7 +543,7 @@ Validate context before navigation:
 
 ```tsx
 function ProfileStep() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
 
@@ -586,7 +586,7 @@ const profileSchema = z.object({
 });
 
 function ProfileStep() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
   const [data, setData] = useState({ name: "", email: "", age: 0 });
   const [errors, setErrors] = useState({});
 
@@ -628,7 +628,7 @@ Choose between context and local component state:
 
 ```tsx
 function ProfileStep() {
-  const { context, next } = useFlow();
+  const { context, next } = useFlowState();
 
   // ✅ Context: Data needed in other steps
   // Already in context.name from previous visits
@@ -699,7 +699,7 @@ const onboardingFlow = defineFlow({
 
 // 3. Step components
 function ProfileStep() {
-  const { next, context } = onboardingFlow.useFlow({ step: "profile" });
+  const { next, context } = onboardingFlow.useFlowState({ step: "profile" });
   const [name, setName] = useState(context.name || "");
   const [email, setEmail] = useState(context.email || "");
 
@@ -713,7 +713,7 @@ function ProfileStep() {
 }
 
 function UserTypeStep() {
-  const { next } = onboardingFlow.useFlow({ step: "userType" });
+  const { next } = onboardingFlow.useFlowState({ step: "userType" });
 
   return (
     <div>
@@ -724,7 +724,7 @@ function UserTypeStep() {
 }
 
 function BusinessStep() {
-  const { next } = onboardingFlow.useFlow({ step: "business" });
+  const { next } = onboardingFlow.useFlowState({ step: "business" });
   const [company, setCompany] = useState("");
   const [industry, setIndustry] = useState("");
 
@@ -746,7 +746,7 @@ function BusinessStep() {
 }
 
 function CompleteStep() {
-  const { context } = onboardingFlow.useFlow({ step: "complete" });
+  const { context } = onboardingFlow.useFlowState({ step: "complete" });
 
   return (
     <div>

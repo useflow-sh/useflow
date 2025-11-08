@@ -1,9 +1,9 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
 
 export function WelcomeStep() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
 
   return (
     <StepCard

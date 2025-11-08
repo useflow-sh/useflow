@@ -10,7 +10,7 @@ import {
 import { surveyFlow } from "../flow";
 
 export function IntroStep() {
-  const { next } = surveyFlow.useFlow({ step: "intro" });
+  const { next } = surveyFlow.useFlowState({ step: "intro" });
 
   const handleStart = () => {
     // Initialize tracking (startedAt is automatically tracked by the flow)

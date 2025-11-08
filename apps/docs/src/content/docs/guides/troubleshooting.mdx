@@ -35,11 +35,11 @@ next(stepName);
 
 #### "Property does not exist on type 'never'"
 
-**Problem:** Using the generic `useFlow()` hook without proper typing.
+**Problem:** Using the generic `useFlowState()` hook without proper typing.
 
 ```tsx
 // ❌ Error: Property 'name' does not exist
-const { context } = useFlow();
+const { context } = useFlowState();
 console.log(context.name);
 ```
 
@@ -47,10 +47,10 @@ console.log(context.name);
 
 ```tsx
 // ✅ Solution 1: Use flow-specific hook (recommended)
-const { context } = myFlow.useFlow({ step: "profile" });
+const { context } = myFlow.useFlowState({ step: "profile" });
 
 // ✅ Solution 2: Provide type parameter
-const { context } = useFlow<MyContextType>();
+const { context } = useFlowState<MyContextType>();
 ```
 
 ### Persistence issues
@@ -82,7 +82,7 @@ const persister = createPersister({ store: createLocalStorageStore() });
 
 ```tsx
 // If using saveMode="manual"
-const { save } = useFlow();
+const { save } = useFlowState();
 
 // Remember to call save() when needed
 const handleSave = async () => {
@@ -113,7 +113,7 @@ const handleSave = async () => {
 
 ```tsx
 function MyStep() {
-  const { isRestoring } = useFlow();
+  const { isRestoring } = useFlowState();
 
   if (isRestoring) {
     return <LoadingSpinner />;
@@ -167,7 +167,7 @@ const flow = defineFlow({
 
 ```tsx
 function MyStep() {
-  const { back, canGoBack } = useFlow();
+  const { back, canGoBack } = useFlowState();
 
   return (
     <button onClick={back} disabled={!canGoBack}>
@@ -193,7 +193,7 @@ steps: {
 }
 
 // Check if next is available
-const { nextSteps } = useFlow();
+const { nextSteps } = useFlowState();
 if (!nextSteps) {
   console.log("This is a terminal step");
 }
@@ -228,7 +228,7 @@ next("option1");
 
 ```tsx
 // ❌ Don't mutate directly
-const { context, setContext } = useFlow();
+const { context, setContext } = useFlowState();
 context.name = "Alice"; // Won't trigger update
 
 // ✅ Use setContext
@@ -295,7 +295,7 @@ const flow = defineFlow({
 
 ```tsx
 function DebugPanel() {
-  const { stepId, context, path, history, status } = useFlow();
+  const { stepId, context, path, history, status } = useFlowState();
 
   return (
     <pre
@@ -358,7 +358,7 @@ Object.keys(localStorage)
 
 ```tsx
 function MyStep() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -452,7 +452,7 @@ Use the `reset()` function:
 
 ```tsx
 function MyStep() {
-  const { reset } = useFlow();
+  const { reset } = useFlowState();
 
   const handleError = () => {
     alert("Something went wrong!");
@@ -467,7 +467,7 @@ Yes! Validate before calling navigation functions:
 
 ```tsx
 function MyStep() {
-  const { next, context } = useFlow();
+  const { next, context } = useFlowState();
   const [errors, setErrors] = useState({});
 
   const handleNext = () => {

@@ -22,7 +22,7 @@ const taskTypeOptions = [
 ] as const;
 
 export function TaskTypeStep() {
-  const { context, next, setContext } = taskFlow.useFlow({
+  const { context, next, setContext } = taskFlow.useFlowState({
     step: "taskType",
   });
 

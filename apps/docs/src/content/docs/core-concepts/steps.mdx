@@ -7,14 +7,14 @@ description: Build step components and understand navigation patterns in useFlow
 
 ## Step components
 
-A step component is just a regular React component that uses the `useFlow()` hook to access flow state and navigation:
+A step component is just a regular React component that uses the `useFlowState()` hook to access flow state and navigation:
 
 ```tsx
-import { useFlow } from '@useflow/react';
+import { useFlowState } from '@useflow/react';
 import { Button } from './ui/button';
 
 function WelcomeStep() {
-  const { next, context } = useFlow();
+  const { next, context } = useFlowState();
   
   return (
     <div>
@@ -30,7 +30,7 @@ function WelcomeStep() {
 
 ### Accessing flow state
 
-The `useFlow()` hook gives you access to:
+The `useFlowState()` hook gives you access to:
 
 ```tsx
 function MyStep() {
@@ -57,7 +57,7 @@ function MyStep() {
     // Persistence
     isRestoring, // Whether restoring saved state
     save,        // Manually save (when saveMode="manual")
-  } = useFlow();
+  } = useFlowState();
   
   return <div>...</div>;
 }
@@ -71,7 +71,7 @@ Simple forward progression - just call `next()`:
 
 ```tsx
 function ProfileStep() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
   const [name, setName] = useState('');
   
   return (
@@ -95,7 +95,7 @@ Validate before allowing navigation:
 
 ```tsx
 function ProfileStep() {
-  const { next, context } = useFlow();
+  const { next, context } = useFlowState();
   const [name, setName] = useState(context.name || '');
   const [email, setEmail] = useState(context.email || '');
   
@@ -130,7 +130,7 @@ Allow users to go back:
 
 ```tsx
 function PreferencesStep() {
-  const { next, back, canGoBack } = useFlow();
+  const { next, back, canGoBack } = useFlowState();
   const [theme, setTheme] = useState('light');
   
   return (
@@ -159,7 +159,7 @@ Allow users to skip optional steps:
 
 ```tsx
 function PreferencesStep() {
-  const { next, skip } = useFlow();
+  const { next, skip } = useFlowState();
   const [preferences, setPreferences] = useState({});
   
   return (
@@ -195,7 +195,7 @@ Explicitly choose which path to take:
 
 ```tsx
 function SetupPreferenceStep() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
   
   return (
     <div>
@@ -219,7 +219,7 @@ Show loading UI while restoring:
 
 ```tsx
 function MyStep() {
-  const { isRestoring, next } = useFlow();
+  const { isRestoring, next } = useFlowState();
   
   if (isRestoring) {
     return <Spinner />;
@@ -240,7 +240,7 @@ Update context in multiple ways:
 
 ```tsx
 function MyStep() {
-  const { next, context } = useFlow();
+  const { next, context } = useFlowState();
   
   // 1. Merge object (shallow merge)
   next({ name: 'Alice' });
@@ -369,7 +369,7 @@ Create variants of the same step:
 ```tsx
 // BaseProfileStep.tsx
 function ProfileStep({ includeAvatar = false }) {
-  const { next } = useFlow();
+  const { next } = useFlowState();
   const [name, setName] = useState('');
   
   return (
@@ -408,7 +408,7 @@ const myFlow = defineFlow({
 
 function ProfileStep() {
   // Type-safe: knows valid next steps are 'business' | 'personal'
-  const { next } = myFlow.useFlow({ step: 'profile' });
+  const { next } = myFlow.useFlowState({ step: 'profile' });
   
   next('business');  // ✅ Valid
   next('personal');  // ✅ Valid
@@ -418,12 +418,12 @@ function ProfileStep() {
 
 ### Generic hook
 
-Use the generic `useFlow()` for more flexibility:
+Use the generic `useFlowState()` for more flexibility:
 
 ```tsx
 function ProfileStep() {
   // Less type safety, but more flexible
-  const { next, context } = useFlow<{ name: string }>();
+  const { next, context } = useFlowState<{ name: string }>();
   
   // context is typed as { name: string }
   console.log(context.name);
@@ -442,7 +442,7 @@ When a step is rendered for the first time:
 
 ```tsx
 function MyStep() {
-  const { stepId } = useFlow();
+  const { stepId } = useFlowState();
   
   useEffect(() => {
     console.log(`Step ${stepId} mounted`);
@@ -465,7 +465,7 @@ When context changes (from another step or within this step):
 
 ```tsx
 function MyStep() {
-  const { context } = useFlow();
+  const { context } = useFlowState();
   
   useEffect(() => {
     console.log('Context updated:', context);
@@ -481,7 +481,7 @@ When navigating away from the step:
 
 ```tsx
 function MyStep() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
   
   const handleNext = () => {
     // Do something before leaving
@@ -504,7 +504,7 @@ Complete record of all step visits:
 
 ```tsx
 function MyStep() {
-  const { history } = useFlow();
+  const { history } = useFlowState();
   
   // history is an array of:
   // { 
@@ -530,7 +530,7 @@ The route taken to reach the current step (used for back navigation):
 
 ```tsx
 function MyStep() {
-  const { path, back, canGoBack } = useFlow();
+  const { path, back, canGoBack } = useFlowState();
   
   // path is the linear path to get here
   // (may be shorter than history if user went back)
@@ -555,7 +555,7 @@ function MyStep() {
 Here's a complete step with all features:
 
 ```tsx
-import { useFlow } from '@useflow/react';
+import { useFlowState } from '@useflow/react';
 import { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -575,7 +575,7 @@ function ProfileStep() {
     canGoBack,
     isRestoring,
     history 
-  } = useFlow<ProfileContext>();
+  } = useFlowState<ProfileContext>();
   
   const [name, setName] = useState(context.name || '');
   const [email, setEmail] = useState(context.email || '');
@@ -686,7 +686,7 @@ Always initialize local state from context:
 ```tsx
 // ✅ Good: Initialize from context
 function MyStep() {
-  const { context } = useFlow();
+  const { context } = useFlowState();
   const [name, setName] = useState(context.name || '');
   // ...
 }

@@ -1,4 +1,4 @@
-import { defineFlow, Flow, useFlow } from "@useflow/react";
+import { defineFlow, Flow, useFlowState } from "@useflow/react";
 import React, { useMemo, useState } from "react";
 import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 
 // Step components that work with any flow
 const StepA = () => {
-  const { next } = useFlow();
+  const { next } = useFlowState();
   return (
     <StepCard title="Step A" description="This is the first step">
       <Button onClick={() => next()} className="w-full">
@@ -25,7 +25,7 @@ const StepA = () => {
 };
 
 const StepB = () => {
-  const { next, back } = useFlow();
+  const { next, back } = useFlowState();
   return (
     <StepCard title="Step B" description="This is step B">
       <div className="flex gap-2">
@@ -41,7 +41,7 @@ const StepB = () => {
 };
 
 const StepC = () => {
-  const { next, back } = useFlow();
+  const { next, back } = useFlowState();
   return (
     <StepCard title="Step C" description="This is step C">
       <div className="flex gap-2">
@@ -57,7 +57,7 @@ const StepC = () => {
 };
 
 const StepD = () => {
-  const { next, back } = useFlow();
+  const { next, back } = useFlowState();
   return (
     <StepCard title="Step D" description="This is step D">
       <div className="flex gap-2">

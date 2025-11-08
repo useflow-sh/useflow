@@ -87,7 +87,7 @@ const surveyFlow = defineFlow({
 
 function Question1() {
   // Use the flow-specific hook with step parameter
-  const { next, context } = surveyFlow.useFlow({ step: "question1" });
+  const { next, context } = surveyFlow.useFlowState({ step: "question1" });
   
   const handleNext = () => {
     // Decide where to go based on logic
@@ -148,7 +148,7 @@ const userFlow = defineFlow({
 }));
 
 function ChooseStep() {
-  const { setContext, next } = userFlow.useFlow({ step: "choose" });
+  const { setContext, next } = userFlow.useFlowState({ step: "choose" });
   
   // Call next() without arguments - resolver handles the navigation
   return (
@@ -162,7 +162,7 @@ function ChooseStep() {
 }
 
 function BusinessStep() {
-  const { context, next } = userFlow.useFlow({ step: "business" });
+  const { context, next } = userFlow.useFlowState({ step: "business" });
   
   // You can combine both approaches:
   // 1. Call next() without args - uses resolver (automatic)
@@ -200,7 +200,7 @@ const checkoutFlow = defineFlow({
 }).with<CheckoutContext>();
 
 function ShippingStep() {
-  const { context, setContext } = checkoutFlow.useFlow({ step: "shipping" });
+  const { context, setContext } = checkoutFlow.useFlowState({ step: "shipping" });
   
   console.log(context.total);         // ✅ number
   setContext({ total: 99.99 });       // ✅ Valid
@@ -244,7 +244,7 @@ export const onboardingFlow = defineFlow({
 function ProfileStep() {
   // ✅ Context is automatically OnboardingContext
   // ✅ Step-specific navigation types
-  const { context, setContext, next } = onboardingFlow.useFlow({ step: "profile" });
+  const { context, setContext, next } = onboardingFlow.useFlowState({ step: "profile" });
   
   return (
     <div>
@@ -259,15 +259,15 @@ function ProfileStep() {
 ```
 
 <Aside type="tip">
-  **Why `.with<Context>()`?** You get automatic context typing in every component that uses `myFlow.useFlow()` - no need to specify the generic on every hook call. Plus, you get step-specific navigation types.
+  **Why `.with<Context>()`?** You get automatic context typing in every component that uses `myFlow.useFlowState()` - no need to specify the generic on every hook call. Plus, you get step-specific navigation types.
 </Aside>
 
-### Alternative: Generic useFlow hook
+### Alternative: Generic useFlowState hook
 
-If you prefer, you can use the generic `useFlow` hook and specify the context type manually:
+If you prefer, you can use the generic `useFlowState` hook and specify the context type manually:
 
 ```tsx
-import { defineFlow, useFlow } from "@useflow/react";
+import { defineFlow, useFlowState } from "@useflow/react";
 
 type OnboardingContext = {
   email: string;
@@ -288,7 +288,7 @@ export const onboardingFlow = defineFlow({
 function ProfileStep() {
   // ⚠️ Must specify context type on every usage
   // ⚠️ No step-specific navigation types
-  const { context, setContext, next } = useFlow<OnboardingContext>();
+  const { context, setContext, next } = useFlowState<OnboardingContext>();
   
   return (
     <div>
@@ -313,13 +313,13 @@ function ProfileStep() {
 ```tsx
 // ✅ Best: Step-specific navigation types
 function MyStep() {
-  const { next } = myFlow.useFlow({ step: "currentStep" });
+  const { next } = myFlow.useFlowState({ step: "currentStep" });
   // TypeScript knows valid next steps for THIS specific step
 }
 
 // ⚠️ Less type safety: No step-specific validation
 function MyStep() {
-  const { next } = myFlow.useFlow();
+  const { next } = myFlow.useFlowState();
 }
 ```
 
@@ -352,7 +352,7 @@ type CheckoutContext =
   | { type: "member"; userId: string; savedCards: Card[] };
 
 function PaymentStep() {
-  const { context } = useFlow<CheckoutContext>();
+  const { context } = useFlowState<CheckoutContext>();
   
   if (context.type === "guest") {
     // TypeScript knows: context.email exists, context.userId doesn't

@@ -15,7 +15,7 @@ const assigneeOptions = [
 ] as const;
 
 export function AssignStep() {
-  const { context, next, back, setContext } = taskFlow.useFlow({
+  const { context, next, back, setContext } = taskFlow.useFlowState({
     step: "assign",
   });
 

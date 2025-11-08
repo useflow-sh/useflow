@@ -319,7 +319,7 @@ function App() {
 
 ```tsx
 // TypeScript knows your entire flow structure
-const { next } = flow.useFlow({ step: "profile" });
+const { next } = flow.useFlowState({ step: "profile" });
 next("preferences"); // ✅ IDE autocompletes valid steps
 next("welcome"); // ❌ Compile error - invalid navigation
 
@@ -333,7 +333,7 @@ setContext({ invalid: "field" }); // ❌ TypeScript error
 ### Complete history for debugging
 
 ```tsx
-const { history } = useFlow();
+const { history } = useFlowState();
 
 // See everything that happened
 console.log(history);
@@ -408,7 +408,7 @@ TanStack Form, React Hook Form, etc. are great for forms, but:
 import { useForm } from '@tanstack/react-form';
 
 function UserTypeStep() {
-  const { context, setContext, next, back } = useFlow();
+  const { context, setContext, next, back } = useFlowState();
   
   const form = useForm({
     defaultValues: {

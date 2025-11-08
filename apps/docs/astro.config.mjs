@@ -147,7 +147,7 @@ export default defineConfig({
             { label: "Overview", link: "/api-reference/" },
             { label: "defineFlow", link: "/api-reference/define-flow" },
             { label: "Flow Component", link: "/api-reference/flow-component" },
-            { label: "useFlow Hook", link: "/api-reference/use-flow" },
+            { label: "useFlowState Hook", link: "/api-reference/use-flow-state" },
           ],
         },
       ],

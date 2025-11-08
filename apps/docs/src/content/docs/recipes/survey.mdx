@@ -139,7 +139,7 @@ export function RatingQuestion({
 import { surveyFlow } from "./flow";
 
 export function IntroStep() {
-  const { next, setContext } = surveyFlow.useFlow({ step: "intro" });
+  const { next, setContext } = surveyFlow.useFlowState({ step: "intro" });
 
   const handleStart = () => {
     setContext({ startedAt: Date.now() });
@@ -184,7 +184,7 @@ import { surveyFlow } from "./flow";
 import { RatingQuestion } from "./RatingQuestion";
 
 export function Question1Step() {
-  const { context, setContext, next, back } = surveyFlow.useFlow({
+  const { context, setContext, next, back } = surveyFlow.useFlowState({
     step: "question1"
   });
 
@@ -223,7 +223,7 @@ export function Question1Step() {
 import { surveyFlow } from "./flow";
 
 export function FeedbackStep() {
-  const { context, setContext, next, skip, back } = surveyFlow.useFlow({
+  const { context, setContext, next, skip, back } = surveyFlow.useFlowState({
     step: "feedback"
   });
 
@@ -276,7 +276,7 @@ export function FeedbackStep() {
 import { surveyFlow } from "./flow";
 
 export function ResultsStep() {
-  const { context, reset } = surveyFlow.useFlow({ step: "results" });
+  const { context, reset } = surveyFlow.useFlowState({ step: "results" });
 
   // Calculate average score
   const scores = [

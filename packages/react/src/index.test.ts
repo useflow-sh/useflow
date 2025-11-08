@@ -12,8 +12,8 @@ describe("Public API", () => {
     expect(typeof api.Flow).toBe("function");
   });
 
-  it("should export useFlow hook", () => {
-    expect(api.useFlow).toBeDefined();
-    expect(typeof api.useFlow).toBe("function");
+  it("should export useFlowState hook", () => {
+    expect(api.useFlowState).toBeDefined();
+    expect(typeof api.useFlowState).toBe("function");
   });
 });

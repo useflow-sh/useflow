@@ -42,7 +42,7 @@ const ReactFlowContext = createContext<UseFlowReturn<any> | null>(null);
  * ```tsx
  * // Direct usage (no type safety for navigation)
  * function MyStep() {
- *   const { context, next, back, isRestoring } = useFlow();
+ *   const { context, next, back, isRestoring } = useFlowState();
  *
  *   if (isRestoring) return <Spinner />;
  *
@@ -51,17 +51,17 @@ const ReactFlowContext = createContext<UseFlowReturn<any> | null>(null);
  *
  * // Type-safe usage (recommended):
  * function ProfileStep() {
- *   const { next } = myFlow.useFlow({ step: 'profile' });
+ *   const { next } = myFlow.useFlowState({ step: 'profile' });
  *   next('option1'); // ✅ Type-safe!
  * }
  * ```
  */
-export function useFlow<TContext extends FlowContext = FlowContext>(_options?: {
-  step?: string;
-}): UseFlowReturn<TContext> {
+export function useFlowState<
+  TContext extends FlowContext = FlowContext,
+>(_options?: { step?: string }): UseFlowReturn<TContext> {
   const context = useContext(ReactFlowContext);
   if (!context) {
-    throw new Error("useFlow must be used within a Flow component");
+    throw new Error("useFlowState must be used within a Flow component");
   }
 
   return context;

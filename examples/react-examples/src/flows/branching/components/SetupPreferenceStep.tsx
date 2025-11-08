@@ -17,7 +17,7 @@ const setupOptions = [
 ] as const;
 
 export function SetupPreferenceStep() {
-  const { context, next, back, setContext } = branchingFlow.useFlow({
+  const { context, next, back, setContext } = branchingFlow.useFlowState({
     step: "setupPreference",
   });
 

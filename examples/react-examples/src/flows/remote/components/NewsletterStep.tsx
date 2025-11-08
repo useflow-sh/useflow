@@ -1,4 +1,4 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { Mail } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import type { RemoteOnboardingContext } from "../types";
 
 export function NewsletterStep() {
-  const { next, context, skip } = useFlow<RemoteOnboardingContext>();
+  const { next, context, skip } = useFlowState<RemoteOnboardingContext>();
   const [subscribeUpdates, setSubscribeUpdates] = useState(true);
   const [subscribeTips, setSubscribeTips] = useState(false);
   const [subscribeEvents, setSubscribeEvents] = useState(false);

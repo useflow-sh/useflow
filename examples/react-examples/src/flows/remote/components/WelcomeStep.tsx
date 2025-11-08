@@ -1,4 +1,4 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { useState } from "react";
 import { FormField } from "@/components/FormField";
 import { OptionSelector } from "@/components/OptionSelector";
@@ -32,13 +32,13 @@ const userTypeOptions = [
  *
  * This component works with ANY valid remote configuration
  * that includes a 'welcome' step. It doesn't depend on
- * specific flow structure - just uses the generic useFlow hook.
+ * specific flow structure - just uses the generic useFlowState hook.
  *
  * This demonstrates how components can be flow-agnostic
  * while still being type-safe for context operations.
  */
 export function WelcomeStep() {
-  const { context, next, setContext } = useFlow<RemoteOnboardingContext>();
+  const { context, next, setContext } = useFlowState<RemoteOnboardingContext>();
   const [email, setEmail] = useState(context.email || "");
   const [emailError, setEmailError] = useState("");
 

@@ -37,7 +37,7 @@ export type SurveyFlowContext = {
   questionsAnswered?: number;
 
   // Note: startedAt, completedAt, and totalTime are automatically tracked
-  // by the flow state and available via the useFlow() hook
+  // by the flow state and available via the useFlowState() hook
 };
 
 export const surveyFlow = defineFlow({

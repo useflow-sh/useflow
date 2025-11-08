@@ -1,11 +1,11 @@
 ---
-title: useFlow Hook
+title: useFlowState Hook
 description: Access flow state and navigation from step components
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-The `useFlow` hook provides access to the current flow state, context, and navigation methods from within step components. It can be used in two ways: with a flow-specific hook or the generic hook.
+The `useFlowState` hook provides access to the current flow state, context, and navigation methods from within step components. It can be used in two ways: with a flow-specific hook or the generic hook.
 
 ## Usage
 
@@ -27,7 +27,7 @@ const myFlow = defineFlow({
 });
 
 function MyStep() {
-  const { stepId, next, context } = myFlow.useFlow({ step: "step1" });
+  const { stepId, next, context } = myFlow.useFlowState({ step: "step1" });
   // All properties are fully typed for this specific flow
   return <div>{stepId}</div>;
 }
@@ -38,10 +38,10 @@ function MyStep() {
 For accessing flow state in shared components:
 
 ```typescript
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 
 function SharedStepComponent() {
-  const { stepId, context, next } = useFlow<MyContextType>();
+  const { stepId, context, next } = useFlowState<MyContextType>();
   // Generic hook - requires context type parameter
   return <div>{stepId}</div>;
 }
@@ -167,7 +167,7 @@ interface StepInfo<TNext = string> {
 
 ```tsx
 function ProfileStep() {
-  const { next, back, context } = myFlow.useFlow({ step: "profile" });
+  const { next, back, context } = myFlow.useFlowState({ step: "profile" });
   
   return (
     <div>
@@ -183,7 +183,7 @@ function ProfileStep() {
 
 ```tsx
 function FormStep() {
-  const { next, setContext } = myFlow.useFlow({ step: "form" });
+  const { next, setContext } = myFlow.useFlowState({ step: "form" });
   const [name, setName] = useState("");
   
   const handleSubmit = () => {
@@ -208,7 +208,7 @@ function FormStep() {
 
 ```tsx
 function BranchStep() {
-  const { next, context } = myFlow.useFlow({ step: "branch" });
+  const { next, context } = myFlow.useFlowState({ step: "branch" });
   
   return (
     <div>
@@ -233,7 +233,7 @@ function BranchStep() {
 
 ```tsx
 function OptionalStep() {
-  const { next, skip } = myFlow.useFlow({ step: "optional" });
+  const { next, skip } = myFlow.useFlowState({ step: "optional" });
   
   return (
     <div>
@@ -253,7 +253,7 @@ function OptionalStep() {
 
 ```tsx
 function NavigableStep() {
-  const { next, back, canGoBack, canGoNext } = myFlow.useFlow({ step: "middle" });
+  const { next, back, canGoBack, canGoNext } = myFlow.useFlowState({ step: "middle" });
   
   return (
     <div>
@@ -272,7 +272,7 @@ function NavigableStep() {
 
 ```tsx
 function CurrentStep() {
-  const { step, stepId, steps } = myFlow.useFlow({ step: "current" });
+  const { step, stepId, steps } = myFlow.useFlowState({ step: "current" });
   
   // Current step config
   console.log("Current step:", stepId);
@@ -289,7 +289,7 @@ function CurrentStep() {
 
 ```tsx
 function ProgressStep() {
-  const { path, history, startedAt } = myFlow.useFlow({ step: "progress" });
+  const { path, history, startedAt } = myFlow.useFlowState({ step: "progress" });
   
   // Linear progress
   const stepsCompleted = path.length - 1;
@@ -314,7 +314,7 @@ function ProgressStep() {
 
 ```tsx
 function PersistableStep() {
-  const { save, isRestoring } = myFlow.useFlow({ step: "persistable" });
+  const { save, isRestoring } = myFlow.useFlowState({ step: "persistable" });
   
   if (isRestoring) {
     return <div>Loading saved progress...</div>;
@@ -341,10 +341,10 @@ Always prefer the flow-specific hook for better type safety:
 
 ```tsx
 // ✅ Good - full type safety
-const { next, context, stepId } = myFlow.useFlow({ step: "myStep" });
+const { next, context, stepId } = myFlow.useFlowState({ step: "myStep" });
 
 // ❌ Avoid - requires manual typing
-const { next, context, stepId } = useFlow<MyContext>();
+const { next, context, stepId } = useFlowState<MyContext>();
 ```
 
 ### 2. Handle loading states
@@ -353,7 +353,7 @@ Check `isRestoring` when using persistence:
 
 ```tsx
 function MyStep() {
-  const { isRestoring } = myFlow.useFlow({ step: "myStep" });
+  const { isRestoring } = myFlow.useFlowState({ step: "myStep" });
   
   if (isRestoring) {
     return <LoadingSpinner />;
@@ -369,7 +369,7 @@ Always validate data before navigating:
 
 ```tsx
 function FormStep() {
-  const { next } = myFlow.useFlow({ step: "form" });
+  const { next } = myFlow.useFlowState({ step: "form" });
   const [data, setData] = useState({});
   
   const isValid = validateData(data);

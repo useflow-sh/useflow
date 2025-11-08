@@ -1,4 +1,4 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { useState } from "react";
 import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function ProfileStep() {
-  const { context, next, back } = useFlow({ step: "profile" });
+  const { context, next, back } = useFlowState({ step: "profile" });
 
   const [name, setName] = useState(context.name || "");
   const [bio, setBio] = useState(context.bio || "");

@@ -4,7 +4,7 @@ import { createMemoryStore } from "@useflow/core";
 import { act, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { defineFlow } from "./define-flow";
-import { Flow, useFlow } from "./flow";
+import { Flow, useFlowState } from "./flow";
 
 // Helper to create a mock persister with a memory store
 const createMockPersister = (overrides = {}): FlowPersister => ({
@@ -28,7 +28,7 @@ describe("Flow", () => {
     });
 
     function TestComponent() {
-      const { context, stepId, status } = useFlow();
+      const { context, stepId, status } = useFlowState();
       return (
         <div>
           <div data-testid="context">{JSON.stringify(context)}</div>
@@ -70,7 +70,7 @@ describe("Flow", () => {
     });
 
     function TestComponent() {
-      const { stepId, next } = useFlow();
+      const { stepId, next } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -113,7 +113,7 @@ describe("Flow", () => {
     });
 
     function TestComponent() {
-      const { stepId, next, back } = useFlow();
+      const { stepId, next, back } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -154,7 +154,7 @@ describe("Flow", () => {
     });
 
     function TestComponent() {
-      const { context, setContext } = useFlow<{ name: string }>();
+      const { context, setContext } = useFlowState<{ name: string }>();
       return (
         <div>
           <div data-testid="name">{context.name}</div>
@@ -202,7 +202,7 @@ describe("Flow", () => {
     const onComplete = vi.fn();
 
     function TestComponent() {
-      const { next } = useFlow();
+      const { next } = useFlowState();
       return <button onClick={() => next()}>Go to Complete</button>;
     }
 
@@ -243,7 +243,7 @@ describe("Flow", () => {
     const onCompleteSpy = vi.fn();
 
     function TestComponent() {
-      const { next } = useFlow();
+      const { next } = useFlowState();
       return <button onClick={() => next()}>Go to Complete</button>;
     }
 
@@ -308,7 +308,9 @@ describe("Flow", () => {
     }));
 
     function TestComponent() {
-      const { stepId, next, setContext } = useFlow<{ isBusiness: boolean }>();
+      const { stepId, next, setContext } = useFlowState<{
+        isBusiness: boolean;
+      }>();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -364,10 +366,10 @@ describe("Flow", () => {
   });
 });
 
-describe("useFlow", () => {
+describe("useFlowState", () => {
   it("should throw error when used outside Flow", () => {
     function TestComponent() {
-      useFlow();
+      useFlowState();
       return <div>Test</div>;
     }
 
@@ -375,7 +377,7 @@ describe("useFlow", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     expect(() => render(<TestComponent />)).toThrow(
-      "useFlow must be used within a Flow component",
+      "useFlowState must be used within a Flow component",
     );
 
     consoleSpy.mockRestore();
@@ -396,7 +398,7 @@ describe("useFlow", () => {
 
     function TestComponent() {
       // Use the typed hook from the flow definition
-      const { stepId, next, context } = flow.useFlow({ step: "first" });
+      const { stepId, next, context } = flow.useFlowState({ step: "first" });
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -442,7 +444,7 @@ describe("Edge cases", () => {
     });
 
     function TestComponent() {
-      const { stepId, next, back } = useFlow();
+      const { stepId, next, back } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -499,7 +501,7 @@ describe("Edge cases", () => {
     });
 
     function TestComponent() {
-      const { stepId, context, next } = useFlow<{ count: number }>();
+      const { stepId, context, next } = useFlowState<{ count: number }>();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -556,7 +558,7 @@ describe("Edge cases", () => {
     });
 
     function TestComponent() {
-      const { context, setContext } = useFlow<NestedContext>();
+      const { context, setContext } = useFlowState<NestedContext>();
       return (
         <div>
           <div data-testid="name">{context.user.profile.name}</div>
@@ -670,7 +672,7 @@ describe("Step rendering", () => {
     });
 
     function TestApp() {
-      const { next } = useFlow();
+      const { next } = useFlowState();
       return <button onClick={() => next()}>Next</button>;
     }
 
@@ -712,7 +714,7 @@ describe("Flow callbacks", () => {
     const onNext = vi.fn();
 
     function TestComponent() {
-      const { next } = useFlow();
+      const { next } = useFlowState();
       return <button onClick={() => next()}>Next</button>;
     }
 
@@ -751,7 +753,7 @@ describe("Flow callbacks", () => {
     const onSkip = vi.fn();
 
     function TestComponent() {
-      const { skip } = useFlow();
+      const { skip } = useFlowState();
       return <button onClick={() => skip()}>Skip</button>;
     }
 
@@ -790,7 +792,7 @@ describe("Flow callbacks", () => {
     const onSkip = vi.fn();
 
     function TestComponent() {
-      const { skip, context } = useFlow<{ skipped: boolean }>();
+      const { skip, context } = useFlowState<{ skipped: boolean }>();
       return (
         <div>
           <div data-testid="skipped">{String(context.skipped)}</div>
@@ -834,7 +836,7 @@ describe("Flow callbacks", () => {
     const onTransition = vi.fn();
 
     function TestComponent() {
-      const { skip } = useFlow();
+      const { skip } = useFlowState();
       return <button onClick={() => skip()}>Skip</button>;
     }
 
@@ -875,7 +877,7 @@ describe("Flow callbacks", () => {
     const onSkip = vi.fn();
 
     function TestComponent() {
-      const { skip } = useFlow<{ choice: string }>();
+      const { skip } = useFlowState<{ choice: string }>();
       return (
         <button onClick={() => skip("option2", { choice: "skipped" })}>
           Skip to Option 2
@@ -919,7 +921,7 @@ describe("Flow callbacks", () => {
     const onBack = vi.fn();
 
     function TestComponent() {
-      const { next, back, stepId } = useFlow();
+      const { next, back, stepId } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -968,7 +970,7 @@ describe("Flow callbacks", () => {
     const onContextUpdate = vi.fn();
 
     function TestComponent() {
-      const { setContext } = useFlow();
+      const { setContext } = useFlowState();
       return (
         <button onClick={() => setContext({ name: "Alice" })}>
           Update Context
@@ -1014,7 +1016,7 @@ describe("Flow callbacks", () => {
     const onContextUpdate = vi.fn();
 
     function TestComponent() {
-      const { next } = useFlow();
+      const { next } = useFlowState();
       return (
         <button onClick={() => next("option2", { choice: "option2" })}>
           Choose Option 2
@@ -1067,7 +1069,7 @@ describe("Flow callbacks", () => {
     });
 
     function TestComponent() {
-      const { next, stepId } = useFlow();
+      const { next, stepId } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -1106,7 +1108,7 @@ describe("Flow callbacks", () => {
     // onBack and onContextUpdate not provided
 
     function TestComponent() {
-      const { next, back } = useFlow();
+      const { next, back } = useFlowState();
       return (
         <div>
           <button onClick={() => next()}>Next</button>
@@ -1147,7 +1149,7 @@ describe("Flow callbacks", () => {
     const onTransition = vi.fn();
 
     function TestComponent() {
-      const { next, stepId } = useFlow();
+      const { next, stepId } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -1196,7 +1198,7 @@ describe("Flow callbacks", () => {
     const onTransition = vi.fn();
 
     function TestComponent() {
-      const { next, back, stepId } = useFlow();
+      const { next, back, stepId } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -1253,7 +1255,7 @@ describe("Flow callbacks", () => {
     const onTransition = vi.fn();
 
     function TestComponent() {
-      const { next } = useFlow();
+      const { next } = useFlowState();
       return <button onClick={() => next({ name: "Alice" })}>Next</button>;
     }
 
@@ -1298,7 +1300,7 @@ describe("Flow callbacks", () => {
     const onTransition = vi.fn();
 
     function TestComponent() {
-      const { next } = useFlow();
+      const { next } = useFlowState();
       return <button onClick={() => next()}>Next</button>;
     }
 
@@ -1347,7 +1349,7 @@ describe("Flow callbacks", () => {
     const onTransition = vi.fn();
 
     function TestComponent() {
-      const { next, back } = useFlow();
+      const { next, back } = useFlowState();
       return (
         <div>
           <button onClick={() => next()}>Next</button>
@@ -1543,7 +1545,7 @@ describe("Persistence", () => {
     const onSave = vi.fn();
 
     function TestContent() {
-      const { next, isRestoring } = useFlow();
+      const { next, isRestoring } = useFlowState();
       if (isRestoring) return <div>Loading...</div>;
       return (
         <div>
@@ -1790,7 +1792,7 @@ describe("Persistence", () => {
     const onPersistenceError = vi.fn();
 
     function TestContent() {
-      const { next } = useFlow();
+      const { next } = useFlowState();
       return (
         <div>
           <button onClick={() => next()}>Next</button>
@@ -1846,7 +1848,7 @@ describe("Persistence", () => {
     };
 
     function TestContent() {
-      const { next } = useFlow();
+      const { next } = useFlowState();
       return (
         <div>
           <button onClick={() => next()}>Next</button>
@@ -1916,7 +1918,7 @@ describe("Persistence", () => {
       };
 
       function TestContent() {
-        const { next, isRestoring } = useFlow();
+        const { next, isRestoring } = useFlowState();
         if (isRestoring) return <div>Loading...</div>;
         return (
           <div>
@@ -2004,7 +2006,7 @@ describe("Persistence", () => {
     };
 
     function TestContent() {
-      const { next } = useFlow();
+      const { next } = useFlowState();
       return (
         <div>
           <button onClick={() => next()}>Next</button>
@@ -2061,7 +2063,7 @@ describe("Persistence", () => {
     };
 
     function TestContent() {
-      const { next, save } = useFlow();
+      const { next, save } = useFlowState();
       return (
         <div>
           <button onClick={() => next()}>Next</button>
@@ -2138,7 +2140,7 @@ describe("Persistence", () => {
     const onPersistenceError = vi.fn();
 
     function TestContent() {
-      const { save } = useFlow();
+      const { save } = useFlowState();
       return (
         <div>
           <button onClick={() => save()}>Save</button>
@@ -2185,7 +2187,7 @@ describe("Persistence", () => {
     });
 
     function TestContent() {
-      const { save } = useFlow();
+      const { save } = useFlowState();
       return (
         <div>
           <button onClick={() => save()}>Save</button>
@@ -2233,7 +2235,7 @@ describe("Persistence", () => {
     const onSave = vi.fn();
 
     function TestContent() {
-      const { save } = useFlow();
+      const { save } = useFlowState();
       return (
         <div>
           <button onClick={() => save()}>Save</button>
@@ -2286,7 +2288,7 @@ describe("Persistence", () => {
     };
 
     function TestContent() {
-      const { next, setContext } = useFlow();
+      const { next, setContext } = useFlowState();
       return (
         <div>
           <button onClick={() => next()}>Next</button>
@@ -2356,7 +2358,7 @@ describe("Persistence", () => {
     };
 
     function TestContent() {
-      const { next, setContext } = useFlow();
+      const { next, setContext } = useFlowState();
       return (
         <div>
           <button onClick={() => next()}>Next</button>
@@ -2425,7 +2427,7 @@ describe("Persistence", () => {
       };
 
       function TestContent() {
-        const { next } = useFlow();
+        const { next } = useFlowState();
         return (
           <div>
             <button onClick={() => next()}>Next</button>
@@ -2564,7 +2566,7 @@ describe("Persistence", () => {
       };
 
       function TestContent() {
-        const { next } = useFlow();
+        const { next } = useFlowState();
         return (
           <div>
             <button onClick={() => next()}>Next</button>
@@ -2655,7 +2657,7 @@ describe("Persistence", () => {
       };
 
       function TestContent() {
-        const { next } = useFlow();
+        const { next } = useFlowState();
         return (
           <div>
             <button onClick={() => next()}>Next</button>
@@ -2717,7 +2719,7 @@ describe("reset", () => {
     });
 
     function TestComponent() {
-      const { stepId, context, next, setContext, reset } = useFlow();
+      const { stepId, context, next, setContext, reset } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -2792,7 +2794,7 @@ describe("reset", () => {
     });
 
     function TestComponent() {
-      const { stepId, next, reset } = useFlow();
+      const { stepId, next, reset } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -2878,7 +2880,7 @@ describe("reset", () => {
     });
 
     function TestComponent() {
-      const { reset } = useFlow();
+      const { reset } = useFlowState();
       return <button onClick={() => reset()}>Reset</button>;
     }
 
@@ -2946,7 +2948,7 @@ describe("reset", () => {
     });
 
     function TestComponent() {
-      const { reset } = useFlow();
+      const { reset } = useFlowState();
       return <button onClick={() => reset()}>Reset</button>;
     }
 
@@ -3004,7 +3006,7 @@ describe("reset", () => {
     });
 
     function TestComponent() {
-      const { stepId, status, next, reset } = useFlow();
+      const { stepId, status, next, reset } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -3055,7 +3057,7 @@ describe("metadata exposure", () => {
     });
 
     function TestComponent() {
-      const { steps } = useFlow();
+      const { steps } = useFlowState();
       return <div data-testid="steps">{JSON.stringify(steps)}</div>;
     }
 
@@ -3093,7 +3095,7 @@ describe("metadata exposure", () => {
     });
 
     function TestComponent() {
-      const { nextSteps } = useFlow();
+      const { nextSteps } = useFlowState();
       return <div data-testid="nextSteps">{JSON.stringify(nextSteps)}</div>;
     }
 
@@ -3126,7 +3128,7 @@ describe("metadata exposure", () => {
     });
 
     function TestComponent() {
-      const { nextSteps } = useFlow();
+      const { nextSteps } = useFlowState();
       return <div data-testid="nextSteps">{JSON.stringify(nextSteps)}</div>;
     }
 
@@ -3159,7 +3161,7 @@ describe("metadata exposure", () => {
     });
 
     function TestComponent() {
-      const { nextSteps, stepId } = useFlow();
+      const { nextSteps, stepId } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -3206,7 +3208,7 @@ describe("metadata exposure", () => {
     });
 
     function TestComponent() {
-      const { nextSteps, next, stepId } = useFlow();
+      const { nextSteps, next, stepId } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -3259,7 +3261,7 @@ describe("metadata exposure", () => {
     });
 
     function TestComponent() {
-      const { canGoBack, next, back, stepId } = useFlow();
+      const { canGoBack, next, back, stepId } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -3331,7 +3333,7 @@ describe("metadata exposure", () => {
     });
 
     function TestComponent() {
-      const { canGoNext, next, stepId } = useFlow();
+      const { canGoNext, next, stepId } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>
@@ -3386,7 +3388,7 @@ describe("metadata exposure", () => {
     });
 
     function TestComponent() {
-      const { canGoBack, canGoNext, next, back, stepId } = useFlow();
+      const { canGoBack, canGoNext, next, back, stepId } = useFlowState();
       return (
         <div>
           <div data-testid="stepId">{stepId}</div>

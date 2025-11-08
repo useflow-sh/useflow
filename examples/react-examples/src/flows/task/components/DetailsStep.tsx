@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { taskFlow } from "../flow";
 
 export function DetailsStep() {
-  const { context, next, back } = taskFlow.useFlow({
+  const { context, next, back } = taskFlow.useFlowState({
     step: "details",
   });
 

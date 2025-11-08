@@ -3,7 +3,7 @@ import {
   type FlowContext,
   type FlowRuntimeConfig,
 } from "@useflow/core";
-import { useFlow } from "./flow";
+import { useFlowState } from "./flow";
 import type {
   FlowDefinition,
   StepNames,
@@ -14,15 +14,17 @@ import type {
 /**
  * React-specific runtime flow definition
  *
- * Extends the core RuntimeFlowDefinition class and adds the useFlow hook
+ * Extends the core RuntimeFlowDefinition class and adds the useFlowState hook
  * for type-safe step navigation within React components.
  */
 export class RuntimeFlowDefinition<
   TDefinition extends FlowDefinition = FlowDefinition,
   TContext extends FlowContext = FlowContext,
 > extends CoreRuntimeFlowDefinition<TDefinition, TContext> {
-  // React-specific useFlow hook
-  public readonly useFlow: <TStep extends StepNames<TDefinition>>(options: {
+  // React-specific useFlowState hook
+  public readonly useFlowState: <
+    TStep extends StepNames<TDefinition>,
+  >(options: {
     step: TStep;
   }) => UseFlowReturn<
     TContext,
@@ -39,15 +41,15 @@ export class RuntimeFlowDefinition<
   ) {
     super(config, runtimeConfig);
 
-    // Create the useFlow hook for this specific context type
-    this.useFlow = <TStep extends StepNames<TDefinition>>(options: {
+    // Create the useFlowState hook for this specific context type
+    this.useFlowState = <TStep extends StepNames<TDefinition>>(options: {
       step: TStep;
     }): UseFlowReturn<
       TContext,
       ValidNextSteps<TDefinition, TStep>,
       StepNames<TDefinition>
     > => {
-      return useFlow<TContext>(options) as unknown as UseFlowReturn<
+      return useFlowState<TContext>(options) as unknown as UseFlowReturn<
         TContext,
         ValidNextSteps<TDefinition, TStep>,
         StepNames<TDefinition>
@@ -56,13 +58,13 @@ export class RuntimeFlowDefinition<
   }
 
   /**
-   * Add typed runtime configuration with React useFlow hook
+   * Add typed runtime configuration with React useFlowState hook
    *
    * Creates a new RuntimeFlowDefinition instance with the specified context type,
-   * runtime configuration, and context-specific useFlow hook.
+   * runtime configuration, and context-specific useFlowState hook.
    *
    * @param runtimeConfig - Function that receives type-safe step references
-   * @returns New RuntimeFlowDefinition instance with React useFlow hook and typed context
+   * @returns New RuntimeFlowDefinition instance with React useFlowState hook and typed context
    *
    * @example
    * ```ts
@@ -93,7 +95,7 @@ export class RuntimeFlowDefinition<
     // Get the core result (a new core RuntimeFlowDefinition instance)
     const coreInstance = super.with<NewContext>(runtimeConfig);
 
-    // Return new React RuntimeFlowDefinition instance with useFlow hook
+    // Return new React RuntimeFlowDefinition instance with useFlowState hook
     return new RuntimeFlowDefinition<TDefinition, NewContext>(
       coreInstance.config,
       coreInstance.runtimeConfig,
@@ -108,7 +110,7 @@ export class RuntimeFlowDefinition<
  * or chained with .with<TContext>() for typed runtime configuration
  *
  * @param config - Flow configuration (serializable)
- * @returns RuntimeFlowDefinition instance with useFlow hook
+ * @returns RuntimeFlowDefinition instance with useFlowState hook
  *
  * @example
  * ```ts
@@ -145,7 +147,7 @@ export class RuntimeFlowDefinition<
  *
  * // In component - use the hook:
  * function WelcomeStep() {
- *   const { next, setContext } = myFlow.useFlow({ step: 'welcome' });
+ *   const { next, setContext } = myFlow.useFlowState({ step: 'welcome' });
  *
  *   return (
  *     <button onClick={() => {

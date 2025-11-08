@@ -1,4 +1,4 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { RemoteOnboardingContext } from "../types";
 
 export function SurveyStep() {
-  const { next, skip } = useFlow<RemoteOnboardingContext>();
+  const { next, skip } = useFlowState<RemoteOnboardingContext>();
   const [hearAbout, setHearAbout] = useState("");
   const [primaryUse, setPrimaryUse] = useState("");
 

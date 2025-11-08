@@ -1,4 +1,4 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { useState } from "react";
 import { FormField } from "@/components/FormField";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import type { RemoteOnboardingContext } from "../types";
  * it just handles the verification logic when present.
  */
 export function VerificationStep() {
-  const { context, next, back, skip } = useFlow<RemoteOnboardingContext>();
+  const { context, next, back, skip } = useFlowState<RemoteOnboardingContext>();
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);

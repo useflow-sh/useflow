@@ -22,7 +22,7 @@ const priorityOptions = [
 ] as const;
 
 export function PriorityStep() {
-  const { context, next, back, setContext } = taskFlow.useFlow({
+  const { context, next, back, setContext } = taskFlow.useFlowState({
     step: "priority",
   });
 

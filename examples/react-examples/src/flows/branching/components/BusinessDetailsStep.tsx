@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { branchingFlow } from "../flow";
 
 export function BusinessDetailsStep() {
-  const { context, next, back } = branchingFlow.useFlow({
+  const { context, next, back } = branchingFlow.useFlowState({
     step: "businessDetails",
   });
 

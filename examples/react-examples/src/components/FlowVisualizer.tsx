@@ -1,4 +1,4 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { Check, Circle } from "lucide-react";
 import { useMemo } from "react";
 import {
@@ -21,11 +21,11 @@ type FlowNode = {
 /**
  * FlowVisualizer - Visual flow structure diagram
  *
- * Automatically reads flow structure from useFlow().steps metadata
+ * Automatically reads flow structure from useFlowState().steps metadata
  * No need to manually pass in step configurations!
  */
 export function FlowVisualizer() {
-  const { stepId, path, status, steps } = useFlow();
+  const { stepId, path, status, steps } = useFlowState();
 
   const nodes = useMemo((): FlowNode[] => {
     const pathStepIds = path.map((entry) => entry.stepId);

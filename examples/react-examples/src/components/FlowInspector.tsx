@@ -3,7 +3,7 @@ import type {
   KVFlowStore,
   PersistedFlowState,
 } from "@useflow/react";
-import { useFlow, useFlowConfig } from "@useflow/react";
+import { useFlowConfig, useFlowState } from "@useflow/react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +39,7 @@ export function FlowInspector({
     isRestoring,
     startedAt,
     completedAt,
-  } = useFlow();
+  } = useFlowState();
   // Default to closed on mobile, open on desktop
   const [showDebug, setShowDebug] = useState(() => {
     if (typeof window !== "undefined") {

@@ -107,7 +107,7 @@ Component explicitly chooses the destination:
 
 ```ts
 function UserTypeStep() {
-  const { next } = flow.useFlow({ step: 'userType' });
+  const { next } = flow.useFlowState({ step: 'userType' });
   
   return (
     <div>
@@ -149,17 +149,17 @@ const flow = defineFlow({
 });
 
 // ✅ Valid
-flow.useFlow({ step: 'welcome' });
+flow.useFlowState({ step: 'welcome' });
 
 // ❌ TypeScript error: "invalid" is not a valid step
-flow.useFlow({ step: 'invalid' });
+flow.useFlowState({ step: 'invalid' });
 ```
 
 ### Type-safe navigation
 
 ```ts
 function WelcomeStep() {
-  const { next } = flow.useFlow({ step: 'welcome' });
+  const { next } = flow.useFlowState({ step: 'welcome' });
   
   // ✅ Valid - 'profile' is the only valid next step
   next();
@@ -187,7 +187,7 @@ const flow = defineFlow({
 });
 
 function WelcomeStep() {
-  const { next, context } = flow.useFlow({ step: 'welcome' });
+  const { next, context } = flow.useFlowState({ step: 'welcome' });
   
   // ✅ context is typed as OnboardingContext
   console.log(context.name);

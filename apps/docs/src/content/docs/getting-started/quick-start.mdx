@@ -71,15 +71,15 @@ A simple 3-step onboarding flow:
 
 3. ### Create step components
 
-   Create components for each step. Each component uses the `useFlow()` hook to access flow state and navigation.
+   Create components for each step. Each component uses the `useFlowState()` hook to access flow state and navigation.
 
    #### Welcome Step
 
    ```tsx title="WelcomeStep.tsx"
-   import { useFlow } from "@useflow/react";
+   import { useFlowState } from "@useflow/react";
 
    export function WelcomeStep() {
-     const { next } = useFlow();
+     const { next } = useFlowState();
 
      return (
        <div>
@@ -94,7 +94,7 @@ A simple 3-step onboarding flow:
    #### Profile Step
 
    ```tsx title="ProfileStep.tsx"
-   import { useFlow } from "@useflow/react";
+   import { useFlowState } from "@useflow/react";
    import { useState } from "react";
 
    type OnboardingContext = {
@@ -103,7 +103,7 @@ A simple 3-step onboarding flow:
    };
 
    export function ProfileStep() {
-     const { context, next, back, setContext } = useFlow<OnboardingContext>();
+     const { context, next, back, setContext } = useFlowState<OnboardingContext>();
      
      // Local state for form validation
      const [errors, setErrors] = useState<Record<string, string>>({});
@@ -173,7 +173,7 @@ A simple 3-step onboarding flow:
    #### Complete Step
 
    ```tsx title="CompleteStep.tsx"
-   import { useFlow } from "@useflow/react";
+   import { useFlowState } from "@useflow/react";
 
    type OnboardingContext = {
      name: string;
@@ -181,7 +181,7 @@ A simple 3-step onboarding flow:
    };
 
    export function CompleteStep() {
-     const { context } = useFlow<OnboardingContext>();
+     const { context } = useFlowState<OnboardingContext>();
 
      return (
        <div>
@@ -311,7 +311,7 @@ export function App() {
 ## What you've learned
 
 ✅ How to define a flow with **defineFlow()**  
-✅ How to use the **useFlow()** hook  
+✅ How to use the **useFlowState()** hook  
 ✅ How to navigate with **next()** and **back()**  
 ✅ How to manage context with **setContext()**  
 ✅ How to render steps with the **Flow** component  
@@ -375,10 +375,10 @@ export const onboardingFlow = defineFlow({
 });
 
 // WelcomeStep.tsx
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 
 export function WelcomeStep() {
-  const { next } = useFlow();
+  const { next } = useFlowState();
 
   return (
     <div>
@@ -390,7 +390,7 @@ export function WelcomeStep() {
 }
 
 // ProfileStep.tsx
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { useState } from "react";
 
 type OnboardingContext = {
@@ -399,7 +399,7 @@ type OnboardingContext = {
 };
 
 export function ProfileStep() {
-  const { context, next, back, setContext } = useFlow<OnboardingContext>();
+  const { context, next, back, setContext } = useFlowState<OnboardingContext>();
   
   // Local state for form validation
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -460,7 +460,7 @@ export function ProfileStep() {
 }
 
 // CompleteStep.tsx
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 
 type OnboardingContext = {
   name: string;
@@ -468,7 +468,7 @@ type OnboardingContext = {
 };
 
 export function CompleteStep() {
-  const { context } = useFlow<OnboardingContext>();
+  const { context } = useFlowState<OnboardingContext>();
 
   return (
     <div>

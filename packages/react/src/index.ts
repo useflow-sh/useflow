@@ -35,7 +35,7 @@ export {
 
 // React-specific exports
 export { defineFlow, RuntimeFlowDefinition } from "./define-flow";
-export { Flow, useFlow } from "./flow";
+export { Flow, useFlowState } from "./flow";
 export type {
   FlowProviderConfig,
   SaveMode,

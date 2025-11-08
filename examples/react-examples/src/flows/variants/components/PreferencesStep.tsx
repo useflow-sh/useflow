@@ -1,11 +1,13 @@
-import { useFlow } from "@useflow/react";
+import { useFlowState } from "@useflow/react";
 import { StepCard } from "@/components/StepCard";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 export function PreferencesStep() {
-  const { context, next, back, setContext } = useFlow({ step: "preferences" });
+  const { context, next, back, setContext } = useFlowState({
+    step: "preferences",
+  });
 
   const handleNotificationsChange = (checked: boolean) => {
     setContext({ notifications: checked });

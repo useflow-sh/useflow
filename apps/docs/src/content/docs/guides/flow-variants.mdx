@@ -133,12 +133,12 @@ function App() {
 
 ## Providing components for all variants
 
-When using flow variants, you must **provide components for all steps** across all variants. Components use the generic `useFlow()` hook to work with any flow:
+When using flow variants, you must **provide components for all steps** across all variants. Components use the generic `useFlowState()` hook to work with any flow:
 
 ```tsx
 // ✅ Flow-agnostic component - works with any flow
 function AccountStep() {
-  const { next, setContext, context } = useFlow<OnboardingContext>();
+  const { next, setContext, context } = useFlowState<OnboardingContext>();
 
   return (
     <div>

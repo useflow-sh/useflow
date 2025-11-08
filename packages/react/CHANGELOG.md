@@ -1,5 +1,16 @@
 # @useflow/react
 
+## 0.2.0
+
+### Minor Changes
+
+- 5d85e63: Refactor useFlow to useFlowState
+
+### Patch Changes
+
+- Updated dependencies [5d85e63]
+  - @useflow/core@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes

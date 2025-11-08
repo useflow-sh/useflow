@@ -1,6 +1,6 @@
 {
   "name": "@useflow/core",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Framework-agnostic state machine for multi-step flows",
   "author": "Brian Cheung <bcheung.dev@gmail.com> (https://github.com/bcheung)",
   "license": "MIT",

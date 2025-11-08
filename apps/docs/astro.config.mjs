@@ -31,6 +31,9 @@ export default defineConfig({
       title: "useFlow",
       description:
         "Type-safe, declarative multi-step flows for React applications",
+      components: {
+        Banner: "./src/components/Banner.astro",
+      },
       tableOfContents: {
         minHeadingLevel: 2,
         maxHeadingLevel: 4,
@@ -147,7 +150,10 @@ export default defineConfig({
             { label: "Overview", link: "/api-reference/" },
             { label: "defineFlow", link: "/api-reference/define-flow" },
             { label: "Flow Component", link: "/api-reference/flow-component" },
-            { label: "useFlowState Hook", link: "/api-reference/use-flow-state" },
+            {
+              label: "useFlowState Hook",
+              link: "/api-reference/use-flow-state",
+            },
           ],
         },
       ],

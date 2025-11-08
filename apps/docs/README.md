@@ -1,12 +1,10 @@
-# Starlight Starter Kit: Basics
+# useFlow Documentation
 
 [![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
 
-```
-bun create astro@latest -- --template starlight
-```
+Official documentation for useFlow - a type-safe, declarative library for building multi-step flows in React.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+> **⚠️ Beta Release:** useFlow is currently in beta. The API may change before v1.0.0. Breaking changes will increment the minor version. We recommend using `~0.x.0` in your package.json to allow patch updates while avoiding breaking changes.
 
 ## 🚀 Project Structure
 

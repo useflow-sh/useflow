@@ -8,6 +8,15 @@
 
 Build onboarding, checkout, surveys, and wizards with full TypeScript support. useFlowState handles the multi-step navigation and state management while you focus on building great UI.
 
+> **⚠️ Beta Release:** This library is currently in beta and the API may change before v1.0.0. Breaking changes will increment the minor version. We recommend using the `~` prefix in your `package.json` to allow patch updates while avoiding breaking changes:
+> ```json
+> {
+>   "dependencies": {
+>     "@useflow/react": "~0.x.0"
+>   }
+> }
+> ```
+
 ## Installation
 
 ```bash

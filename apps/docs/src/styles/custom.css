@@ -385,3 +385,9 @@ starlight-tabs .tab > [role="tab"] {
   li:has(> a:not([aria-current="page"]):is(:hover, :focus-visible)) {
   border-inline-start-color: var(--sl-color-gray-2);
 }
+
+/* Reduce top margin on splash template main content */
+.main-pane {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}

@@ -8,6 +8,15 @@
 
 useFlow is a lightweight library for building multi-step flows like onboarding, checkout, surveys, and wizards with full TypeScript support.
 
+> **⚠️ Beta Release:** useFlow is currently in beta and the API may change before v1.0.0. Breaking changes will increment the minor version. We recommend using the `~` prefix in your `package.json` to allow patch updates while avoiding breaking changes:
+> ```json
+> {
+>   "dependencies": {
+>     "@useflow/react": "~0.x.0"
+>   }
+> }
+> ```
+
 ## Why useFlow?
 
 **Start simple, scale up.** Begin with a linear flow and add conditional navigation, persistence, or callbacks as needed without refactoring your architecture.

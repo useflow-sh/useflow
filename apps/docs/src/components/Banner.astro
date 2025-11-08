@@ -1,0 +1,54 @@
+---
+// Custom Banner component that displays a global beta warning on all pages
+// Overrides the default Starlight Banner component
+
+// Define global banner content
+const GLOBAL_BANNER = {
+  content:
+    "⚠️ <strong>Beta:</strong> API may change before v1.0. Pin to <code>~0.x.0</code> to avoid breaking changes.",
+};
+
+// Get page-specific banner from frontmatter (if any)
+const { banner } = Astro.locals.starlightRoute.entry.data;
+
+// Show page-specific banner if set, otherwise show global banner
+const displayBanner = banner || GLOBAL_BANNER;
+---
+
+{
+  displayBanner && (
+    <div
+      class="sl-banner"
+      data-pagefind-ignore
+      set:html={displayBanner.content}
+    />
+  )
+}
+
+<style>
+  @layer starlight.core {
+    .sl-banner {
+      --__sl-banner-text: var(
+        --sl-color-banner-text,
+        var(--sl-color-text-invert)
+      );
+      padding: 0.25rem 1rem;
+      background-color: var(--sl-color-banner-bg, var(--sl-color-bg-accent));
+      color: var(--__sl-banner-text);
+      line-height: 1.2;
+      text-align: center;
+      text-wrap: balance;
+      box-shadow: var(--sl-shadow-sm);
+      font-size: 0.8125rem;
+    }
+    .sl-banner :global(a) {
+      color: var(--__sl-banner-text);
+    }
+    .sl-banner :global(code) {
+      background-color: rgba(0, 0, 0, 0.2);
+      padding: 0.125rem 0.375rem;
+      border-radius: 0.25rem;
+      font-size: 0.9em;
+    }
+  }
+</style>

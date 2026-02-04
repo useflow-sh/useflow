@@ -33,9 +33,10 @@ export type FlowDefinition<
 export type UseFlowReducerReturn<
   TContext extends FlowContext,
   TValidNextSteps extends string = string,
+  TStepNames extends string = string,
 > = {
-  stepId: string;
-  step: CoreFlowDefinition["steps"][string];
+  stepId: TStepNames;
+  step: CoreFlowDefinition["steps"][TStepNames];
   context: TContext;
   status: "active" | "complete";
   /** Path taken through the flow - used for back navigation */
@@ -75,12 +76,16 @@ export type UseFlowReducerReturn<
  * @param resolvers - Optional resolver map for context-driven navigation
  * @returns Flow state and control functions
  */
-export function useFlowReducer<TContext extends FlowContext>(
+export function useFlowReducer<
+  TContext extends FlowContext,
+  TValidNextSteps extends string = string,
+  TStepNames extends string = string,
+>(
   definition: CoreFlowDefinition,
   initialContext: TContext,
   initialState?: FlowState<TContext>,
   resolvers?: RuntimeResolverMap<TContext>,
-): UseFlowReducerReturn<TContext> {
+): UseFlowReducerReturn<TContext, TValidNextSteps, TStepNames> {
   // Store initial context in a ref so it's stable across re-renders
   const initialContextRef = useRef(initialContext);
 
@@ -103,7 +108,7 @@ export function useFlowReducer<TContext extends FlowContext>(
       }
     },
     [],
-  );
+  ) as UseFlowReducerReturn<TContext, TValidNextSteps, TStepNames>["next"];
 
   const skip = useCallback(
     (
@@ -118,7 +123,7 @@ export function useFlowReducer<TContext extends FlowContext>(
       }
     },
     [],
-  );
+  ) as UseFlowReducerReturn<TContext, TValidNextSteps, TStepNames>["skip"];
 
   const back = useCallback(() => {
     dispatch({ type: "BACK" });
@@ -137,8 +142,12 @@ export function useFlowReducer<TContext extends FlowContext>(
   }, []);
 
   return {
-    stepId: state.stepId,
-    step: definition.steps[state.stepId] ?? {},
+    stepId: state.stepId as TStepNames,
+    step: (definition.steps[state.stepId] ?? {}) as UseFlowReducerReturn<
+      TContext,
+      TValidNextSteps,
+      TStepNames
+    >["step"],
     context: state.context,
     status: state.status,
     path: state.path,

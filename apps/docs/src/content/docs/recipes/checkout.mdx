@@ -453,7 +453,7 @@ export function ShippingStep() {
       {/* Navigation */}
       <div className="flex gap-3">
         <button
-          onClick={back}
+          onClick={() => back()}
           className="px-6 py-2 border rounded-lg hover:bg-gray-50"
         >
           Back to Cart
@@ -556,7 +556,7 @@ export function PaymentStep() {
       {/* Navigation */}
       <div className="flex gap-3">
         <button
-          onClick={back}
+          onClick={() => back()}
           className="px-6 py-2 border rounded-lg hover:bg-gray-50"
         >
           Back
@@ -653,7 +653,7 @@ export function ReviewStep() {
       {/* Actions */}
       <div className="flex gap-4">
         <button
-          onClick={back}
+          onClick={() => back()}
           className="flex-1 px-6 py-3 border rounded"
         >
           Back to Payment
@@ -811,4 +811,3 @@ export function CheckoutFlow({ initialCart }: { initialCart: any[] }) {
 - [Survey Flow](/recipes/survey)
 - [Persistence Guide](/guides/persistence)
 - [Testing Guide](/guides/testing)
-

@@ -3,7 +3,16 @@ title: Navigation
 description: Control flow movement with type-safe navigation methods
 ---
 
+import { Aside } from '@astrojs/starlight/components';
+
 **Navigation** is how users move through your flow. useFlowState provides several navigation methods that are type-safe, flexible, and work seamlessly with your flow definition.
+
+<Aside type="caution" title="React event handlers">
+  Do not pass flow methods directly as event handlers (for example: `onClick={next}` / `onPress={next}`).
+  React may pass an event object as the first argument, which can accidentally be treated as a context update.
+
+  Always wrap: `onClick={() => next()}` / `onPress={() => next()}` (same for `skip()` and `setContext()`).
+</Aside>
 
 ## Navigation methods
 
@@ -770,8 +779,8 @@ function MyStep() {
   
   return (
     <div className="navigation">
-      {canGoBack && <button onClick={back}>Back</button>}
-      <button onClick={next}>Continue</button>
+      {canGoBack && <button onClick={() => back()}>Back</button>}
+      <button onClick={() => next()}>Continue</button>
     </div>
   );
 }
@@ -804,7 +813,7 @@ function MyStep() {
     return <div>This is the end!</div>;
   }
   
-  return <button onClick={next}>Continue</button>;
+  return <button onClick={() => next()}>Continue</button>;
 }
 ```
 

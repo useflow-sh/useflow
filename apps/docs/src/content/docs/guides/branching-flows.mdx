@@ -562,7 +562,7 @@ export function SetupPreferenceStep() {
         </label>
       </div>
 
-      <button onClick={back}>Back</button>
+      <button onClick={() => back()}>Back</button>
       <button onClick={handleContinue} disabled={!context.setupMode}>
         Continue
       </button>
@@ -597,4 +597,3 @@ export function SetupPreferenceStep() {
     href="/guides/flow-variants"
   />
 </CardGrid>
-

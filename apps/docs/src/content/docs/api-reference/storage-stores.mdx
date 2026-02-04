@@ -63,7 +63,7 @@ const store = createMemoryStore();
 
 ```typescript
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createAsyncStorageStore } from "@useflow/react-native";
+import { createAsyncStorageStore } from "@useflow/react";
 
 const store = createAsyncStorageStore(AsyncStorage, {
   prefix: "flow"  // Optional: custom key prefix
@@ -100,7 +100,7 @@ import {
 } from "@useflow/react";
 
 // Create store
-const store = createLocalStorageStore();
+const store = createLocalStorageStore(localStorage);
 
 // Create persister with store
 const persister = createPersister({ store });
@@ -147,7 +147,7 @@ describe('MyFlow', () => {
 ```typescript
 const store = process.env.NODE_ENV === 'test'
   ? createMemoryStore()
-  : createLocalStorageStore();
+  : createLocalStorageStore(localStorage);
 
 const persister = createPersister({ store });
 ```

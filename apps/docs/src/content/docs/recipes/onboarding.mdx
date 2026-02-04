@@ -194,7 +194,7 @@ export function ProfileStep() {
       {/* Navigation */}
       <div className="flex gap-3">
         <button
-          onClick={back}
+          onClick={() => back()}
           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
         >
           Back
@@ -290,7 +290,7 @@ export function PreferencesStep() {
       {/* Navigation */}
       <div className="flex gap-3">
         <button
-          onClick={back}
+          onClick={() => back()}
           className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
         >
           Back
@@ -575,4 +575,3 @@ const persister = createPersister({
 - [Survey Flow](/recipes/survey)
 - [Persistence Guide](/guides/persistence)
 - [Testing Guide](/guides/testing)
-

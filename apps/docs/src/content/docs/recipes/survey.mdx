@@ -199,7 +199,7 @@ export function Question1Step() {
 
       <div className="flex gap-3 mt-8 max-w-2xl mx-auto">
         <button
-          onClick={back}
+          onClick={() => back()}
           className="px-6 py-2 border rounded-lg hover:bg-gray-50"
         >
           Back
@@ -247,7 +247,7 @@ export function FeedbackStep() {
 
       <div className="flex gap-3 mt-6">
         <button
-          onClick={back}
+          onClick={() => back()}
           className="px-6 py-2 border rounded-lg hover:bg-gray-50"
         >
           Back
@@ -570,4 +570,3 @@ const surveyFlow = defineFlow({
 - [Branching Flows](/guides/branching-flows)
 - [Callbacks Guide](/guides/callbacks)
 - [Testing Guide](/guides/testing)
-

@@ -73,6 +73,12 @@ A simple 3-step onboarding flow:
 
    Create components for each step. Each component uses the `useFlowState()` hook to access flow state and navigation.
 
+   <Aside type="caution" title="React event handlers">
+     Do not pass flow methods directly as event handlers (e.g. `onClick={next}` / `onPress={next}`). React will pass an event object as the first argument, which can accidentally be treated as a context update.
+
+     Always wrap: `onClick={() => next()}` / `onPress={() => next()}` (same for `skip()` and `setContext()`).
+   </Aside>
+
    #### Welcome Step
 
    ```tsx title="WelcomeStep.tsx"

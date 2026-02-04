@@ -330,7 +330,7 @@ const persister = createPersister({ store });
       </main>
       
       <footer>
-        <button onClick={back} disabled={!canGoBack}>
+        <button onClick={() => back()} disabled={!canGoBack}>
           Back
         </button>
         <button onClick={() => next()} disabled={!canGoNext}>
@@ -459,4 +459,3 @@ const handleComplete = useCallback((event) => {
 - [useFlowState Hook](/api-reference/use-flow-state) - Access flow state
 - [FlowProvider](/api-reference/flow-provider) - Global configuration
 - [Callbacks Guide](/guides/callbacks) - Event handling
-

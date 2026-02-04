@@ -135,8 +135,8 @@ function BusinessStep() {
         value={context.company || ""} // 💡 TypeScript knows this is a string
         onChange={(e) => setContext({ company: e.target.value })}
       />
-      <button onClick={back}>Back</button> 
-      <button onClick={next}>Continue</button> 
+      <button onClick={() => back()}>Back</button> 
+      <button onClick={() => next()}>Continue</button> 
     </div>
   );
 }

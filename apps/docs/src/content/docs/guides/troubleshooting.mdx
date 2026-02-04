@@ -170,7 +170,7 @@ function MyStep() {
   const { back, canGoBack } = useFlowState();
 
   return (
-    <button onClick={back} disabled={!canGoBack}>
+    <button onClick={() => back()} disabled={!canGoBack}>
       Back
     </button>
   );

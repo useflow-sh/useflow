@@ -172,7 +172,7 @@ function ProfileStep() {
   return (
     <div>
       <h2>Welcome, {context.name}!</h2>
-      <button onClick={back}>Back</button>
+      <button onClick={() => back()}>Back</button>
       <button onClick={() => next()}>Continue</button>
     </div>
   );
@@ -257,7 +257,7 @@ function NavigableStep() {
   
   return (
     <div>
-      <button onClick={back} disabled={!canGoBack}>
+      <button onClick={() => back()} disabled={!canGoBack}>
         Back
       </button>
       <button onClick={() => next()} disabled={!canGoNext}>

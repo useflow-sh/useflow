@@ -1,0 +1,85 @@
+---
+title: Routing
+description: Patterns for syncing useFlow with your app router (including Expo Router)
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+useFlow is framework-agnostic. When your UI is split across routes (one route per step), you’ll typically keep the **flow state** in useFlow and use your router to show the right screen for the current step.
+
+## Route-per-step pattern
+
+In this architecture:
+
+- Your router owns **what screen is visible**
+- useFlow owns **what step is current**, **the path/history**, and **the context**
+
+The simplest integration is **one-way sync**: when the flow transitions, you navigate.
+
+## Expo Router (React Native): one route per step
+
+Mount `<Flow />` in a stable layout (so it doesn’t unmount between step routes), and use `onTransition` to navigate.
+
+```tsx title="app/(onboarding)/_layout.tsx"
+import { Flow } from "@useflow/react";
+import { router, Stack } from "expo-router";
+
+import { onboardingFlow } from "@/features/onboarding/flow";
+
+type OnboardingStepId = keyof typeof onboardingFlow.config.steps & string;
+
+function getOnboardingRoute(stepId: OnboardingStepId) {
+  return `/onboarding/${stepId}` as const;
+}
+
+export default function OnboardingLayout() {
+  return (
+    <Flow
+      flow={onboardingFlow}
+      onTransition={({ to, direction }) => {
+        const route = getOnboardingRoute(to);
+
+        if (direction === "backward") {
+          router.back();
+          return;
+        }
+
+        router.push(route);
+      }}
+    >
+      {() => (
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            gestureEnabled: false,
+            animation: "slide_from_right",
+          }}
+        />
+      )}
+    </Flow>
+  );
+}
+```
+
+<Aside type="tip" title="Why mount in a layout?">
+  In the route-per-step pattern, step screens are separate routes. Mounting `<Flow />` in a layout keeps flow state stable as the user navigates between routes.
+</Aside>
+
+## Two-way sync (advanced)
+
+Most apps only need Flow → Router sync. Two-way sync (Router → Flow) is only needed for advanced cases:
+
+- Deep linking directly to a mid-flow route
+- The user navigates via native back/gesture and you want flow `stepId`/`path` to match
+- Restoring a persisted flow state and ensuring the router reflects the restored step
+
+<Aside type="caution" title="Avoid ping-pong loops">
+  If you sync both directions, prevent infinite loops:
+
+  - Flow transition navigates the router
+  - Router navigation triggers a flow “go to step”
+  - That triggers another router navigation, etc.
+
+  Use a guard (e.g. compare current route vs desired route, or a ref flag) so each direction can no-op when it’s reacting to the other.
+</Aside>
+

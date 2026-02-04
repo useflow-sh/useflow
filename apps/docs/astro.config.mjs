@@ -124,6 +124,7 @@ export default defineConfig({
             { label: "Branching Flows", link: "/guides/branching-flows" },
             { label: "Flow Variants", link: "/guides/flow-variants" },
             { label: "Persistence", link: "/guides/persistence" },
+            { label: "Routing", link: "/guides/routing" },
             { label: "Callbacks", link: "/guides/callbacks" },
             { label: "Custom Layouts", link: "/guides/custom-layouts" },
             {

@@ -44,7 +44,7 @@ export type UseFlowReturn<
   TContext extends FlowContext,
   TValidNextSteps extends string = string,
   TStepNames extends string = string,
-> = UseFlowReducerReturn<TContext, TValidNextSteps> & {
+> = UseFlowReducerReturn<TContext, TValidNextSteps, TStepNames> & {
   isRestoring: boolean;
   /**
    * Manually trigger a save when saveMode="manual"

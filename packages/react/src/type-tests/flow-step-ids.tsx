@@ -27,13 +27,25 @@ export function FlowStepIdTypeTest() {
         void _invalid;
       }}
     >
-      {({ stepId }) => {
+      {({ next, nextSteps, skip, stepId }) => {
         const current: TestStepId = stepId;
         void current;
+
+        const allowedNextSteps: readonly TestStepId[] | undefined = nextSteps;
+        void allowedNextSteps;
+
+        next("profile");
+        skip("profile");
 
         // @ts-expect-error - step ids should be a literal union, not arbitrary strings
         const _invalid: "does-not-exist" = stepId;
         void _invalid;
+
+        // @ts-expect-error - render-prop navigation targets should be known step ids
+        next("does-not-exist");
+
+        // @ts-expect-error - render-prop skip targets should be known step ids
+        skip("does-not-exist");
 
         return null;
       }}

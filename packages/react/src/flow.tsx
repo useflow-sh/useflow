@@ -246,8 +246,10 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   // Track if we're currently restoring state from persister
   const [isRestoring, setIsRestoring] = useState(!!persister);
 
+  type StepId = ExtractAllStepNames<TFlow> & string;
+
   // Initialize flow state (restoration happens after mount)
-  const flowState = useFlowReducer<ExtractFlowContext<TFlow>>(
+  const flowState = useFlowReducer<ExtractFlowContext<TFlow>, string, StepId>(
     flowDefinitionWithoutComponents,
     initialContext ?? ({} as ExtractFlowContext<TFlow>),
     undefined, // initialState - restoration happens in useEffect
@@ -255,8 +257,6 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     // biome-ignore lint/suspicious/noExplicitAny: Runtime resolver map is compatible
     flow.runtimeConfig?.resolvers as any,
   );
-
-  type StepId = ExtractAllStepNames<TFlow> & string;
 
   // Extract all steps (stripped down to only next property)
   const steps = useMemo(() => {
@@ -441,14 +441,14 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     // Handle navigation callbacks
     if (action === "NEXT" && prevState.stepId !== flowState.stepId) {
       onNext?.({
-        from: prevState.stepId as StepId,
-        to: flowState.stepId as StepId,
+        from: prevState.stepId,
+        to: flowState.stepId,
         oldContext: prevState.context,
         newContext: flowState.context,
       });
       onTransition?.({
-        from: prevState.stepId as StepId,
-        to: flowState.stepId as StepId,
+        from: prevState.stepId,
+        to: flowState.stepId,
         direction: "forward",
         oldContext: prevState.context,
         newContext: flowState.context,
@@ -466,14 +466,14 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
       });
     } else if (action === "SKIP" && prevState.stepId !== flowState.stepId) {
       onSkip?.({
-        from: prevState.stepId as StepId,
-        to: flowState.stepId as StepId,
+        from: prevState.stepId,
+        to: flowState.stepId,
         oldContext: prevState.context,
         newContext: flowState.context,
       });
       onTransition?.({
-        from: prevState.stepId as StepId,
-        to: flowState.stepId as StepId,
+        from: prevState.stepId,
+        to: flowState.stepId,
         direction: "forward",
         oldContext: prevState.context,
         newContext: flowState.context,
@@ -491,14 +491,14 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
       });
     } else if (action === "BACK" && prevState.stepId !== flowState.stepId) {
       onBack?.({
-        from: prevState.stepId as StepId,
-        to: flowState.stepId as StepId,
+        from: prevState.stepId,
+        to: flowState.stepId,
         oldContext: prevState.context,
         newContext: flowState.context,
       });
       onTransition?.({
-        from: prevState.stepId as StepId,
-        to: flowState.stepId as StepId,
+        from: prevState.stepId,
+        to: flowState.stepId,
         direction: "backward",
         oldContext: prevState.context,
         newContext: flowState.context,
@@ -652,7 +652,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   // Create renderStep helper function
   const renderStep = useCallback(
     (elements: StepElements<StepId>): ReactElement => {
-      return elements[flowState.stepId as StepId];
+      return elements[flowState.stepId];
     },
     [flowState.stepId],
   );
@@ -670,7 +670,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     renderStep: (elements: StepElements<StepId>) => ReactElement;
   } = {
     // From flowState
-    stepId: flowState.stepId as StepId,
+    stepId: flowState.stepId,
     step: flowState.step,
     context: flowState.context,
     path: flowState.path,

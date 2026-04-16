@@ -30,7 +30,9 @@ import type {
 import { useFlowReducer } from "./use-flow-reducer";
 
 // biome-ignore lint/suspicious/noExplicitAny: React Context requires concrete type at creation, type safety enforced at usage via generics
-const ReactFlowContext = createContext<UseFlowReturn<any> | null>(null);
+const ReactFlowContext = createContext<UseFlowReturn<any, any, any> | null>(
+  null,
+);
 
 /**
  * Get the current flow state from context
@@ -75,7 +77,7 @@ type FlowProps<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>> = {
     state: Omit<
       UseFlowReturn<
         ExtractFlowContext<TFlow>,
-        string,
+        ExtractAllStepNames<TFlow> & string,
         ExtractAllStepNames<TFlow> & string
       >,
       "renderStep"
@@ -269,13 +271,13 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   }, [config.steps]);
 
   // Extract possible next steps from current step
-  const nextSteps = useMemo(() => {
-    const currentStep = config.steps[flowState.stepId];
+  const nextSteps = useMemo<readonly StepId[] | undefined>(() => {
+    const currentStep = steps[flowState.stepId];
     if (!currentStep?.next) return undefined;
     return typeof currentStep.next === "string"
       ? [currentStep.next]
       : currentStep.next;
-  }, [config.steps, flowState.stepId]);
+  }, [steps, flowState.stepId]);
 
   // Track previous state for callbacks
   const previousStateRef = useRef(flowState);
@@ -664,7 +666,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
 
   // Create the flow state object to pass to children
   const flowRenderState: Omit<
-    UseFlowReturn<ExtractFlowContext<TFlow>, string, StepId>,
+    UseFlowReturn<ExtractFlowContext<TFlow>, StepId, StepId>,
     "renderStep"
   > & {
     renderStep: (elements: StepElements<StepId>) => ReactElement;

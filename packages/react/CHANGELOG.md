@@ -1,5 +1,15 @@
 # @useflow/react
 
+## 0.3.0
+
+### Minor Changes
+
+- 62e40f6: Improve Flow render-prop typing so step IDs, next steps, and explicit next/skip targets are inferred from the flow definition and narrowed by the current step.
+
+### Patch Changes
+
+- @useflow/core@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

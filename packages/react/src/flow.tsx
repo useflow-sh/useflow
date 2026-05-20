@@ -23,6 +23,7 @@ import type {
   ExtractAllStepNames,
   ExtractFlowContext,
   FlowDefinition,
+  FlowRenderState,
   StepElements,
   StepInfo,
   UseFlowReturn,
@@ -73,20 +74,7 @@ export function useFlowState<
 // biome-ignore lint/suspicious/noExplicitAny: Generic constraint requires 'any' for flexible context type inference
 type FlowProps<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>> = {
   flow: TFlow;
-  children: (
-    state: Omit<
-      UseFlowReturn<
-        ExtractFlowContext<TFlow>,
-        ExtractAllStepNames<TFlow> & string,
-        ExtractAllStepNames<TFlow> & string
-      >,
-      "renderStep"
-    > & {
-      renderStep: (
-        elements: StepElements<ExtractAllStepNames<TFlow> & string>,
-      ) => ReactElement;
-    },
-  ) => ReactNode;
+  children: (state: FlowRenderState<TFlow>) => ReactNode;
   initialContext?: ExtractFlowContext<TFlow>;
   instanceId?: string;
   onComplete?: (event: { context: ExtractFlowContext<TFlow> }) => void;
@@ -665,12 +653,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   }
 
   // Create the flow state object to pass to children
-  const flowRenderState: Omit<
-    UseFlowReturn<ExtractFlowContext<TFlow>, StepId, StepId>,
-    "renderStep"
-  > & {
-    renderStep: (elements: StepElements<StepId>) => ReactElement;
-  } = {
+  const flowRenderState = {
     // From flowState
     stepId: flowState.stepId,
     step: flowState.step,
@@ -696,7 +679,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     canGoBack: flowState.path.length > 1,
     canGoNext: nextSteps !== undefined,
     renderStep,
-  };
+  } as FlowRenderState<TFlow>;
 
   return (
     <ReactFlowContext.Provider value={flowRenderState}>

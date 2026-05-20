@@ -44,7 +44,9 @@ export type {
 export { FlowProvider, useFlowConfig } from "./provider";
 export type {
   ExtractAllStepNames,
+  ExtractValidNextSteps,
   FlowDefinition,
+  FlowRenderState,
   StepElements,
   UseFlowReturn,
 } from "./types";

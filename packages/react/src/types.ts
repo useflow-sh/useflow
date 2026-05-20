@@ -122,6 +122,10 @@ export type ValidNextSteps<
     : never
   : never;
 
+type FlowRenderStep<TFlow> = (
+  elements: StepElements<ExtractAllStepNames<TFlow> & string>,
+) => ReactElement;
+
 /**
  * Extract all possible step names from a flow type
  * Uses distributive conditional types to handle a union of flows automatically
@@ -146,3 +150,30 @@ export type ExtractFlowContext<TFlow> = TFlow extends RuntimeFlowDefinition<
 >
   ? TContext
   : FlowContext;
+
+export type ExtractValidNextSteps<
+  TFlow,
+  TStep extends ExtractAllStepNames<TFlow> & string,
+> = TFlow extends RuntimeFlowDefinition<
+  infer TDefinition,
+  // biome-ignore lint/suspicious/noExplicitAny: Required for TypeScript conditional type inference
+  any
+>
+  ? TStep extends StepNames<TDefinition>
+    ? ValidNextSteps<TDefinition, TStep> & string
+    : never
+  : never;
+
+export type FlowRenderState<TFlow> = {
+  [TStep in ExtractAllStepNames<TFlow> & string]: Omit<
+    UseFlowReturn<
+      ExtractFlowContext<TFlow>,
+      ExtractValidNextSteps<TFlow, TStep>,
+      ExtractAllStepNames<TFlow> & string
+    >,
+    "renderStep" | "stepId"
+  > & {
+    stepId: TStep;
+    renderStep: FlowRenderStep<TFlow>;
+  };
+}[ExtractAllStepNames<TFlow> & string];

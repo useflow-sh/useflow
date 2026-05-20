@@ -41,17 +41,12 @@ You can also release manually:
 # Bump versions and update CHANGELOGs
 bun run version
 
-# Build and publish (dry-run first!)
+# Build and verify the publish payloads
 bun run build
-cd packages/core && bun publish --access public --dry-run
-cd packages/react && bun publish --access public --dry-run
+RELEASE_PUBLISH_DRY_RUN=1 bun scripts/release-publish.ts
 
-# If dry-run looks good, publish for real
-cd packages/core && bun publish --access public
-cd packages/react && bun publish --access public
-
-# Create git tags
-bunx changeset tag
+# If dry-run looks good, publish for real and create git tags
+bun run release:publish
 git push --follow-tags
 ```
 
@@ -59,10 +54,12 @@ git push --follow-tags
 
 - **config.json**: Changesets configuration
 - Packages are published to npm with public access
+- `@useflow/core` and `@useflow/react` use fixed versioning and release together
 - Examples and docs are ignored (won't be versioned/published)
+- GitHub Actions publishes through npm Trusted Publishing, not an npm token
 
 ## Important Notes
 
 - The `workspace:*` protocol in dependencies is preserved during versioning
-- `bun publish` will automatically resolve `workspace:*` to actual versions when publishing
+- `bun pm pack` resolves `workspace:*` to actual versions before npm publishes the tarball
 - Always run `bun install` after `changeset version` to update the lockfile

@@ -43,7 +43,7 @@
     "changeset": "changeset",
     "version": "changeset version && bun scripts/sync-lockfile.ts",
     "release": "bun run build && bun run release:publish",
-    "release:publish": "for dir in packages/*; do (cd \"$dir\" && bun publish --access public || true); done && changeset tag"
+    "release:publish": "bun scripts/release-publish.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.0",

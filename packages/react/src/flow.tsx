@@ -363,7 +363,10 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   }, [flowState.reset, persister, flow.id, instanceId, config.variantId]);
 
   const save = useCallback(async () => {
-    if (!persister) return;
+    if (!persister) {
+      lastActionRef.current = null;
+      return;
+    }
     try {
       const version =
         "version" in config
@@ -619,7 +622,10 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   // Handle persistence
   useEffect(() => {
     // Check if we should save based on saveMode
-    if (saveMode === "manual") return;
+    if (saveMode === "manual") {
+      lastActionRef.current = null;
+      return;
+    }
 
     const action = lastActionRef.current;
     if (
@@ -627,8 +633,10 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
       action !== "NEXT" &&
       action !== "SKIP" &&
       action !== "BACK"
-    )
+    ) {
+      lastActionRef.current = null;
       return;
+    }
 
     if (saveDebounce && saveDebounce > 0) {
       const timer = setTimeout(() => {

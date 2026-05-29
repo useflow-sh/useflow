@@ -1,5 +1,13 @@
 # @useflow/react
 
+## 0.3.1
+
+### Patch Changes
+
+- c7ba44e: Clear internal action state after save operations settle to prevent duplicate saves on subsequent non-navigation component updates.
+- 019aea3: Decouple consumer callback props (such as `onSave`, `onRestore`, and navigation callbacks) from internal hook dependency arrays to prevent parent re-renders from triggering unnecessary state synchronization effects.
+  - @useflow/core@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes

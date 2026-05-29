@@ -1,5 +1,13 @@
 # @useflow/react
 
+## 0.3.2
+
+### Patch Changes
+
+- ac56e70: Clear the internal action state on early return paths in `save()` and the persistence effect when the persister is disabled or non-navigation modes are active, preventing action ref leaks.
+- a2d63ae: Ensure the internal action state is set to `RESTORE` when loading saved state to properly update `previousStateRef` and prevent stale source values in navigation callbacks.
+  - @useflow/core@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes

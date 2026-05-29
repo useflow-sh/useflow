@@ -3434,4 +3434,133 @@ describe("metadata exposure", () => {
     expect(screen.getByTestId("canGoBack")).toHaveTextContent("true");
     expect(screen.getByTestId("canGoNext")).toHaveTextContent("false");
   });
+
+  it("should not trigger infinite saving loop when onSave callback reference changes after save completes", async () => {
+    const flow = defineFlow({
+      id: "test-flow-infinite-loop",
+      start: "step1",
+      steps: {
+        step1: { next: "step2" },
+        step2: {},
+      },
+    });
+
+    const persister = createMockPersister({
+      save: vi
+        .fn()
+        .mockImplementation((_flowId, state) => Promise.resolve(state)),
+    });
+
+    function TestComponent() {
+      const [count, setCount] = useState(0);
+
+      // The callback changes reference on every render
+      const onSave = (_state: unknown) => {
+        setCount((c) => c + 1);
+      };
+
+      return (
+        <div>
+          <Flow
+            flow={flow}
+            persister={persister}
+            saveMode="navigation"
+            onSave={onSave}
+            saveDebounce={0}
+          >
+            {({ renderStep, next }) => (
+              <>
+                {renderStep({
+                  step1: <button onClick={() => next()}>Next</button>,
+                  step2: <div>Step 2</div>,
+                })}
+              </>
+            )}
+          </Flow>
+          <div data-testid="save-count">{count}</div>
+        </div>
+      );
+    }
+
+    render(<TestComponent />);
+
+    // Wait for mount/restoration to settle
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    // Reset mocks after initial restoration saves
+    vi.mocked(persister.save).mockClear();
+
+    // Trigger navigation to step 2 which triggers save
+    fireEvent.click(screen.getByText("Next"));
+
+    // Wait a brief moment for the save to settle and any recursive effects to fire
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // The save should only have been called once, NOT recursively infinitely
+    expect(persister.save).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("save-count")).toHaveTextContent("1");
+  });
+
+  it("should not trigger infinite restoration loop when onRestore callback reference changes on mount", async () => {
+    const flow = defineFlow({
+      id: "test-flow-restore-loop",
+      start: "step1",
+      steps: {
+        step1: { next: "step2" },
+        step2: {},
+      },
+    });
+
+    const persistedState = {
+      stepId: "step1",
+      context: { val: 42 },
+      path: [{ stepId: "step1", startedAt: 100 }],
+      history: [{ stepId: "step1", startedAt: 100 }],
+      status: "active" as const,
+      startedAt: 100,
+    };
+
+    const persister = createMockPersister({
+      restore: vi.fn().mockResolvedValue(persistedState),
+    });
+
+    function TestComponent() {
+      const [count, setCount] = useState(0);
+
+      // The callback changes reference on every render
+      const onRestore = (_state: unknown) => {
+        setCount((c) => c + 1);
+      };
+
+      return (
+        <div>
+          <Flow flow={flow} persister={persister} onRestore={onRestore}>
+            {({ renderStep }) => (
+              <>
+                {renderStep({
+                  step1: <div>Step 1</div>,
+                  step2: <div>Step 2</div>,
+                })}
+              </>
+            )}
+          </Flow>
+          <div data-testid="restore-count">{count}</div>
+        </div>
+      );
+    }
+
+    render(<TestComponent />);
+
+    // Wait for async restoration to settle
+    await vi.waitFor(() => {
+      expect(screen.getByTestId("restore-count")).toHaveTextContent("1");
+    });
+
+    // Wait a brief moment to ensure no recursive restorations occur
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // persister.restore should only have been called once, NOT recursively infinitely
+    expect(persister.restore).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("restore-count")).toHaveTextContent("1");
+  });
 });

@@ -221,6 +221,26 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   const saveMode = saveModeProp ?? globalConfig?.saveMode ?? "navigation";
   const onPersistenceError =
     onPersistenceErrorProp ?? globalConfig?.onPersistenceError;
+
+  // Stable refs for callback props to decouple them from hook dependency arrays
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+  const onPersistenceErrorRef = useRef(onPersistenceError);
+  onPersistenceErrorRef.current = onPersistenceError;
+  const onRestoreRef = useRef(onRestore);
+  onRestoreRef.current = onRestore;
+  const onNextRef = useRef(onNext);
+  onNextRef.current = onNext;
+  const onSkipRef = useRef(onSkip);
+  onSkipRef.current = onSkip;
+  const onBackRef = useRef(onBack);
+  onBackRef.current = onBack;
+  const onTransitionRef = useRef(onTransition);
+  onTransitionRef.current = onTransition;
+  const onContextUpdateRef = useRef(onContextUpdate);
+  onContextUpdateRef.current = onContextUpdate;
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
   // Extract config from RuntimeFlowDefinition
   const { id, config } = flow;
 
@@ -336,18 +356,11 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
             error,
           );
         }
-        onPersistenceError?.(error as Error);
+        onPersistenceErrorRef.current?.(error as Error);
       }
     }
     flowState.reset();
-  }, [
-    flowState.reset,
-    persister,
-    flow.id,
-    instanceId,
-    config.variantId,
-    onPersistenceError,
-  ]);
+  }, [flowState.reset, persister, flow.id, instanceId, config.variantId]);
 
   const save = useCallback(async () => {
     if (!persister) return;
@@ -375,7 +388,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
       });
 
       if (persistedState) {
-        onSave?.(
+        onSaveRef.current?.(
           persistedState as PersistedFlowState<ExtractFlowContext<TFlow>>,
         );
       }
@@ -383,7 +396,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
       if (process.env.NODE_ENV !== "production") {
         console.error("[Flow] Failed to save state:", error);
       }
-      onPersistenceError?.(error as Error);
+      onPersistenceErrorRef.current?.(error as Error);
     }
   }, [
     flow.id,
@@ -397,8 +410,6 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     config,
     instanceId,
     persister,
-    onSave,
-    onPersistenceError,
   ]);
 
   // Fire global onFlowStart callback once on mount
@@ -430,13 +441,13 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
 
     // Handle navigation callbacks
     if (action === "NEXT" && prevState.stepId !== flowState.stepId) {
-      onNext?.({
+      onNextRef.current?.({
         from: prevState.stepId,
         to: flowState.stepId,
         oldContext: prevState.context,
         newContext: flowState.context,
       });
-      onTransition?.({
+      onTransitionRef.current?.({
         from: prevState.stepId,
         to: flowState.stepId,
         direction: "forward",
@@ -455,13 +466,13 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
         newContext: flowState.context,
       });
     } else if (action === "SKIP" && prevState.stepId !== flowState.stepId) {
-      onSkip?.({
+      onSkipRef.current?.({
         from: prevState.stepId,
         to: flowState.stepId,
         oldContext: prevState.context,
         newContext: flowState.context,
       });
-      onTransition?.({
+      onTransitionRef.current?.({
         from: prevState.stepId,
         to: flowState.stepId,
         direction: "forward",
@@ -480,13 +491,13 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
         newContext: flowState.context,
       });
     } else if (action === "BACK" && prevState.stepId !== flowState.stepId) {
-      onBack?.({
+      onBackRef.current?.({
         from: prevState.stepId,
         to: flowState.stepId,
         oldContext: prevState.context,
         newContext: flowState.context,
       });
-      onTransition?.({
+      onTransitionRef.current?.({
         from: prevState.stepId,
         to: flowState.stepId,
         direction: "backward",
@@ -509,7 +520,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     // Handle context updates
     if (action === "SET_CONTEXT" || action === "NEXT" || action === "SKIP") {
       if (prevState.context !== flowState.context) {
-        onContextUpdate?.({
+        onContextUpdateRef.current?.({
           oldContext: prevState.context,
           newContext: flowState.context,
         });
@@ -518,7 +529,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
 
     // Handle onComplete callback
     if (flowState.status === "complete" && prevState.status !== "complete") {
-      onComplete?.({ context: flowState.context });
+      onCompleteRef.current?.({ context: flowState.context });
       // Global complete callback
       globalConfig?.callbacks?.onFlowComplete?.({
         flowId: flow.id,
@@ -529,19 +540,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     }
 
     previousStateRef.current = flowState;
-  }, [
-    flowState,
-    onNext,
-    onSkip,
-    onBack,
-    onTransition,
-    onContextUpdate,
-    onComplete,
-    globalConfig,
-    flow.id,
-    config.variantId,
-    instanceId,
-  ]);
+  }, [flowState, globalConfig, flow.id, config.variantId, instanceId]);
 
   // Handle async restoration from persister after mount
   useEffect(() => {
@@ -572,7 +571,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
                 validation.errors,
               );
             }
-            onPersistenceError?.(
+            onPersistenceErrorRef.current?.(
               new Error(
                 `Invalid persisted state: ${validation.errors?.join(", ")}`,
               ),
@@ -590,13 +589,13 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
             ExtractFlowContext<TFlow>
           >;
           flowState.restore(typedState);
-          onRestore?.(typedState);
+          onRestoreRef.current?.(typedState);
         }
       } catch (error) {
         if (process.env.NODE_ENV !== "production") {
           console.error("[Flow] Failed to restore state:", error);
         }
-        onPersistenceError?.(error as Error);
+        onPersistenceErrorRef.current?.(error as Error);
       } finally {
         setIsRestoring(false);
       }
@@ -609,8 +608,6 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     flow.runtimeConfig?.migration,
     instanceId,
     config,
-    onPersistenceError,
-    onRestore,
     flowState.restore,
     flowDefinitionWithoutComponents,
   ]);

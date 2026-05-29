@@ -591,6 +591,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
           const typedState = state as PersistedFlowState<
             ExtractFlowContext<TFlow>
           >;
+          lastActionRef.current = "RESTORE";
           flowState.restore(typedState);
           onRestoreRef.current?.(typedState);
         }

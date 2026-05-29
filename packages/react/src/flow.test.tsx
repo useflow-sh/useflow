@@ -3634,4 +3634,100 @@ describe("metadata exposure", () => {
     // The new persister's save should NOT have been called because no navigation occurred
     expect(newPersister.save).not.toHaveBeenCalled();
   });
+
+  it("should correctly record the transitioned step in onNext/onTransition when navigating from a restored step", async () => {
+    const flow = defineFlow({
+      id: "test-flow-restore-transition",
+      start: "step1",
+      steps: {
+        step1: { next: "step2" },
+        step2: { next: "step3" },
+        step3: {},
+      },
+    });
+
+    const savedState = {
+      stepId: "step2",
+      context: { name: "Alice" },
+      path: [
+        {
+          stepId: "step1",
+          startedAt: 1000,
+          completedAt: 1100,
+          action: "next" as const,
+        },
+        { stepId: "step2", startedAt: 1200 },
+      ],
+      history: [
+        {
+          stepId: "step1",
+          startedAt: 1000,
+          completedAt: 1100,
+          action: "next" as const,
+        },
+        { stepId: "step2", startedAt: 1200 },
+      ],
+      status: "active" as const,
+    };
+
+    const persister = createMockPersister({
+      restore: vi.fn().mockResolvedValue(savedState),
+    });
+
+    const onNext = vi.fn();
+    const onTransition = vi.fn();
+
+    render(
+      <Flow
+        flow={flow}
+        initialContext={{ name: "" }}
+        persister={persister}
+        onNext={onNext}
+        onTransition={onTransition}
+      >
+        {({ renderStep, next }) => (
+          <div>
+            {renderStep({
+              step1: <div>Step 1</div>,
+              step2: (
+                <div>
+                  <span>Step 2</span>
+                  <button onClick={() => next()}>Next</button>
+                </div>
+              ),
+              step3: <div>Step 3</div>,
+            })}
+          </div>
+        )}
+      </Flow>,
+    );
+
+    // Wait for restoration to settle
+    await screen.findByText("Step 2");
+
+    // Click Next to navigate from restored step2 to step3
+    fireEvent.click(screen.getByText("Next"));
+
+    // Wait for step3 to appear
+    await screen.findByText("Step 3");
+
+    // Verify onNext callback was called with from: "step2" (the restored step) instead of "step1"
+    expect(onNext).toHaveBeenCalledTimes(1);
+    expect(onNext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: "step2",
+        to: "step3",
+      }),
+    );
+
+    // Verify onTransition callback was called with from: "step2" (the restored step) instead of "step1"
+    expect(onTransition).toHaveBeenCalledTimes(1);
+    expect(onTransition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: "step2",
+        to: "step3",
+        direction: "forward",
+      }),
+    );
+  });
 });

@@ -3563,4 +3563,75 @@ describe("metadata exposure", () => {
     expect(persister.restore).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("restore-count")).toHaveTextContent("1");
   });
+
+  it("should clear lastActionRef after saving to prevent duplicate saves on subsequent non-navigation updates", async () => {
+    const flow = defineFlow({
+      id: "test-flow-stale-action",
+      start: "step1",
+      steps: {
+        step1: { next: "step2" },
+        step2: {},
+      },
+    });
+
+    const persister = createMockPersister({
+      save: vi
+        .fn()
+        .mockImplementation((_flowId, state) => Promise.resolve(state)),
+    });
+
+    function TestComponent({
+      customPersister,
+    }: {
+      customPersister: FlowPersister;
+    }) {
+      return (
+        <Flow
+          flow={flow}
+          persister={customPersister}
+          saveMode="navigation"
+          saveDebounce={0}
+        >
+          {({ renderStep, next }) =>
+            renderStep({
+              step1: <button onClick={() => next()}>Next</button>,
+              step2: <div>Step 2</div>,
+            })
+          }
+        </Flow>
+      );
+    }
+
+    const { rerender } = render(<TestComponent customPersister={persister} />);
+
+    // Wait for mount restoration to settle
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    vi.mocked(persister.save).mockClear();
+
+    // Trigger navigation to step 2 which triggers save
+    fireEvent.click(screen.getByText("Next"));
+
+    // Wait for save to complete
+    await vi.waitFor(() => {
+      expect(persister.save).toHaveBeenCalledTimes(1);
+    });
+
+    // Reset mock save calls
+    vi.mocked(persister.save).mockClear();
+
+    // Rerender with a different persister reference to force save dependency changes
+    const newPersister = createMockPersister({
+      save: vi
+        .fn()
+        .mockImplementation((_flowId, state) => Promise.resolve(state)),
+    });
+
+    rerender(<TestComponent customPersister={newPersister} />);
+
+    // Wait a brief moment
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    // The new persister's save should NOT have been called because no navigation occurred
+    expect(newPersister.save).not.toHaveBeenCalled();
+  });
 });

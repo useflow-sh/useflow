@@ -397,6 +397,9 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
         console.error("[Flow] Failed to save state:", error);
       }
       onPersistenceErrorRef.current?.(error as Error);
+    } finally {
+      // Reset action ref after save settles to prevent duplicate saves or infinite loops on subsequent re-renders
+      lastActionRef.current = null;
     }
   }, [
     flow.id,

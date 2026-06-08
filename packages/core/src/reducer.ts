@@ -7,6 +7,15 @@ import type {
   FlowState,
 } from "./types";
 
+export type FlowStepId<TDefinition extends FlowDefinition> = Extract<
+  keyof TDefinition["steps"],
+  string
+>;
+
+export type CreateInitialStateOptions<TDefinition extends FlowDefinition> = {
+  initialStepId?: FlowStepId<TDefinition>;
+};
+
 /**
  * Validates a flow definition to ensure all step references exist
  * Throws errors for invalid references to fail fast during development
@@ -55,6 +64,22 @@ export function validateFlowDefinition(definition: FlowDefinition): void {
   }
 }
 
+function resolveInitialStepId<TDefinition extends FlowDefinition>(
+  definition: TDefinition,
+  options?: CreateInitialStateOptions<TDefinition>,
+): string {
+  const initialStepId = options?.initialStepId ?? definition.start;
+
+  if (!Object.hasOwn(definition.steps, initialStepId)) {
+    throw new Error(
+      `Initial step "${initialStepId}" does not exist in steps. ` +
+        `Available steps: ${Object.keys(definition.steps).join(", ")}`,
+    );
+  }
+
+  return initialStepId;
+}
+
 /**
  * Applies a context update to the current context
  * - Object updates: shallow merge with current context
@@ -76,20 +101,26 @@ function applyContextUpdate<TContext extends FlowContext>(
  * Creates the initial state for a flow
  * @param definition - Flow definition
  * @param initialContext - Initial context values
+ * @param options - Optional initial state configuration
  * @returns Initial flow state
  */
-export function createInitialState<TContext extends FlowContext>(
-  definition: FlowDefinition,
+export function createInitialState<
+  TContext extends FlowContext,
+  TDefinition extends FlowDefinition = FlowDefinition,
+>(
+  definition: TDefinition,
   initialContext: TContext,
+  options?: CreateInitialStateOptions<TDefinition>,
 ): FlowState<TContext> {
   const now = Date.now();
+  const initialStepId = resolveInitialStepId(definition, options);
   const startEntry = {
-    stepId: definition.start,
+    stepId: initialStepId,
     startedAt: now,
     // No completedAt or action - user hasn't left this step yet
   };
   return {
-    stepId: definition.start,
+    stepId: initialStepId,
     context: initialContext,
     path: [startEntry],
     history: [startEntry],
@@ -439,9 +470,10 @@ export function flowReducer<TContext extends FlowContext>(
     }
 
     case "RESET": {
-      // Reset to initial state - use the definition's start step
-      // and the provided initial context
-      return createInitialState(definition, action.initialContext);
+      // Reset to initial state using the configured initial step and context
+      return createInitialState(definition, action.initialContext, {
+        initialStepId: action.initialStepId,
+      });
     }
 
     default: {

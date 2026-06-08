@@ -17,7 +17,7 @@ export { createPersister } from "./persister";
 export type { Serializer, StringSerializer } from "./serializer";
 export { JsonSerializer } from "./serializer";
 // State utilities
-export type { ValidationResult } from "./state";
+export type { ValidatePersistedStateOptions, ValidationResult } from "./state";
 export { validatePersistedState } from "./state";
 // Store
 export type { FlowStore, KVFlowStore } from "./store";

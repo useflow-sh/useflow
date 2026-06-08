@@ -57,6 +57,98 @@ describe("Flow", () => {
     expect(screen.getByTestId("status")).toHaveTextContent("active");
   });
 
+  it("should start at initialStepId when no persisted state is restored", () => {
+    const flow = defineFlow({
+      id: "test",
+      start: "first",
+      steps: {
+        first: {
+          next: "second",
+        },
+        second: {
+          next: "third",
+        },
+        third: {},
+      },
+    });
+
+    function TestComponent() {
+      const { stepId, canGoBack } = useFlowState();
+      return (
+        <div>
+          <div data-testid="stepId">{stepId}</div>
+          <div data-testid="canGoBack">{String(canGoBack)}</div>
+        </div>
+      );
+    }
+
+    render(
+      <Flow flow={flow} initialStepId="second">
+        {({ renderStep }) => (
+          <>
+            {renderStep({
+              first: <div>First</div>,
+              second: <div>Second</div>,
+              third: <div>Third</div>,
+            })}
+            <TestComponent />
+          </>
+        )}
+      </Flow>,
+    );
+
+    expect(screen.getByText("Second")).toBeInTheDocument();
+    expect(screen.getByTestId("stepId")).toHaveTextContent("second");
+    expect(screen.getByTestId("canGoBack")).toHaveTextContent("false");
+  });
+
+  it("should reset to initialStepId when provided", () => {
+    const flow = defineFlow({
+      id: "test-initial-step-reset",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: { next: "third" },
+        third: {},
+      },
+    });
+
+    function TestComponent() {
+      const { stepId, next, reset } = useFlowState();
+      return (
+        <div>
+          <div data-testid="stepId">{stepId}</div>
+          <button onClick={() => next()}>Next</button>
+          <button onClick={() => reset()}>Reset</button>
+        </div>
+      );
+    }
+
+    render(
+      <Flow flow={flow} initialStepId="second">
+        {({ renderStep }) => (
+          <>
+            {renderStep({
+              first: <div>First</div>,
+              second: <div>Second</div>,
+              third: <div>Third</div>,
+            })}
+            <TestComponent />
+          </>
+        )}
+      </Flow>,
+    );
+
+    expect(screen.getByTestId("stepId")).toHaveTextContent("second");
+
+    fireEvent.click(screen.getByText("Next"));
+    expect(screen.getByTestId("stepId")).toHaveTextContent("third");
+
+    fireEvent.click(screen.getByText("Reset"));
+    expect(screen.getByTestId("stepId")).toHaveTextContent("second");
+    expect(screen.getByText("Second")).toBeInTheDocument();
+  });
+
   it("should navigate forward with next()", () => {
     const flow = defineFlow({
       id: "test",
@@ -1395,6 +1487,141 @@ describe("Flow callbacks", () => {
 });
 
 describe("Persistence", () => {
+  it("should restore persisted state instead of applying initialStepId", async () => {
+    const flow = defineFlow({
+      id: "test-flow-initial-step-restore",
+      start: "step1",
+      steps: {
+        step1: { next: "step2" },
+        step2: { next: "step3" },
+        step3: {},
+      },
+    });
+
+    const savedState = {
+      stepId: "step2",
+      context: { name: "John" },
+      path: [
+        {
+          stepId: "step1",
+          startedAt: 1234567890,
+          completedAt: 1234567890,
+          action: "next" as const,
+        },
+        { stepId: "step2", startedAt: 1234567891 },
+      ],
+      history: [
+        {
+          stepId: "step1",
+          startedAt: 1234567890,
+          completedAt: 1234567890,
+          action: "next" as const,
+        },
+        { stepId: "step2", startedAt: 1234567891 },
+      ],
+      status: "active" as const,
+      startedAt: 1234567890,
+    };
+
+    const persister = createMockPersister({
+      restore: vi.fn().mockResolvedValue(savedState),
+    });
+
+    render(
+      <Flow
+        flow={flow}
+        initialContext={{ name: "" }}
+        initialStepId="step3"
+        persister={persister}
+      >
+        {({ renderStep }) =>
+          renderStep({
+            step1: <div>Step 1</div>,
+            step2: <div>Step 2</div>,
+            step3: <div>Step 3</div>,
+          })
+        }
+      </Flow>,
+    );
+
+    await screen.findByText("Step 2");
+
+    expect(screen.queryByText("Step 3")).not.toBeInTheDocument();
+  });
+
+  it("should restore persisted state that starts from initialStepId", async () => {
+    const flow = defineFlow({
+      id: "test-flow-initial-step-restore-path",
+      start: "step1",
+      steps: {
+        step1: { next: "step2" },
+        step2: { next: "step3" },
+        step3: {},
+      },
+    });
+
+    const savedState = {
+      stepId: "step3",
+      context: { name: "Restored" },
+      path: [
+        {
+          stepId: "step2",
+          startedAt: 1234567890,
+          completedAt: 1234567890,
+          action: "next" as const,
+        },
+        { stepId: "step3", startedAt: 1234567891 },
+      ],
+      history: [
+        {
+          stepId: "step2",
+          startedAt: 1234567890,
+          completedAt: 1234567890,
+          action: "next" as const,
+        },
+        { stepId: "step3", startedAt: 1234567891 },
+      ],
+      status: "complete" as const,
+      startedAt: 1234567890,
+      completedAt: 1234567891,
+    };
+    const onPersistenceError = vi.fn();
+    const persister = createMockPersister({
+      restore: vi.fn().mockResolvedValue(savedState),
+    });
+
+    function TestComponent() {
+      const { context } = useFlowState<{ name: string }>();
+      return <div data-testid="name">{context.name}</div>;
+    }
+
+    render(
+      <Flow
+        flow={flow}
+        initialContext={{ name: "" }}
+        initialStepId="step2"
+        persister={persister}
+        onPersistenceError={onPersistenceError}
+      >
+        {({ renderStep }) => (
+          <>
+            {renderStep({
+              step1: <div>Step 1</div>,
+              step2: <div>Step 2</div>,
+              step3: <div>Step 3</div>,
+            })}
+            <TestComponent />
+          </>
+        )}
+      </Flow>,
+    );
+
+    await screen.findByText("Step 3");
+
+    expect(screen.getByTestId("name")).toHaveTextContent("Restored");
+    expect(onPersistenceError).not.toHaveBeenCalled();
+  });
+
   it("should restore state from persister on mount", async () => {
     const flow = defineFlow({
       id: "test-flow",

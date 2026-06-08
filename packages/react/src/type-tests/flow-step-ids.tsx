@@ -15,6 +15,7 @@ export function FlowStepIdTypeTest() {
   return (
     <Flow
       flow={testFlow}
+      initialStepId="profile"
       onTransition={(event) => {
         const to: TestStepId = event.to;
         const from: TestStepId = event.from;
@@ -78,6 +79,27 @@ export function FlowStepIdTypeTest() {
         return null;
       }}
     </Flow>
+  );
+}
+
+export function FlowInitialStepIdTypeTest() {
+  const invalidInitialStep = (
+    // @ts-expect-error - initialStepId must be one of the flow's step ids
+    <Flow flow={testFlow} initialStepId="does-not-exist">
+      {() => null}
+    </Flow>
+  );
+  void invalidInitialStep;
+
+  return (
+    <>
+      <Flow flow={testFlow} initialStepId="welcome">
+        {() => null}
+      </Flow>
+      <Flow flow={testFlow} initialStepId="profile">
+        {() => null}
+      </Flow>
+    </>
   );
 }
 

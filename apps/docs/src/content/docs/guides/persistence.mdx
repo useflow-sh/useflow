@@ -115,6 +115,27 @@ That's it! The flow will automatically:
 - Restore state on mount if saved state exists
 - Include context, current step, history, and path in saved state
 
+### Persistence with `initialStepId`
+
+`initialStepId` only controls the step used when creating fresh flow state. When a valid saved state exists, restore wins:
+
+```tsx
+<Flow
+  flow={myFlow}
+  persister={persister}
+  initialStepId="profile"
+  initialContext={{ name: "" }}
+>
+  {({ renderStep }) => renderStep({
+    welcome: <WelcomeStep />,
+    profile: <ProfileStep />,
+    complete: <CompleteStep />
+  })}
+</Flow>
+```
+
+If the user has saved progress at `complete`, the flow restores `complete`; it does not restart at `profile`. Calling `reset()` clears the saved state for this flow key and starts again from `initialStepId`.
+
 ### Manual save control
 
 Control when the flow saves using the `save()` function:

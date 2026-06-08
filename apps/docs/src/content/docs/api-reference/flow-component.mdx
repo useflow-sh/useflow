@@ -82,6 +82,22 @@ initialContext?: TContext
 
 Default: `{}`
 
+### `initialStepId`
+
+Step to use when creating a brand-new flow state.
+
+```typescript
+initialStepId?: ExtractAllStepNames<TFlow> & string
+```
+
+Default: `flow.config.start`
+
+Use this when app logic should enter the flow at a specific step instead of the flow's default `start` step. The value is type-checked against the flow's known step IDs for statically defined flows and validated at runtime.
+
+<Aside type="note" title="Persistence takes precedence">
+  If a persister restores valid saved state, the restored state wins over `initialStepId`. `initialStepId` only applies when creating fresh state or after `reset()` clears the saved state for the current flow key.
+</Aside>
+
 ### `instanceId`
 
 Unique identifier for flow instances (useful for reusable flows).
@@ -241,6 +257,26 @@ onPersistenceError?: (error: Error) => void
   }
 </Flow>
 ```
+
+### Start from a specific step
+
+```tsx
+<Flow
+  flow={myFlow}
+  initialStepId="profile"
+  initialContext={{ name: "" }}
+>
+  {({ renderStep }) =>
+    renderStep({
+      welcome: <WelcomeStep />,
+      profile: <ProfileStep />,
+      complete: <CompleteStep />
+    })
+  }
+</Flow>
+```
+
+This is useful when the app decides a flow entry point from external state, such as opening a prompt flow directly at the first missing input. Do not use `initialStepId` as long-term storage; save durable answers in your app data and let persisted useFlow state only represent in-progress flow navigation.
 
 ### With progress indicator
 

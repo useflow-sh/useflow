@@ -1,6 +1,7 @@
 import {
   type ContextUpdate,
   type FlowDefinition as CoreFlowDefinition,
+  type CreateInitialStateOptions,
   createInitialState,
   type FlowAction,
   type FlowContext,
@@ -24,6 +25,9 @@ export type FlowDefinition<
     StepDefinition<StepTransition>
   >,
 > = CoreFlowDefinition<TSteps>;
+
+export type UseFlowReducerOptions<TDefinition extends CoreFlowDefinition> =
+  CreateInitialStateOptions<TDefinition>;
 
 /**
  * Return type for useFlowReducer hook
@@ -80,19 +84,22 @@ export function useFlowReducer<
   TContext extends FlowContext,
   TValidNextSteps extends string = string,
   TStepNames extends string = string,
+  TDefinition extends CoreFlowDefinition = CoreFlowDefinition,
 >(
-  definition: CoreFlowDefinition,
+  definition: TDefinition,
   initialContext: TContext,
   initialState?: FlowState<TContext>,
   resolvers?: RuntimeResolverMap<TContext>,
+  options?: UseFlowReducerOptions<TDefinition>,
 ): UseFlowReducerReturn<TContext, TValidNextSteps, TStepNames> {
   // Store initial context in a ref so it's stable across re-renders
   const initialContextRef = useRef(initialContext);
+  const initialStepIdRef = useRef(options?.initialStepId);
 
   const [state, dispatch] = useReducer(
     (state: FlowState<TContext>, action: FlowAction<TContext>) =>
       flowReducer(state, action, definition, { resolvers }),
-    initialState ?? createInitialState(definition, initialContext),
+    initialState ?? createInitialState(definition, initialContext, options),
   );
 
   const next = useCallback(
@@ -138,7 +145,11 @@ export function useFlowReducer<
   }, []);
 
   const reset = useCallback(() => {
-    dispatch({ type: "RESET", initialContext: initialContextRef.current });
+    dispatch({
+      type: "RESET",
+      initialContext: initialContextRef.current,
+      initialStepId: initialStepIdRef.current,
+    });
   }, []);
 
   return {

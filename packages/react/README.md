@@ -170,6 +170,20 @@ function App() {
 **That's it!** Users can now close their browser and return exactly where they left off.
 No manual state management, no confusing navigation logic scattered across components.
 
+To start a brand-new flow at a specific step, pass `initialStepId`. This is type-safe for local flow definitions, and restored persisted state takes precedence when available:
+
+```tsx
+<Flow flow={onboardingFlow} initialStepId="userType">
+  {({ renderStep }) => renderStep({
+    welcome: <WelcomeStep />,
+    userType: <UserTypeStep />,
+    business: <BusinessStep />,
+    personal: <PersonalStep />,
+    complete: <CompleteStep />
+  })}
+</Flow>
+```
+
 ## Features
 
 - 🎯 **Declarative flow definitions** - Define your flow in one place

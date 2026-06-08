@@ -65,6 +65,24 @@ export default function OnboardingLayout() {
   In the route-per-step pattern, step screens are separate routes. Mounting `<Flow />` in a layout keeps flow state stable as the user navigates between routes.
 </Aside>
 
+## Start from a route-specific step
+
+When your app decides the initial route before the flow mounts, pass that step as `initialStepId`:
+
+```tsx title="app/(onboarding)/_layout.tsx"
+<Flow
+  flow={onboardingFlow}
+  initialStepId={initialRouteStepId}
+  onTransition={({ to }) => {
+    router.push(getOnboardingRoute(to));
+  }}
+>
+  {() => <Stack screenOptions={{ headerShown: false }} />}
+</Flow>
+```
+
+`initialStepId` is an entry-point override for fresh flow state. If a persister restores valid saved state, useFlow restores the saved step instead.
+
 ## Two-way sync (advanced)
 
 Most apps only need Flow → Router sync. Two-way sync (Router → Flow) is only needed for advanced cases:
@@ -82,4 +100,3 @@ Most apps only need Flow → Router sync. Two-way sync (Router → Flow) is only
 
   Use a guard (e.g. compare current route vs desired route, or a ref flag) so each direction can no-op when it’s reacting to the other.
 </Aside>
-

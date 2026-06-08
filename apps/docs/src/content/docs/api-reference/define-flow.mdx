@@ -33,12 +33,14 @@ The flow definition object containing metadata and step configuration.
 ```typescript
 {
   id: string;                    // Unique identifier for the flow
-  start: string;                 // Starting step name
+  start: string;                 // Default starting step name
   version?: string;              // Optional version for migrations
   variantId?: string;            // Optional variant identifier
   steps: Record<string, StepDefinition>;  // Step configuration
 }
 ```
+
+`start` is the default first step for fresh flow state. If your app needs to enter the flow at a different step, pass [`initialStepId`](/api-reference/flow-component#initialstepid) to `<Flow />`.
 
 **Step Definition:**
 
@@ -374,4 +376,3 @@ defineFlow({
 - [useFlowState Hook](/api-reference/use-flow-state) - Access flow state
 - [Type Safety](/getting-started/type-safety) - Type Safety guide
 - [Migrations](/guides/migrations) - Version management
-

@@ -8,6 +8,10 @@ export type ValidationResult = {
   errors?: string[];
 };
 
+export type ValidatePersistedStateOptions = {
+  allowedInitialStepIds?: readonly string[];
+};
+
 /**
  * Validate that persisted state is compatible with flow definition
  * Checks that all step references exist and state is internally consistent
@@ -15,9 +19,13 @@ export type ValidationResult = {
 export function validatePersistedState<TContext extends FlowContext>(
   persisted: PersistedFlowState<TContext>,
   definition: FlowDefinition,
+  options?: ValidatePersistedStateOptions,
 ): ValidationResult {
   const errors: string[] = [];
   const stepNames = new Set(Object.keys(definition.steps));
+  const allowedInitialStepIds = options?.allowedInitialStepIds ?? [
+    definition.start,
+  ];
 
   // Validate stepId exists
   if (!stepNames.has(persisted.stepId)) {
@@ -33,9 +41,9 @@ export function validatePersistedState<TContext extends FlowContext>(
   } else {
     // Validate start step exists in path
     const firstInPath = persisted.path[0];
-    if (firstInPath && firstInPath.stepId !== definition.start) {
+    if (firstInPath && !allowedInitialStepIds.includes(firstInPath.stepId)) {
       errors.push(
-        `Path must start with "${definition.start}", got "${firstInPath.stepId}"`,
+        `Path must start with one of [${allowedInitialStepIds.join(", ")}], got "${firstInPath.stepId}"`,
       );
     }
 

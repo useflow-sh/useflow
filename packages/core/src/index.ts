@@ -25,6 +25,7 @@ export {
   kvStorageAdapter,
   validatePersistedState,
 } from "./persistence";
+export type { CreateInitialStateOptions, FlowStepId } from "./reducer";
 export {
   createInitialState,
   flowReducer,

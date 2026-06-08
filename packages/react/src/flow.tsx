@@ -76,6 +76,11 @@ type FlowProps<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>> = {
   flow: TFlow;
   children: (state: FlowRenderState<TFlow>) => ReactNode;
   initialContext?: ExtractFlowContext<TFlow>;
+  /**
+   * Step to use when creating a brand-new flow state.
+   * Restored persisted state takes precedence when available.
+   */
+  initialStepId?: ExtractAllStepNames<TFlow> & string;
   instanceId?: string;
   onComplete?: (event: { context: ExtractFlowContext<TFlow> }) => void;
   onNext?: (event: {
@@ -133,6 +138,7 @@ type LastActionType =
  *
  * @param flow - RuntimeFlowDefinition returned by defineFlow() (not raw config)
  * @param initialContext - Initial context state for the flow (optional, defaults to {})
+ * @param initialStepId - Optional step to start from when no persisted state is restored
  * @param children - Render function that receives flow state
  * @param instanceId - Optional unique identifier for reusable flows with separate persistence
  * @param persister - Optional persister for saving/restoring flow state
@@ -196,6 +202,7 @@ type LastActionType =
 export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   flow,
   initialContext,
+  initialStepId,
   instanceId,
   onComplete,
   onNext,
@@ -259,13 +266,19 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   type StepId = ExtractAllStepNames<TFlow> & string;
 
   // Initialize flow state (restoration happens after mount)
-  const flowState = useFlowReducer<ExtractFlowContext<TFlow>, string, StepId>(
+  const flowState = useFlowReducer<
+    ExtractFlowContext<TFlow>,
+    string,
+    StepId,
+    typeof flowDefinitionWithoutComponents
+  >(
     flowDefinitionWithoutComponents,
     initialContext ?? ({} as ExtractFlowContext<TFlow>),
     undefined, // initialState - restoration happens in useEffect
     // Safe cast: ResolverMap is a stricter compile-time type, runtime shape matches RuntimeResolverMap
     // biome-ignore lint/suspicious/noExplicitAny: Runtime resolver map is compatible
     flow.runtimeConfig?.resolvers as any,
+    { initialStepId },
   );
 
   // Extract all steps (stripped down to only next property)
@@ -569,6 +582,11 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
           const validation = validatePersistedState(
             state,
             flowDefinitionWithoutComponents,
+            {
+              allowedInitialStepIds: initialStepId
+                ? [config.start, initialStepId]
+                : undefined,
+            },
           );
           if (!validation.valid) {
             if (process.env.NODE_ENV !== "production") {
@@ -615,6 +633,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     flow.runtimeConfig?.migration,
     instanceId,
     config,
+    initialStepId,
     flowState.restore,
     flowDefinitionWithoutComponents,
   ]);

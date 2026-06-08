@@ -27,6 +27,55 @@ describe("flowReducer", () => {
     expect(state.status).toBe("active");
   });
 
+  it("should initialize from a valid initial step override", () => {
+    const definition = {
+      id: "test",
+      start: "idle",
+      steps: {
+        idle: { next: "active" },
+        active: { next: "done" },
+        done: {},
+      },
+    };
+
+    const state = createInitialState(
+      definition,
+      { count: 0 },
+      { initialStepId: "active" },
+    );
+
+    expect(state.stepId).toBe("active");
+    expect(state.path).toEqual([
+      { stepId: "active", startedAt: expect.any(Number) },
+    ]);
+    expect(state.history).toEqual([
+      { stepId: "active", startedAt: expect.any(Number) },
+    ]);
+    expect(state.status).toBe("active");
+  });
+
+  it("should reject an invalid initial step override", () => {
+    const definition = {
+      id: "test",
+      start: "idle",
+      steps: {
+        idle: { next: "active" },
+        active: {},
+      },
+    };
+
+    expect(() =>
+      createInitialState(
+        definition,
+        { count: 0 },
+        {
+          // @ts-expect-error - invalid step used to exercise runtime validation
+          initialStepId: "missing",
+        },
+      ),
+    ).toThrow('Initial step "missing" does not exist in steps');
+  });
+
   it("should navigate to next step", () => {
     const definition = {
       id: "test",
@@ -1414,6 +1463,45 @@ describe("RESET action", () => {
       },
       { stepId: "b", startedAt: expect.any(Number) },
     ]);
+  });
+
+  it("should reset to the initial step override", () => {
+    type TestContext = { value: string };
+
+    const definition = {
+      id: "test",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: { next: "third" },
+        third: {},
+      },
+    };
+
+    const initialContext: TestContext = { value: "initial" };
+    let state = createInitialState(definition, initialContext, {
+      initialStepId: "second",
+    });
+
+    state = flowReducer(state, { type: "NEXT" }, definition);
+    expect(state.stepId).toBe("third");
+
+    state = flowReducer(
+      state,
+      {
+        type: "RESET",
+        initialContext,
+        initialStepId: "second",
+      },
+      definition,
+    );
+
+    expect(state.stepId).toBe("second");
+    expect(state.context).toEqual(initialContext);
+    expect(state.path).toEqual([
+      { stepId: "second", startedAt: expect.any(Number) },
+    ]);
+    expect(state.status).toBe("active");
   });
 });
 

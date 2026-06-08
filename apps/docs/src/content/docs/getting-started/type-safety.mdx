@@ -342,6 +342,24 @@ type Context = {
 />
 ```
 
+### 3. Use typed step IDs for custom entry points
+
+`initialStepId` is checked against the flow's known step IDs:
+
+```tsx
+<Flow
+  flow={myFlow}
+  initialStepId="profile" // ✅ Must be a real step in myFlow
+  initialContext={{ email: "" }}
+/>
+
+<Flow
+  flow={myFlow}
+  initialStepId="missingStep" // ❌ TypeScript error
+  initialContext={{ email: "" }}
+/>
+```
+
 ## Common patterns
 
 ### Discriminated unions for branching

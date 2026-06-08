@@ -1,5 +1,13 @@
 # @useflow/core
 
+## 0.4.0
+
+### Minor Changes
+
+- a220de0: Add typed initial step overrides for brand-new flow state.
+
+  `createInitialState` now accepts an optional `initialStepId`, and React `Flow` exposes a type-safe `initialStepId` prop. Restored persisted state still takes precedence when available.
+
 ## 0.3.2
 
 ## 0.3.1

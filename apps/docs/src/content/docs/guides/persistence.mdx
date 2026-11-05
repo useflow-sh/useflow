@@ -298,6 +298,43 @@ const persister = createPersister({
 });
 ```
 
+### Reporting discarded progress
+
+`onRestore` reports successful restoration. Use `onDiscard` when saved progress exists but is rejected:
+
+```tsx
+<Flow
+  flow={onboardingFlow}
+  persister={persister}
+  onDiscard={(event) => {
+    Sentry.captureMessage("Flow progress discarded", {
+      level: "warning",
+      extra: { ...event },
+    });
+  }}
+>
+  {({ stepId }) => <Step id={stepId} />}
+</Flow>
+```
+
+The same callback can be set globally with `<FlowProvider config={{ onDiscard }}>`, or on `createPersister({ store, onDiscard })` for framework-independent use.
+
+| Reason | When it fires |
+|--------|---------------|
+| `expired` | Saved state exceeded the persister's time to live and was removed |
+| `version_unmigrated` | The version changed and no migration function exists |
+| `migration_rejected` | The migration function returned `null` |
+| `validation_rejected` | Persister `validate` returned `false` |
+| `incompatible_state` | React's flow-definition validation failed; `errors` contains the failures |
+
+The exported `FlowRestoreDiscardEvent` contains `flowId`, `reason`, optional `fromVersion` (the saved `__meta.version`), `toVersion` (the current version when known), `instanceId`, `variantId`, and `errors` (only for `incompatible_state`). `FlowRestoreDiscardReason` is the union of the reasons above. Both types are exported by `@useflow/core` and `@useflow/react`.
+
+For each persister-level discard, exactly one callback runs: `<Flow onDiscard>` overrides `FlowProvider`'s `config.onDiscard`, which overrides the persister's `onDiscard`. Direct callers can override the persister default with `persister.restore(flowId, { onDiscard })`. React's `incompatible_state` check notifies only the Flow/provider callback, not the persister callback, and continues calling `onPersistenceError` as before. Custom persisters must invoke the restore option's `onDiscard` when rejecting state to forward those rejections to React.
+
+No callback fires for missing state or successful restores. Throwing callbacks cannot interrupt restoration: persister callbacks report failures to `onError`; Flow/provider callbacks use `onPersistenceError`. Without an error handler, failures produce a development-only warning. Only expiration removes stored state; other discards leave it unchanged.
+
+**Known behavior:** Persister `validate` does not run on migrated state. A successful migration returns directly from the persister, while React still checks compatibility with the current flow definition.
+
 ## Flow instances
 
 Persist multiple instances of the same flow using `instanceId`:

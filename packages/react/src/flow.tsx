@@ -2,6 +2,7 @@ import type {
   ContextUpdate,
   FlowContext,
   FlowPersister,
+  FlowRestoreDiscardEvent,
   MigrateFunction,
   PersistedFlowState,
 } from "@useflow/core";
@@ -118,6 +119,7 @@ type FlowProps<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>> = {
   onPersistenceError?: (error: Error) => void;
   onSave?: (state: PersistedFlowState<ExtractFlowContext<TFlow>>) => void;
   onRestore?: (state: PersistedFlowState<ExtractFlowContext<TFlow>>) => void;
+  onDiscard?: (event: FlowRestoreDiscardEvent) => void;
   loadingComponent?: ReactNode;
 };
 
@@ -214,6 +216,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   saveDebounce: saveDebounceProp,
   saveMode: saveModeProp,
   onPersistenceError: onPersistenceErrorProp,
+  onDiscard: onDiscardProp,
   onSave,
   onRestore,
   loadingComponent,
@@ -228,6 +231,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   const saveMode = saveModeProp ?? globalConfig?.saveMode ?? "navigation";
   const onPersistenceError =
     onPersistenceErrorProp ?? globalConfig?.onPersistenceError;
+  const onDiscard = onDiscardProp ?? globalConfig?.onDiscard;
 
   // Stable refs for callback props to decouple them from hook dependency arrays
   const onSaveRef = useRef(onSave);
@@ -236,6 +240,8 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
   onPersistenceErrorRef.current = onPersistenceError;
   const onRestoreRef = useRef(onRestore);
   onRestoreRef.current = onRestore;
+  const onDiscardRef = useRef(onDiscard);
+  onDiscardRef.current = onDiscard;
   const onNextRef = useRef(onNext);
   onNextRef.current = onNext;
   const onSkipRef = useRef(onSkip);
@@ -569,12 +575,45 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     }
 
     const restoreFlowState = async () => {
+      const migration = flow.runtimeConfig?.migration as
+        | MigrateFunction
+        | undefined;
+      let migrationSource: { fromVersion: string | undefined } | undefined;
+      const notifyDiscard = (event: FlowRestoreDiscardEvent) => {
+        try {
+          onDiscardRef.current?.(event);
+        } catch (error) {
+          try {
+            if (onPersistenceErrorRef.current) {
+              onPersistenceErrorRef.current(
+                error instanceof Error ? error : new Error(String(error)),
+              );
+            } else if (process.env.NODE_ENV !== "production") {
+              console.warn("[Flow] onDiscard callback failed:", error);
+            }
+          } catch (reportError) {
+            if (process.env.NODE_ENV !== "production") {
+              console.warn(
+                "[Flow] onPersistenceError callback failed:",
+                reportError,
+              );
+            }
+          }
+        }
+      };
       try {
         const state = await persister.restore(flow.id, {
           version: config.version,
-          migrate: flow.runtimeConfig?.migration as MigrateFunction | undefined,
+          migrate:
+            migration && onDiscardRef.current
+              ? (state, fromVersion) => {
+                  migrationSource = { fromVersion };
+                  return migration(state, fromVersion);
+                }
+              : migration,
           instanceId,
           variantId: config.variantId,
+          onDiscard: onDiscardRef.current ? notifyDiscard : undefined,
         });
 
         if (state) {
@@ -589,6 +628,17 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
             },
           );
           if (!validation.valid) {
+            notifyDiscard({
+              flowId: flow.id,
+              reason: "incompatible_state",
+              fromVersion: migrationSource
+                ? migrationSource.fromVersion
+                : state.__meta?.version,
+              toVersion: config.version,
+              instanceId,
+              variantId: config.variantId,
+              errors: validation.errors,
+            });
             if (process.env.NODE_ENV !== "production") {
               console.warn(
                 "[Flow] Persisted state validation failed:",

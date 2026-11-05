@@ -36,6 +36,27 @@ const flow = defineFlow({
 }));
 ```
 
+## Reporting discarded progress
+
+When versions differ, `onDiscard` reports `version_unmigrated` if no migration exists, or `migration_rejected` if `migration` returns `null`. Events include the saved `fromVersion` and current `toVersion` when known. A successful migration does not emit a discard unless React subsequently rejects the migrated state as `incompatible_state`.
+
+```tsx
+<Flow
+  flow={flow}
+  persister={persister}
+  onDiscard={(event) => {
+    Sentry.captureMessage("Flow progress discarded", {
+      level: "warning",
+      extra: { ...event },
+    });
+  }}
+>
+  {({ stepId }) => <Step id={stepId} />}
+</Flow>
+```
+
+The Flow callback overrides the provider and persister defaults, rather than calling all three. Incompatible state still calls `onPersistenceError`. Known behavior: persister `validate` does not run on migrated state; React's flow-definition validation still runs. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress).
+
 ## When to use migrations
 
 You need migrations when making **breaking changes** to persisted flows:

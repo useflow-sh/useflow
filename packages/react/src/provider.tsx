@@ -1,4 +1,8 @@
-import type { FlowContext, FlowPersister } from "@useflow/core";
+import type {
+  FlowContext,
+  FlowPersister,
+  FlowRestoreDiscardEvent,
+} from "@useflow/core";
 import { createContext, type ReactNode, useContext } from "react";
 
 export type SaveMode = "always" | "navigation" | "manual";
@@ -53,6 +57,8 @@ export interface FlowProviderConfig {
    * Called when save/restore/remove operations fail
    */
   onPersistenceError?: (error: Error) => void;
+
+  onDiscard?: (event: FlowRestoreDiscardEvent) => void;
 
   /**
    * Global callbacks for flow lifecycle events

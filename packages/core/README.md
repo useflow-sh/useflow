@@ -65,6 +65,28 @@ state = flowReducer(
 state = flowReducer(state, { type: "BACK" }, definition);
 ```
 
+## Reporting discarded progress
+
+`createPersister({ store, onDiscard })` reports saved state rejected during restore. The callback receives a `FlowRestoreDiscardEvent` with `flowId`, `reason`, known `fromVersion` / `toVersion`, and optional `instanceId` / `variantId`.
+
+```typescript
+import { createMemoryStore, createPersister } from "@useflow/core";
+
+const persister = createPersister({
+  store: createMemoryStore(),
+  onDiscard: (event) => {
+    Sentry.captureMessage("Flow progress discarded", {
+      level: "warning",
+      extra: { ...event },
+    });
+  },
+});
+```
+
+Reasons are `expired`, `version_unmigrated`, `migration_rejected`, and `validation_rejected`. React additionally reports `incompatible_state`. `FlowRestoreDiscardReason` and `FlowRestoreDiscardEvent` are exported from this package.
+
+`persister.restore(flowId, { onDiscard })` overrides the persister callback for that restore; callbacks do not stack. Missing state and successful restores do not notify. Callback failures go to `onError`, or a development-only warning when absent, without interrupting restore. Only expiration removes stored state. Known behavior: `validate` does not run on migrated state.
+
 ## Documentation
 
 - **[Full Documentation](https://docs.useflow.sh)** - Complete guides and API reference

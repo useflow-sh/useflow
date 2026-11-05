@@ -184,6 +184,29 @@ To start a brand-new flow at a specific step, pass `initialStepId`. This is type
 </Flow>
 ```
 
+## Reporting discarded progress
+
+Use `onDiscard` alongside `onRestore` to report saved progress that was rejected instead of restored:
+
+```tsx
+<Flow
+  flow={onboardingFlow}
+  persister={persister}
+  onDiscard={(event) => {
+    Sentry.captureMessage("Flow progress discarded", {
+      level: "warning",
+      extra: { ...event },
+    });
+  }}
+>
+  {({ stepId }) => <Step id={stepId} />}
+</Flow>
+```
+
+`FlowRestoreDiscardEvent` and `FlowRestoreDiscardReason` are exported from `@useflow/react` and `@useflow/core`. Reasons: `expired`, `version_unmigrated`, `migration_rejected`, `validation_rejected`, and `incompatible_state`. Events include `flowId`, known versions, optional instance/variant IDs, and `errors` only for incompatible state.
+
+One callback runs for persister-level discards: the Flow prop overrides `FlowProvider`'s `config.onDiscard`, which overrides `createPersister({ onDiscard })`. React definition checks notify only the Flow/provider callback and still call `onPersistenceError`. Callback failures go to `onPersistenceError`, or a development-only warning when absent, without interrupting restore. Missing state and successful restores do not notify. Known behavior: persister `validate` does not run on migrated state. See the [persistence guide](https://docs.useflow.sh/guides/persistence#reporting-discarded-progress).
+
 ## Features
 
 - 🎯 **Declarative flow definitions** - Define your flow in one place

@@ -234,6 +234,18 @@ Called after state is restored.
 onRestore?: (state: PersistedFlowState<TContext>) => void
 ```
 
+### `onDiscard`
+
+Called once when saved progress is rejected, not for missing state or successful restores.
+
+```typescript
+onDiscard?: (event: FlowRestoreDiscardEvent) => void
+```
+
+The event contains `flowId`, `reason`, known `fromVersion` / `toVersion`, and optional `instanceId` / `variantId`. Reasons are `expired`, `version_unmigrated`, `migration_rejected`, `validation_rejected`, and `incompatible_state`. Only `incompatible_state` includes `errors` and also calls `onPersistenceError` for backward compatibility.
+
+This prop overrides `FlowProvider`'s `config.onDiscard` and the persister callback for persister-level discards; callbacks do not stack. React definition checks notify only the Flow/provider callback. Callback failures go to `onPersistenceError`, or a development-only warning when absent, without interrupting restore. Known behavior: persister `validate` does not run on migrated state. See the [persistence guide](/guides/persistence#reporting-discarded-progress) for an error-tracker example and [exported types](/api-reference/create-persister#ondiscard).
+
 ### `onPersistenceError`
 
 Called when save/restore fails.

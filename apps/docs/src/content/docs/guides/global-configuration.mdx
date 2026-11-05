@@ -141,6 +141,26 @@ Configure global error handler for persistence failures:
 </FlowProvider>
 ```
 
+### Discarded progress
+
+Report rejected saved progress globally, separately from successful `onRestore` callbacks:
+
+```tsx
+<FlowProvider config={{
+  persister,
+  onDiscard: (event) => {
+    Sentry.captureMessage("Flow progress discarded", {
+      level: "warning",
+      extra: { ...event },
+    });
+  },
+}}>
+  <App />
+</FlowProvider>
+```
+
+`<Flow onDiscard>` overrides this callback. Otherwise it overrides the persister's default for persister-level discards, so callbacks do not stack. React's `incompatible_state` check notifies only the Flow/provider callback and still calls `onPersistenceError`. Throwing callbacks cannot interrupt restoration. Known behavior: persister `validate` does not run on migrated state. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress) for event fields and reasons.
+
 ## Lifecycle callbacks
 
 Configure global callbacks for flow lifecycle events:

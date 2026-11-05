@@ -6,6 +6,8 @@ export type {
   AsyncStorageOptions,
   BrowserStorageOptions,
   FlowPersister,
+  FlowRestoreDiscardEvent,
+  FlowRestoreDiscardReason,
   FlowStore,
   KVFlowStore,
   KVStorageAdapterOptions,

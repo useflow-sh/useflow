@@ -490,6 +490,13 @@ Special callbacks for persistence events:
     toast.success('Continuing where you left off!');
   }}
 
+  onDiscard={(event) => {
+    Sentry.captureMessage("Flow progress discarded", {
+      level: "warning",
+      extra: { ...event },
+    });
+  }}
+
   onPersistenceError={(error) => {
     console.error('Persistence failed:', error);
     Sentry.captureException(error);
@@ -498,7 +505,11 @@ Special callbacks for persistence events:
 >
 ```
 
-See [Persistence](/guides/persistence) for more details.
+`onDiscard` reports `expired`, `version_unmigrated`, `migration_rejected`, `validation_rejected`, or `incompatible_state`. It does not run for missing state or successful restores. The event includes `flowId`, known versions, optional instance/variant IDs, and `errors` only for incompatible state.
+
+The Flow prop overrides the provider default, which overrides the persister callback for persister-level discards; callbacks do not stack. React's definition check notifies only the Flow/provider callback and still calls `onPersistenceError`. Callback failures do not interrupt restore. Known behavior: persister `validate` does not run on migrated state.
+
+See [Persistence](/guides/persistence#reporting-discarded-progress) for more details.
 
 ## TypeScript
 

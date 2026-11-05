@@ -1,6 +1,23 @@
 import type { FlowContext, FlowState, PersistedFlowState } from "../types";
 import type { FlowStore } from "./store";
 
+export type FlowRestoreDiscardReason =
+  | "expired"
+  | "version_unmigrated"
+  | "migration_rejected"
+  | "validation_rejected"
+  | "incompatible_state";
+
+export interface FlowRestoreDiscardEvent {
+  flowId: string;
+  reason: FlowRestoreDiscardReason;
+  fromVersion?: string;
+  toVersion?: string;
+  instanceId?: string;
+  variantId?: string;
+  errors?: string[];
+}
+
 /**
  * Flow persister interface
  * Defines how to save and restore flow state for a specific flow
@@ -45,6 +62,7 @@ export interface FlowPersister {
       version?: string;
       instanceId?: string;
       variantId?: string;
+      onDiscard?: (event: FlowRestoreDiscardEvent) => void;
       migrate?: (
         state: PersistedFlowState<TContext>,
         fromVersion: string | undefined,
@@ -119,6 +137,8 @@ export type PersisterOptions = {
    */
   onRestore?: (flowId: string, state: PersistedFlowState) => void;
 
+  onDiscard?: (event: FlowRestoreDiscardEvent) => void;
+
   /**
    * Error handler
    */
@@ -150,7 +170,8 @@ export type PersisterOptions = {
  * ```
  */
 export function createPersister(options: PersisterOptions): FlowPersister {
-  const { store, ttl, validate, onSave, onRestore, onError } = options;
+  const { store, ttl, validate, onSave, onRestore, onDiscard, onError } =
+    options;
 
   return {
     store,
@@ -182,6 +203,7 @@ export function createPersister(options: PersisterOptions): FlowPersister {
         version?: string;
         instanceId?: string;
         variantId?: string;
+        onDiscard?: (event: FlowRestoreDiscardEvent) => void;
         migrate?: (
           state: PersistedFlowState<TContext>,
           fromVersion: string | undefined,
@@ -197,6 +219,33 @@ export function createPersister(options: PersisterOptions): FlowPersister {
 
         // Cast to the typed version - store doesn't enforce type safety
         const typedState = state as PersistedFlowState<TContext>;
+        const fromVersion = typedState.__meta?.version;
+        const discard = (reason: FlowRestoreDiscardReason) => {
+          try {
+            (restoreOptions?.onDiscard ?? onDiscard)?.({
+              flowId,
+              reason,
+              fromVersion,
+              toVersion: restoreOptions?.version,
+              instanceId: restoreOptions?.instanceId,
+              variantId: restoreOptions?.variantId,
+            });
+          } catch (error) {
+            try {
+              if (onError) {
+                onError(
+                  error instanceof Error ? error : new Error(String(error)),
+                );
+              } else if (process.env.NODE_ENV !== "production") {
+                console.warn("[useFlow] onDiscard callback failed:", error);
+              }
+            } catch (reportError) {
+              if (process.env.NODE_ENV !== "production") {
+                console.warn("[useFlow] onError callback failed:", reportError);
+              }
+            }
+          }
+        };
 
         // TTL check
         if (ttl && typedState.__meta?.savedAt) {
@@ -206,6 +255,7 @@ export function createPersister(options: PersisterOptions): FlowPersister {
               instanceId: restoreOptions?.instanceId,
               variantId: restoreOptions?.variantId,
             });
+            discard("expired");
             return null;
           }
         }
@@ -223,17 +273,20 @@ export function createPersister(options: PersisterOptions): FlowPersister {
             );
             if (!migrated) {
               // Migration failed or returned null, discard state
+              discard("migration_rejected");
               return null;
             }
             onRestore?.(flowId, migrated);
             return migrated;
           }
           // No migration function, discard old version
+          discard("version_unmigrated");
           return null;
         }
 
         // Custom validation
         if (validate && !validate(typedState)) {
+          discard("validation_rejected");
           return null;
         }
 

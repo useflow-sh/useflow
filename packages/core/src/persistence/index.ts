@@ -11,7 +11,12 @@
  */
 
 // Persister
-export type { FlowPersister, PersisterOptions } from "./persister";
+export type {
+  FlowPersister,
+  FlowRestoreDiscardEvent,
+  FlowRestoreDiscardReason,
+  PersisterOptions,
+} from "./persister";
 export { createPersister } from "./persister";
 // Serializers
 export type { Serializer, StringSerializer } from "./serializer";

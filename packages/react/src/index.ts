@@ -6,6 +6,8 @@ export type {
   BrowserStorageOptions,
   FlowContext,
   FlowPersister,
+  FlowRestoreDiscardEvent,
+  FlowRestoreDiscardReason,
   FlowRuntimeConfig,
   FlowStore,
   KVFlowStore,

@@ -266,6 +266,8 @@ const persister = createPersister({
 });
 ```
 
+`validate` runs on every restore, including state returned by a migration, so migrated progress must pass the same check as current-version progress.
+
 **Important:** The `validate` function should NOT mutate state. For transformations, use [migrations](/guides/migrations).
 
 ### Callbacks
@@ -332,8 +334,6 @@ The exported `FlowRestoreDiscardEvent` contains `flowId`, `reason`, optional `fr
 For each persister-level discard, exactly one callback runs: `<Flow onDiscard>` overrides `FlowProvider`'s `config.onDiscard`, which overrides the persister's `onDiscard`. Direct callers can override the persister default with `persister.restore(flowId, { onDiscard })`. React's `incompatible_state` check notifies only the Flow/provider callback, not the persister callback, and continues calling `onPersistenceError` as before. Custom persisters must invoke the restore option's `onDiscard` when rejecting state to forward those rejections to React.
 
 No callback fires for missing state or successful restores. Throwing callbacks cannot interrupt restoration: persister callbacks report failures to `onError`; Flow/provider callbacks use `onPersistenceError`. Without an error handler, failures produce a development-only warning. Only expiration removes stored state; other discards leave it unchanged.
-
-**Known behavior:** Persister `validate` does not run on migrated state. A successful migration returns directly from the persister, while React still checks compatibility with the current flow definition.
 
 ## Flow instances
 

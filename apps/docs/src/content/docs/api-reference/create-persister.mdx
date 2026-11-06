@@ -180,7 +180,7 @@ const persister = createPersister({
 
 The `restore()` option's `onDiscard` overrides this default; they never both fire. React passes its resolved Flow/provider callback through this option. React's definition check notifies only the Flow/provider callback and still calls `onPersistenceError`.
 
-Throwing callbacks do not interrupt restore. Failures go to `onError`, or a development-only warning if no handler exists. Flow/provider callback failures use `onPersistenceError` instead. Known behavior: persister `validate` does not run on migrated state. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress).
+Throwing callbacks do not interrupt restore. Failures go to `onError`, or a development-only warning if no handler exists. Flow/provider callback failures use `onPersistenceError` instead. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress).
 
 ## Custom storage backend
 

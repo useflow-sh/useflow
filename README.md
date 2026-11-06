@@ -224,7 +224,7 @@ Use `<Flow onDiscard>` to report saved progress that could not be restored. Unli
 
 The event includes the flow ID, reason, known versions, and optional instance and variant IDs. Reasons: `expired`, `version_unmigrated`, `migration_rejected`, `validation_rejected`, and `incompatible_state` (also includes validation errors).
 
-For persister-level discards, one callback runs: the Flow prop overrides `FlowProvider`'s `config.onDiscard`, which overrides `createPersister({ onDiscard })`. Only React callbacks receive `incompatible_state`; this still calls `onPersistenceError` too. Throwing callbacks do not interrupt restoration. Known behavior: persister `validate` does not run on migrated state. See the [persistence guide](https://docs.useflow.sh/guides/persistence#reporting-discarded-progress) for details.
+For persister-level discards, one callback runs: the Flow prop overrides `FlowProvider`'s `config.onDiscard`, which overrides `createPersister({ onDiscard })`. Only React callbacks receive `incompatible_state`; this still calls `onPersistenceError` too. Throwing callbacks do not interrupt restoration. See the [persistence guide](https://docs.useflow.sh/guides/persistence#reporting-discarded-progress) for details.
 
 ## Documentation
 

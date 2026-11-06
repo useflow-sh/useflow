@@ -154,15 +154,7 @@ describe("Flow restore discards", () => {
       expect(globalOnDiscard).not.toHaveBeenCalled();
       expect(persisterOnDiscard).not.toHaveBeenCalled();
       expect(onRestore).not.toHaveBeenCalled();
-      if (reason === "incompatible_state") {
-        expect(onPersistenceError).toHaveBeenCalledExactlyOnceWith(
-          new Error(
-            `Invalid persisted state: ${validatePersistedState(state, definition).errors?.join(", ")}`,
-          ),
-        );
-      } else {
-        expect(onPersistenceError).not.toHaveBeenCalled();
-      }
+      expect(onPersistenceError).not.toHaveBeenCalled();
       expect(store.get(flow.id, identifiers)).toEqual(
         reason === "expired" ? null : state,
       );
@@ -309,9 +301,9 @@ describe("Flow restore discards", () => {
         expect(screen.getByText("welcome")).toBeInTheDocument(),
       );
       expect(onDiscard).toHaveBeenCalledOnce();
-      expect(onPersistenceError).toHaveBeenCalledWith(failure);
-      expect(onPersistenceError).toHaveBeenCalledTimes(
-        reason === "incompatible_state" ? 2 : 1,
+      expect(onPersistenceError).toHaveBeenCalledExactlyOnceWith(
+        failure,
+        expect.objectContaining({ flowId: flow.id, operation: "restore" }),
       );
       expect(persisterOnError).not.toHaveBeenCalled();
     },

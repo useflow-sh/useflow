@@ -339,7 +339,7 @@ The same callback can be set globally with `<FlowProvider config={{ onDiscard }}
 
 The exported `FlowRestoreDiscardEvent` contains `flowId`, `reason`, optional `fromVersion` (the saved `__meta.version`), `toVersion` (the current version when known), `instanceId`, `variantId`, and `errors` (only for `incompatible_state`). `FlowRestoreDiscardReason` is the union of the reasons above. Both types are exported by `@useflow/core` and `@useflow/react`.
 
-For each persister-level discard, exactly one callback runs: `<Flow onDiscard>` overrides `FlowProvider`'s `config.onDiscard`, which overrides the persister's `onDiscard`. Direct callers can override the persister default with `persister.restore(flowId, { onDiscard })`. React's `incompatible_state` check notifies only the Flow/provider callback, not the persister callback, and continues calling `onPersistenceError` as before. Custom persisters must invoke the restore option's `onDiscard` when rejecting state to forward those rejections to React.
+For each persister-level discard, exactly one callback runs: `<Flow onDiscard>` overrides `FlowProvider`'s `config.onDiscard`, which overrides the persister's `onDiscard`. Direct callers can override the persister default with `persister.restore(flowId, { onDiscard })`. React's `incompatible_state` check notifies only the Flow/provider callback, not the persister callback; when neither is set, it calls `onPersistenceError` instead. Custom persisters must invoke the restore option's `onDiscard` when rejecting state, and the per-call `onError` when an operation fails, to forward those to React.
 
 No callback fires for missing state or successful restores. Throwing callbacks cannot interrupt restoration: persister callbacks report failures to `onError`; Flow/provider callbacks use `onPersistenceError`. Without an error handler, failures produce a development-only warning. Only expiration removes stored state; other discards leave it unchanged.
 
@@ -626,8 +626,8 @@ function App() {
         persister,
         saveMode: "always",
         saveDebounce: 500,
-        onPersistenceError: (error) => {
-          Sentry.captureException(error);
+        onPersistenceError: (error, { flowId, operation }) => {
+          Sentry.captureException(error, { tags: { flowId, operation } });
           toast.error("Failed to save progress");
         },
       }}

@@ -5,6 +5,9 @@ export { defineFlow, RuntimeFlowDefinition } from "./define-flow";
 export type {
   AsyncStorageOptions,
   BrowserStorageOptions,
+  FlowPersistenceErrorHandler,
+  FlowPersistenceErrorInfo,
+  FlowPersistenceOperation,
   FlowPersister,
   FlowRestoreDiscardEvent,
   FlowRestoreDiscardReason,

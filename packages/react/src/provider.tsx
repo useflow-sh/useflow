@@ -1,5 +1,6 @@
 import type {
   FlowContext,
+  FlowPersistenceErrorInfo,
   FlowPersister,
   FlowRestoreDiscardEvent,
 } from "@useflow/core";
@@ -54,9 +55,10 @@ export interface FlowProviderConfig {
 
   /**
    * Global error handler for persistence failures
-   * Called when save/restore/remove operations fail
+   * Called when save/restore/remove operations fail, including failures the
+   * persister catches itself. Replaces the persister's `onError` for flows.
    */
-  onPersistenceError?: (error: Error) => void;
+  onPersistenceError?: PersistenceErrorCallback;
 
   onDiscard?: (event: FlowRestoreDiscardEvent) => void;
 
@@ -91,6 +93,11 @@ export interface FlowProviderConfig {
   };
 }
 
+export type PersistenceErrorCallback = (
+  error: Error,
+  info: FlowPersistenceErrorInfo,
+) => void;
+
 const FlowConfigContext = createContext<FlowProviderConfig | null>(null);
 
 /**
@@ -110,8 +117,8 @@ const FlowConfigContext = createContext<FlowProviderConfig | null>(null);
  *       persister,
  *       saveMode: 'always',
  *       saveDebounce: 500,
- *       onPersistenceError: (error) => {
- *         console.error('Flow persistence error:', error);
+ *       onPersistenceError: (error, { flowId, operation }) => {
+ *         console.error(`Flow ${flowId} ${operation} failed:`, error);
  *         toast.error('Failed to save progress');
  *       },
  *       callbacks: {

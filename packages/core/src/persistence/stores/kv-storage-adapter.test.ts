@@ -93,7 +93,7 @@ describe("kvStorageAdapter", () => {
     expect(result).toBeNull();
   });
 
-  it("should return null on invalid JSON", async () => {
+  it("should throw when stored data cannot be deserialized", async () => {
     const storage = createStorageMock({
       getItem: vi.fn().mockResolvedValue("invalid json"),
     });
@@ -104,12 +104,12 @@ describe("kvStorageAdapter", () => {
       serializer: defaultSerializer,
     });
 
-    const result = await store.get("test-flow");
-
-    expect(result).toBeNull();
+    await expect(store.get("test-flow")).rejects.toThrow(
+      'Stored flow state at "useflow:test-flow:default:default" could not be deserialized',
+    );
   });
 
-  it("should return null on get error", async () => {
+  it("should propagate storage read errors", async () => {
     const storage = createStorageMock({
       getItem: vi.fn().mockRejectedValue(new Error("Storage error")),
     });
@@ -120,9 +120,7 @@ describe("kvStorageAdapter", () => {
       serializer: defaultSerializer,
     });
 
-    const result = await store.get("test-flow");
-
-    expect(result).toBeNull();
+    await expect(store.get("test-flow")).rejects.toThrow("Storage error");
   });
 
   it("should set state to storage", async () => {

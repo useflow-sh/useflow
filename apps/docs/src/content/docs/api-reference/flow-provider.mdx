@@ -44,10 +44,10 @@ function App() {
 | `persister` | `FlowPersister` | - | Default persister for all flows |
 | `saveMode` | `"always" \| "navigation" \| "manual"` | `"navigation"` | When to auto-save |
 | `saveDebounce` | `number` | `300` | Debounce delay in ms |
-| `onPersistenceError` | `(error: Error) => void` | - | Global error handler |
+| `onPersistenceError` | `(error: Error, info: FlowPersistenceErrorInfo) => void` | - | Save, restore and remove failures, with the flow ID and operation; replaces the persister's `onError` |
 | `onDiscard` | `(event: FlowRestoreDiscardEvent) => void` | - | Saved progress rejected during restoration; overridden by the Flow prop |
 
-`config.onDiscard` covers persister rejections and React's `incompatible_state` check. It overrides the persister default, rather than calling both. The Flow prop takes precedence. Incompatible state still calls `onPersistenceError`; callback failures use that handler too, or a development-only warning when absent. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress) for event fields, reasons, and an error-tracker example.
+`config.onDiscard` covers persister rejections and React's `incompatible_state` check. It overrides the persister default, rather than calling both. The Flow prop takes precedence. Incompatible state goes to `onPersistenceError` only when no `onDiscard` is set; callback failures use that handler, or a development-only warning when absent. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress) for event fields, reasons, and an error-tracker example.
 
 ### Global callbacks
 

@@ -159,7 +159,7 @@ Report rejected saved progress globally, separately from successful `onRestore` 
 </FlowProvider>
 ```
 
-`<Flow onDiscard>` overrides this callback. Otherwise it overrides the persister's default for persister-level discards, so callbacks do not stack. React's `incompatible_state` check notifies only the Flow/provider callback and still calls `onPersistenceError`. Throwing callbacks cannot interrupt restoration. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress) for event fields and reasons.
+`<Flow onDiscard>` overrides this callback. Otherwise it overrides the persister's default for persister-level discards, so callbacks do not stack. React's `incompatible_state` check notifies only the Flow/provider `onDiscard`; when neither is set, it calls `onPersistenceError` instead. Throwing callbacks cannot interrupt restoration. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress) for event fields and reasons.
 
 ## Lifecycle callbacks
 

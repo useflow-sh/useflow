@@ -1931,7 +1931,10 @@ describe("Persistence", () => {
     );
 
     await waitFor(() => {
-      expect(onPersistenceError).toHaveBeenCalledWith(error);
+      expect(onPersistenceError).toHaveBeenCalledWith(error, {
+        flowId: "test-flow",
+        operation: "restore",
+      });
     });
   });
 
@@ -2053,7 +2056,10 @@ describe("Persistence", () => {
 
     // Wait for save error to be handled
     await waitFor(() => {
-      expect(onPersistenceError).toHaveBeenCalledWith(saveError);
+      expect(onPersistenceError).toHaveBeenCalledWith(
+        saveError,
+        expect.objectContaining({ operation: "save" }),
+      );
     });
   });
 
@@ -2400,7 +2406,10 @@ describe("Persistence", () => {
 
     // Wait for error to be called
     await vi.waitFor(() => {
-      expect(onPersistenceError).toHaveBeenCalledWith(saveError);
+      expect(onPersistenceError).toHaveBeenCalledWith(
+        saveError,
+        expect.objectContaining({ operation: "save" }),
+      );
     });
   });
 
@@ -3355,7 +3364,10 @@ describe("reset", () => {
         "[Flow] Failed to remove persisted state on reset:",
         expect.any(Error),
       );
-      expect(onPersistenceError).toHaveBeenCalledWith(expect.any(Error));
+      expect(onPersistenceError).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({ operation: "remove" }),
+      );
     });
 
     consoleError.mockRestore();

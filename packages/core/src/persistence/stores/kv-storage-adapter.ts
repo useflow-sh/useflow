@@ -174,7 +174,7 @@ export type KVStorageAdapterOptions<T = string> = {
  * - Handles serialization/deserialization with any Serializer<T>
  * - Works with any KV storage interface
  * - Validates structure on deserialization
- * - Gracefully handles errors
+ * - Throws when stored data cannot be read or deserialized, so the persister can report it
  *
  * @example
  * ```tsx
@@ -229,25 +229,23 @@ export function kvStorageAdapter<T>(options: KVStorageAdapterOptions<T>) {
       flowId: string,
       options?: FlowStoreOptions,
     ): Promise<PersistedFlowState | null> {
-      try {
-        // Apply defaults
-        const vid = options?.variantId || "default";
-        const iid = options?.instanceId || "default";
+      const vid = options?.variantId || "default";
+      const iid = options?.instanceId || "default";
 
-        const key = formatKey(flowId, iid, vid);
-        const data = await storage.getItem(key);
-        if (!data) return null;
+      const key = formatKey(flowId, iid, vid);
+      const data = await storage.getItem(key);
+      if (!data) return null;
 
-        // Deserialize the stored instance and unwrap to return just the state
-        const deserialized = serializer.deserialize(data);
-        if (!deserialized) return null;
-
-        // The stored data is actually a PersistedFlowInstance
-        const instance = deserialized as unknown as PersistedFlowInstance;
-        return instance.state;
-      } catch {
-        return null;
+      const deserialized = serializer.deserialize(data);
+      if (!deserialized) {
+        throw new Error(
+          `Stored flow state at "${key}" could not be deserialized`,
+        );
       }
+
+      // The stored data is actually a PersistedFlowInstance
+      const instance = deserialized as unknown as PersistedFlowInstance;
+      return instance.state;
     },
 
     async set(

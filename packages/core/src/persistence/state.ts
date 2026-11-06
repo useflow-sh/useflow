@@ -8,10 +8,6 @@ export type ValidationResult = {
   errors?: string[];
 };
 
-export type ValidatePersistedStateOptions = {
-  allowedInitialStepIds?: readonly string[];
-};
-
 /**
  * Validate that persisted state is compatible with flow definition
  * Checks that all step references exist and state is internally consistent
@@ -19,13 +15,9 @@ export type ValidatePersistedStateOptions = {
 export function validatePersistedState<TContext extends FlowContext>(
   persisted: PersistedFlowState<TContext>,
   definition: FlowDefinition,
-  options?: ValidatePersistedStateOptions,
 ): ValidationResult {
   const errors: string[] = [];
   const stepNames = new Set(Object.keys(definition.steps));
-  const allowedInitialStepIds = options?.allowedInitialStepIds ?? [
-    definition.start,
-  ];
 
   // Validate stepId exists
   if (!stepNames.has(persisted.stepId)) {
@@ -39,14 +31,8 @@ export function validatePersistedState<TContext extends FlowContext>(
   if (persisted.path.length === 0) {
     errors.push("Path cannot be empty");
   } else {
-    // Validate start step exists in path
-    const firstInPath = persisted.path[0];
-    if (firstInPath && !allowedInitialStepIds.includes(firstInPath.stepId)) {
-      errors.push(
-        `Path must start with one of [${allowedInitialStepIds.join(", ")}], got "${firstInPath.stepId}"`,
-      );
-    }
-
+    // A path may start at any existing step: flows can be entered or reset
+    // at a step other than `start`.
     // Validate all path steps exist
     for (const entry of persisted.path) {
       if (!stepNames.has(entry.stepId)) {

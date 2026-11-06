@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { FlowPersister } from "@useflow/core";
-import { createMemoryStore } from "@useflow/core";
+import { createMemoryStore, createPersister } from "@useflow/core";
 import { act, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { defineFlow } from "./define-flow";
@@ -3078,6 +3078,61 @@ describe("reset", () => {
       expect(screen.getByTestId("stepId")).toHaveTextContent("first");
     });
     expect(screen.getByTestId("count")).toHaveTextContent("0");
+  });
+
+  it("should resume saved progress after resetting to another step", async () => {
+    const persister = createPersister({ store: createMemoryStore() });
+    const flow = defineFlow({
+      id: "test-reset-resume",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: { next: "third" },
+        third: {},
+      },
+    });
+
+    function Controls() {
+      const { stepId, next, reset } = useFlowState();
+      return (
+        <div>
+          <div data-testid="stepId">{stepId}</div>
+          <button onClick={() => next()}>Next</button>
+          <button onClick={() => reset({ initialStepId: "second" })}>
+            Restart
+          </button>
+        </div>
+      );
+    }
+
+    const renderFlow = () =>
+      render(
+        <Flow flow={flow} persister={persister} saveDebounce={0}>
+          {() => <Controls />}
+        </Flow>,
+      );
+
+    const first = renderFlow();
+    await waitFor(() => {
+      expect(screen.getByTestId("stepId")).toHaveTextContent("first");
+    });
+    fireEvent.click(screen.getByText("Restart"));
+    await waitFor(() => {
+      expect(screen.getByTestId("stepId")).toHaveTextContent("second");
+    });
+    fireEvent.click(screen.getByText("Next"));
+    await waitFor(async () => {
+      expect((await persister.store.get("test-reset-resume"))?.stepId).toBe(
+        "third",
+      );
+    });
+    first.unmount();
+
+    renderFlow();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("stepId")).toHaveTextContent("third");
+    });
   });
 
   it("should clear persisted state on reset", async () => {

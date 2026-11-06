@@ -1,5 +1,19 @@
 # @useflow/react
 
+## 0.5.0
+
+### Minor Changes
+
+- 81e7cc4: `reset()` accepts optional `context` and `initialStepId` overrides to start the flow over with new data or at a different step. Calling `reset()` with no arguments behaves as before.
+- ad272a5: Add Flow and FlowProvider onDiscard callbacks for rejected saved progress, including incompatible flow definitions. Re-export discard event types, resolve callback overrides without duplicate notifications, and preserve existing persistence error reporting.
+
+### Patch Changes
+
+- Updated dependencies [827436d]
+- Updated dependencies [ad272a5]
+- Updated dependencies [cb4290d]
+  - @useflow/core@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes

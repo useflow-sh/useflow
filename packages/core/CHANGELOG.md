@@ -1,5 +1,13 @@
 # @useflow/core
 
+## 0.5.0
+
+### Minor Changes
+
+- 827436d: `validatePersistedState` no longer requires a saved path to begin at the flow's `start` step, so progress from flows entered or reset at another step can be restored. The `allowedInitialStepIds` option and `ValidatePersistedStateOptions` type are removed. Missing steps, a mismatched current step and an inconsistent status are still rejected.
+- ad272a5: Add typed restore discard events for expired, unmigrated, migration_rejected, and validation_rejected saved progress. Support a per-restore callback override and isolate callback failures without changing restore results or storage cleanup.
+- cb4290d: Run the persister's `validate` on migrated state too. Previously a successful migration skipped `validate`; migrated progress that fails it is now discarded and reported as `validation_rejected`.
+
 ## 0.4.0
 
 ### Minor Changes

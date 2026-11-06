@@ -33,7 +33,7 @@ type PersisterOptions = {
   onSave?: (flowId: string, state: PersistedFlowState) => void;  // Optional: Save callback
   onRestore?: (flowId: string, state: PersistedFlowState) => void;  // Optional: Restore callback
   onDiscard?: (event: FlowRestoreDiscardEvent) => void;  // Optional: Discard callback
-  onError?: (error: Error) => void;    // Optional: Error handler
+  onError?: (error: Error) => void;    // Optional: Error handler (see below)
 }
 ```
 
@@ -141,6 +141,14 @@ const persister = createPersister({
 });
 ```
 
+### `onError`
+
+Called when a store read, write or removal fails, or when a persister callback throws. The operation still resolves (`save` and `restore` return `null`), so failures never break the flow.
+
+`save()`, `restore()` and `remove()` also accept an `onError` option for one call. It replaces the persister's `onError` rather than adding to it. `<Flow>` passes one whenever `onPersistenceError` is set, so failures reach that handler with the flow ID and operation, and the persister's `onError` does not also fire. Without a Flow or provider handler, the persister's `onError` runs as usual.
+
+Built-in key-value stores throw when stored data can't be read or deserialized, so corrupted state reaches `onError` instead of looking like missing state. Custom stores should do the same: return `null` only when nothing is stored.
+
 ### `onDiscard`
 
 Called once when saved state is rejected: `expired`, `version_unmigrated`, `migration_rejected`, or `validation_rejected`. Missing state and successful restores do not notify. Only expiration removes stored state.
@@ -178,7 +186,7 @@ const persister = createPersister({
 });
 ```
 
-The `restore()` option's `onDiscard` overrides this default; they never both fire. React passes its resolved Flow/provider callback through this option. React's definition check notifies only the Flow/provider callback and still calls `onPersistenceError`.
+The `restore()` option's `onDiscard` overrides this default; they never both fire. React passes its resolved Flow/provider callback through this option. React's `incompatible_state` check notifies only the Flow/provider `onDiscard`; when neither is set, it calls `onPersistenceError` instead.
 
 Throwing callbacks do not interrupt restore. Failures go to `onError`, or a development-only warning if no handler exists. Flow/provider callback failures use `onPersistenceError` instead. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress).
 
@@ -272,6 +280,7 @@ await persister.save(
     version?: string;
     instanceId?: string;
     variantId?: string;
+    onError?: (error: Error) => void;
   }
 ): Promise<PersistedFlowState | null>
 ```
@@ -287,6 +296,7 @@ await persister.restore(
     instanceId?: string;
     variantId?: string;
     onDiscard?: (event: FlowRestoreDiscardEvent) => void;
+    onError?: (error: Error) => void;
   }
 ): Promise<PersistedFlowState | null>
 ```
@@ -299,6 +309,7 @@ await persister.remove(
   options?: {
     instanceId?: string;
     variantId?: string;
+    onError?: (error: Error) => void;
   }
 ): Promise<void>
 ```
@@ -345,8 +356,8 @@ Different stores may use different formats. Check your store's documentation for
 <Flow
   flow={myFlow}
   persister={persister}
-  onPersistenceError={(error) => {
-    console.error('Storage failed:', error);
+  onPersistenceError={(error, { flowId, operation }) => {
+    console.error(`Could not ${operation} ${flowId}:`, error);
     // Fallback or notify user
   }}
 >

@@ -248,11 +248,29 @@ This prop overrides `FlowProvider`'s `config.onDiscard` and the persister callba
 
 ### `onPersistenceError`
 
-Called when save/restore fails.
+Called when saving, restoring or removing this flow's state fails, including failures the persister catches itself. Overrides `FlowProvider`'s `config.onPersistenceError`, and replaces the persister's `onError` for this flow.
 
 ```typescript
-onPersistenceError?: (error: Error) => void
+onPersistenceError?: (error: Error, info: FlowPersistenceErrorInfo) => void
+
+type FlowPersistenceErrorInfo = {
+  flowId: string;
+  operation: "save" | "restore" | "remove";
+  instanceId?: string;
+  variantId?: string;
+};
 ```
+
+```tsx
+<Flow
+  flow={checkoutFlow}
+  onPersistenceError={(error, { flowId, operation }) => {
+    errorTracker.capture(error, { tags: { flowId, operation } });
+  }}
+>
+```
+
+`FlowPersistenceErrorInfo` and `FlowPersistenceOperation` are exported from `@useflow/react` and `@useflow/core`. A handler that only takes `error` still works.
 
 ## Examples
 

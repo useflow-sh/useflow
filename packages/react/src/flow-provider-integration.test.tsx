@@ -379,6 +379,7 @@ it("uses onPersistenceError from FlowProvider", async () => {
   await waitFor(() => {
     expect(onPersistenceError).toHaveBeenCalledWith(
       expect.objectContaining({ message: "Save failed" }),
+      expect.objectContaining({ operation: "save" }),
     );
   });
 });

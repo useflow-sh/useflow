@@ -18,6 +18,21 @@ export interface FlowRestoreDiscardEvent {
   errors?: string[];
 }
 
+export type FlowPersistenceOperation = "save" | "restore" | "remove";
+
+export interface FlowPersistenceErrorInfo {
+  flowId: string;
+  operation: FlowPersistenceOperation;
+  instanceId?: string;
+  variantId?: string;
+}
+
+/**
+ * Per-call error handler. When passed to `save`, `restore` or `remove`, it
+ * replaces the persister's `onError` for that call.
+ */
+export type FlowPersistenceErrorHandler = (error: Error) => void;
+
 /**
  * Flow persister interface
  * Defines how to save and restore flow state for a specific flow
@@ -37,7 +52,7 @@ export interface FlowPersister {
    *
    * @param flowId - Unique identifier for the flow
    * @param state - The flow state to persist
-   * @param options - Optional save options (version, instanceId, and variantId)
+   * @param options - Optional save options (version, instanceId, variantId, and a per-call onError)
    */
   save(
     flowId: string,
@@ -46,6 +61,7 @@ export interface FlowPersister {
       version?: string;
       instanceId?: string;
       variantId?: string;
+      onError?: FlowPersistenceErrorHandler;
     },
   ): PersistedFlowState | Promise<PersistedFlowState | null> | null;
 
@@ -54,7 +70,7 @@ export interface FlowPersister {
    * Returns null if no saved state exists
    *
    * @param flowId - Unique identifier for the flow
-   * @param options - Optional restore options (version, instanceId, variantId, and migration)
+   * @param options - Optional restore options (version, instanceId, variantId, migration, and per-call onDiscard/onError)
    */
   restore<TContext extends FlowContext = FlowContext>(
     flowId: string,
@@ -63,6 +79,7 @@ export interface FlowPersister {
       instanceId?: string;
       variantId?: string;
       onDiscard?: (event: FlowRestoreDiscardEvent) => void;
+      onError?: FlowPersistenceErrorHandler;
       migrate?: (
         state: PersistedFlowState<TContext>,
         fromVersion: string | undefined,
@@ -78,13 +95,14 @@ export interface FlowPersister {
    * Optional - if not provided, users can't remove programmatically
    *
    * @param flowId - Unique identifier for the flow
-   * @param options - Optional options (instanceId and variantId)
+   * @param options - Optional options (instanceId, variantId, and a per-call onError)
    */
   remove?(
     flowId: string,
     options?: {
       instanceId?: string;
       variantId?: string;
+      onError?: FlowPersistenceErrorHandler;
     },
   ): void | Promise<void>;
 
@@ -140,10 +158,32 @@ export type PersisterOptions = {
   onDiscard?: (event: FlowRestoreDiscardEvent) => void;
 
   /**
-   * Error handler
+   * Called when a store operation or persister callback fails.
+   * A per-call `onError` passed to `save`, `restore` or `remove` replaces it.
    */
-  onError?: (error: Error) => void;
+  onError?: FlowPersistenceErrorHandler;
 };
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+function reportError(
+  error: unknown,
+  handler: FlowPersistenceErrorHandler | undefined,
+): void {
+  try {
+    if (handler) {
+      handler(toError(error));
+    } else if (process.env.NODE_ENV !== "production") {
+      console.warn("[useFlow] Persistence operation failed:", error);
+    }
+  } catch (reportFailure) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[useFlow] onError callback failed:", reportFailure);
+    }
+  }
+}
 
 /**
  * Generic factory for creating persisters from stores
@@ -192,7 +232,7 @@ export function createPersister(options: PersisterOptions): FlowPersister {
         onSave?.(flowId, withMeta);
         return withMeta;
       } catch (error) {
-        onError?.(error as Error);
+        reportError(error, saveOptions?.onError ?? onError);
         return null;
       }
     },
@@ -204,12 +244,14 @@ export function createPersister(options: PersisterOptions): FlowPersister {
         instanceId?: string;
         variantId?: string;
         onDiscard?: (event: FlowRestoreDiscardEvent) => void;
+        onError?: FlowPersistenceErrorHandler;
         migrate?: (
           state: PersistedFlowState<TContext>,
           fromVersion: string | undefined,
         ) => PersistedFlowState<TContext> | null;
       },
     ) => {
+      const handleError = restoreOptions?.onError ?? onError;
       try {
         const state = await store.get(flowId, {
           instanceId: restoreOptions?.instanceId,
@@ -231,19 +273,7 @@ export function createPersister(options: PersisterOptions): FlowPersister {
               variantId: restoreOptions?.variantId,
             });
           } catch (error) {
-            try {
-              if (onError) {
-                onError(
-                  error instanceof Error ? error : new Error(String(error)),
-                );
-              } else if (process.env.NODE_ENV !== "production") {
-                console.warn("[useFlow] onDiscard callback failed:", error);
-              }
-            } catch (reportError) {
-              if (process.env.NODE_ENV !== "production") {
-                console.warn("[useFlow] onError callback failed:", reportError);
-              }
-            }
+            reportError(error, handleError);
           }
         };
 
@@ -285,16 +315,19 @@ export function createPersister(options: PersisterOptions): FlowPersister {
         onRestore?.(flowId, restored);
         return restored;
       } catch (error) {
-        onError?.(error as Error);
+        reportError(error, handleError);
         return null;
       }
     },
 
     remove: async (flowId, options) => {
       try {
-        await store.remove(flowId, options);
+        await store.remove(flowId, {
+          instanceId: options?.instanceId,
+          variantId: options?.variantId,
+        });
       } catch (error) {
-        onError?.(error as Error);
+        reportError(error, options?.onError ?? onError);
       }
     },
 
@@ -303,7 +336,7 @@ export function createPersister(options: PersisterOptions): FlowPersister {
           try {
             await store.removeFlow?.(flowId);
           } catch (error) {
-            onError?.(error as Error);
+            reportError(error, onError);
           }
         }
       : undefined,
@@ -313,7 +346,7 @@ export function createPersister(options: PersisterOptions): FlowPersister {
           try {
             await store.removeAll?.();
           } catch (error) {
-            onError?.(error as Error);
+            reportError(error, onError);
           }
         }
       : undefined,

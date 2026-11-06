@@ -1,6 +1,8 @@
 import type {
   ContextUpdate,
   FlowContext,
+  FlowPersistenceErrorHandler,
+  FlowPersistenceErrorInfo,
   FlowPersister,
   FlowRestoreDiscardEvent,
   MigrateFunction,
@@ -19,7 +21,7 @@ import {
   useState,
 } from "react";
 import type { RuntimeFlowDefinition } from "./define-flow";
-import { useFlowConfig } from "./provider";
+import { type PersistenceErrorCallback, useFlowConfig } from "./provider";
 import type {
   ExtractAllStepNames,
   ExtractFlowContext,
@@ -30,6 +32,30 @@ import type {
   UseFlowReturn,
 } from "./types";
 import { type FlowResetOptions, useFlowReducer } from "./use-flow-reducer";
+
+function reportPersistenceError(
+  handler: PersistenceErrorCallback | undefined,
+  error: unknown,
+  info: FlowPersistenceErrorInfo,
+): void {
+  if (!handler) return;
+  try {
+    handler(error instanceof Error ? error : new Error(String(error)), info);
+  } catch (callbackError) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[Flow] onPersistenceError callback failed:", callbackError);
+    }
+  }
+}
+
+function persisterErrorOption(
+  handler: PersistenceErrorCallback | undefined,
+  info: FlowPersistenceErrorInfo,
+): FlowPersistenceErrorHandler | undefined {
+  return handler
+    ? (error) => reportPersistenceError(handler, error, info)
+    : undefined;
+}
 
 // biome-ignore lint/suspicious/noExplicitAny: React Context requires concrete type at creation, type safety enforced at usage via generics
 const ReactFlowContext = createContext<UseFlowReturn<any, any, any> | null>(
@@ -116,7 +142,7 @@ type FlowProps<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>> = {
   persister?: FlowPersister;
   saveDebounce?: number;
   saveMode?: "always" | "navigation" | "manual";
-  onPersistenceError?: (error: Error) => void;
+  onPersistenceError?: PersistenceErrorCallback;
   onSave?: (state: PersistedFlowState<ExtractFlowContext<TFlow>>) => void;
   onRestore?: (state: PersistedFlowState<ExtractFlowContext<TFlow>>) => void;
   onDiscard?: (event: FlowRestoreDiscardEvent) => void;
@@ -369,10 +395,20 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
       lastActionRef.current = "RESET";
       // Clear persisted state if persister is available
       if (persister) {
+        const errorInfo: FlowPersistenceErrorInfo = {
+          flowId: flow.id,
+          operation: "remove",
+          instanceId,
+          variantId: config.variantId,
+        };
         try {
           await persister.remove?.(flow.id, {
             instanceId,
             variantId: config.variantId,
+            onError: persisterErrorOption(
+              onPersistenceErrorRef.current,
+              errorInfo,
+            ),
           });
         } catch (error) {
           if (process.env.NODE_ENV !== "production") {
@@ -381,7 +417,11 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
               error,
             );
           }
-          onPersistenceErrorRef.current?.(error as Error);
+          reportPersistenceError(
+            onPersistenceErrorRef.current,
+            error,
+            errorInfo,
+          );
         }
       }
       flowState.reset(options);
@@ -394,6 +434,12 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
       lastActionRef.current = null;
       return;
     }
+    const errorInfo: FlowPersistenceErrorInfo = {
+      flowId: flow.id,
+      operation: "save",
+      instanceId,
+      variantId: config.variantId,
+    };
     try {
       const version =
         "version" in config
@@ -415,6 +461,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
         version,
         instanceId,
         variantId: config.variantId,
+        onError: persisterErrorOption(onPersistenceErrorRef.current, errorInfo),
       });
 
       if (persistedState) {
@@ -426,7 +473,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
       if (process.env.NODE_ENV !== "production") {
         console.error("[Flow] Failed to save state:", error);
       }
-      onPersistenceErrorRef.current?.(error as Error);
+      reportPersistenceError(onPersistenceErrorRef.current, error, errorInfo);
     } finally {
       // Reset action ref after save settles to prevent duplicate saves or infinite loops on subsequent re-renders
       lastActionRef.current = null;
@@ -587,25 +634,24 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
         | MigrateFunction
         | undefined;
       let migrationSource: { fromVersion: string | undefined } | undefined;
+      const errorInfo: FlowPersistenceErrorInfo = {
+        flowId: flow.id,
+        operation: "restore",
+        instanceId,
+        variantId: config.variantId,
+      };
       const notifyDiscard = (event: FlowRestoreDiscardEvent) => {
         try {
           onDiscardRef.current?.(event);
         } catch (error) {
-          try {
-            if (onPersistenceErrorRef.current) {
-              onPersistenceErrorRef.current(
-                error instanceof Error ? error : new Error(String(error)),
-              );
-            } else if (process.env.NODE_ENV !== "production") {
-              console.warn("[Flow] onDiscard callback failed:", error);
-            }
-          } catch (reportError) {
-            if (process.env.NODE_ENV !== "production") {
-              console.warn(
-                "[Flow] onPersistenceError callback failed:",
-                reportError,
-              );
-            }
+          if (onPersistenceErrorRef.current) {
+            reportPersistenceError(
+              onPersistenceErrorRef.current,
+              error,
+              errorInfo,
+            );
+          } else if (process.env.NODE_ENV !== "production") {
+            console.warn("[Flow] onDiscard callback failed:", error);
           }
         }
       };
@@ -622,6 +668,10 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
           instanceId,
           variantId: config.variantId,
           onDiscard: onDiscardRef.current ? notifyDiscard : undefined,
+          onError: persisterErrorOption(
+            onPersistenceErrorRef.current,
+            errorInfo,
+          ),
         });
 
         if (state) {
@@ -631,28 +681,34 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
             flowDefinitionWithoutComponents,
           );
           if (!validation.valid) {
-            notifyDiscard({
-              flowId: flow.id,
-              reason: "incompatible_state",
-              fromVersion: migrationSource
-                ? migrationSource.fromVersion
-                : state.__meta?.version,
-              toVersion: config.version,
-              instanceId,
-              variantId: config.variantId,
-              errors: validation.errors,
-            });
             if (process.env.NODE_ENV !== "production") {
               console.warn(
                 "[Flow] Persisted state validation failed:",
                 validation.errors,
               );
             }
-            onPersistenceErrorRef.current?.(
-              new Error(
-                `Invalid persisted state: ${validation.errors?.join(", ")}`,
-              ),
-            );
+            // One channel per discard: onDiscard when set, otherwise onPersistenceError.
+            if (onDiscardRef.current) {
+              notifyDiscard({
+                flowId: flow.id,
+                reason: "incompatible_state",
+                fromVersion: migrationSource
+                  ? migrationSource.fromVersion
+                  : state.__meta?.version,
+                toVersion: config.version,
+                instanceId,
+                variantId: config.variantId,
+                errors: validation.errors,
+              });
+            } else {
+              reportPersistenceError(
+                onPersistenceErrorRef.current,
+                new Error(
+                  `Invalid persisted state: ${validation.errors?.join(", ")}`,
+                ),
+                errorInfo,
+              );
+            }
             return;
           }
 
@@ -673,7 +729,7 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
         if (process.env.NODE_ENV !== "production") {
           console.error("[Flow] Failed to restore state:", error);
         }
-        onPersistenceErrorRef.current?.(error as Error);
+        reportPersistenceError(onPersistenceErrorRef.current, error, errorInfo);
       } finally {
         setIsRestoring(false);
       }

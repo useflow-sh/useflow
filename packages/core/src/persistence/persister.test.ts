@@ -477,7 +477,10 @@ describe("createPersister", () => {
       await persister.remove?.("test-flow");
 
       expect(removeFn).toHaveBeenCalledOnce();
-      expect(removeFn).toHaveBeenCalledWith("test-flow", undefined);
+      expect(removeFn).toHaveBeenCalledWith("test-flow", {
+        instanceId: undefined,
+        variantId: undefined,
+      });
     });
   });
 

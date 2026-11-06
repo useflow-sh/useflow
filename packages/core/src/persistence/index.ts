@@ -12,6 +12,9 @@
 
 // Persister
 export type {
+  FlowPersistenceErrorHandler,
+  FlowPersistenceErrorInfo,
+  FlowPersistenceOperation,
   FlowPersister,
   FlowRestoreDiscardEvent,
   FlowRestoreDiscardReason,

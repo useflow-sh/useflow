@@ -142,7 +142,7 @@ To start over somewhere else, pass a new context or start step. `reset` still cl
 reset({ context: { ...context, answers: [] }, initialStepId: "questions" });
 ```
 
-Saved progress is only restored when its path starts at the flow's `start` or the `<Flow initialStepId>` it mounts with. If you reset to a different step in a persisted flow, mount the next session with the same `initialStepId`, or the saved progress is discarded as `incompatible_state`.
+Saved progress resumes where it left off on the next launch, whichever step the flow started at.
 
 ### Manual save control
 

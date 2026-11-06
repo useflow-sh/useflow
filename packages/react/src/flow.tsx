@@ -629,11 +629,6 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
           const validation = validatePersistedState(
             state,
             flowDefinitionWithoutComponents,
-            {
-              allowedInitialStepIds: initialStepId
-                ? [config.start, initialStepId]
-                : undefined,
-            },
           );
           if (!validation.valid) {
             notifyDiscard({
@@ -691,7 +686,6 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     flow.runtimeConfig?.migration,
     instanceId,
     config,
-    initialStepId,
     flowState.restore,
     flowDefinitionWithoutComponents,
   ]);

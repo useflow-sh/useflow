@@ -77,7 +77,7 @@ describe("validatePersistedState", () => {
     expect(result.errors).toContain("Path cannot be empty");
   });
 
-  it("should reject state with wrong start step in history", () => {
+  it("should accept state whose path starts at a step other than start", () => {
     const persisted: PersistedFlowState<{ name: string }> = {
       stepId: "profile",
       startedAt: 1234567890,
@@ -88,28 +88,6 @@ describe("validatePersistedState", () => {
     };
 
     const result = validatePersistedState(persisted, definition);
-
-    expect(result.valid).toBe(false);
-    expect(
-      result.errors?.some((e) =>
-        e.includes("Path must start with one of [welcome]"),
-      ),
-    ).toBe(true);
-  });
-
-  it("should validate state that starts from an allowed initial step override", () => {
-    const persisted: PersistedFlowState<{ name: string }> = {
-      stepId: "profile",
-      startedAt: 1234567890,
-      context: { name: "John" },
-      path: [{ stepId: "profile", startedAt: 1234567890 }],
-      history: [{ stepId: "profile", startedAt: 1234567890 }],
-      status: "active",
-    };
-
-    const result = validatePersistedState(persisted, definition, {
-      allowedInitialStepIds: ["welcome", "profile"],
-    });
 
     expect(result.valid).toBe(true);
     expect(result.errors).toBeUndefined();

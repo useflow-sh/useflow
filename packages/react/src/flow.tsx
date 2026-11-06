@@ -29,7 +29,7 @@ import type {
   StepInfo,
   UseFlowReturn,
 } from "./types";
-import { useFlowReducer } from "./use-flow-reducer";
+import { type FlowResetOptions, useFlowReducer } from "./use-flow-reducer";
 
 // biome-ignore lint/suspicious/noExplicitAny: React Context requires concrete type at creation, type safety enforced at usage via generics
 const ReactFlowContext = createContext<UseFlowReturn<any, any, any> | null>(
@@ -359,27 +359,35 @@ export function Flow<TFlow extends RuntimeFlowDefinition<FlowDefinition, any>>({
     [flowState.setContext],
   );
 
-  const reset = useCallback(async () => {
-    lastActionRef.current = "RESET";
-    // Clear persisted state if persister is available
-    if (persister) {
-      try {
-        await persister.remove?.(flow.id, {
-          instanceId,
-          variantId: config.variantId,
-        });
-      } catch (error) {
-        if (process.env.NODE_ENV !== "production") {
-          console.error(
-            "[Flow] Failed to remove persisted state on reset:",
-            error,
-          );
+  const reset = useCallback(
+    async (
+      options?: FlowResetOptions<
+        ExtractFlowContext<TFlow>,
+        ExtractAllStepNames<TFlow> & string
+      >,
+    ) => {
+      lastActionRef.current = "RESET";
+      // Clear persisted state if persister is available
+      if (persister) {
+        try {
+          await persister.remove?.(flow.id, {
+            instanceId,
+            variantId: config.variantId,
+          });
+        } catch (error) {
+          if (process.env.NODE_ENV !== "production") {
+            console.error(
+              "[Flow] Failed to remove persisted state on reset:",
+              error,
+            );
+          }
+          onPersistenceErrorRef.current?.(error as Error);
         }
-        onPersistenceErrorRef.current?.(error as Error);
       }
-    }
-    flowState.reset();
-  }, [flowState.reset, persister, flow.id, instanceId, config.variantId]);
+      flowState.reset(options);
+    },
+    [flowState.reset, persister, flow.id, instanceId, config.variantId],
+  );
 
   const save = useCallback(async () => {
     if (!persister) {

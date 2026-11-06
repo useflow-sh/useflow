@@ -52,3 +52,4 @@ export type {
   StepElements,
   UseFlowReturn,
 } from "./types";
+export type { FlowResetOptions } from "./use-flow-reducer";

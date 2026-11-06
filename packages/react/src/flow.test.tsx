@@ -2996,6 +2996,90 @@ describe("reset", () => {
     expect(screen.getByTestId("count")).toHaveTextContent("0");
   });
 
+  it("should reset with a new context and start step", async () => {
+    const persister = {
+      save: vi.fn(async () => null),
+      restore: vi.fn(async () => null),
+      remove: vi.fn(async () => {}),
+      store: createMemoryStore(),
+    };
+    const flow = defineFlow({
+      id: "test-reset-options",
+      start: "first",
+      steps: {
+        first: { next: "second" },
+        second: { next: "third" },
+        third: {},
+      },
+    });
+
+    function TestComponent() {
+      const { stepId, context, canGoBack, next, reset } = useFlowState();
+      return (
+        <div>
+          <div data-testid="stepId">{stepId}</div>
+          <div data-testid="count">{context.count}</div>
+          <div data-testid="canGoBack">{String(canGoBack)}</div>
+          <button onClick={() => next()}>Next</button>
+          <button
+            onClick={() =>
+              reset({ context: { count: 5 }, initialStepId: "second" })
+            }
+          >
+            Restart
+          </button>
+          <button onClick={() => reset()}>Reset</button>
+        </div>
+      );
+    }
+
+    render(
+      <Flow
+        flow={flow}
+        initialContext={{ count: 0 }}
+        persister={persister}
+        saveDebounce={0}
+      >
+        {({ renderStep }) => (
+          <>
+            {renderStep({
+              first: <div>First</div>,
+              second: <div>Second</div>,
+              third: <div>Third</div>,
+            })}
+            <TestComponent />
+          </>
+        )}
+      </Flow>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("First")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("Next"));
+    fireEvent.click(screen.getByText("Next"));
+    expect(screen.getByTestId("stepId")).toHaveTextContent("third");
+
+    fireEvent.click(screen.getByText("Restart"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("stepId")).toHaveTextContent("second");
+    });
+    expect(screen.getByTestId("count")).toHaveTextContent("5");
+    expect(screen.getByTestId("canGoBack")).toHaveTextContent("false");
+    expect(persister.remove).toHaveBeenCalledWith("test-reset-options", {
+      instanceId: undefined,
+      variantId: undefined,
+    });
+
+    fireEvent.click(screen.getByText("Reset"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("stepId")).toHaveTextContent("first");
+    });
+    expect(screen.getByTestId("count")).toHaveTextContent("0");
+  });
+
   it("should clear persisted state on reset", async () => {
     const persister = {
       save: vi.fn(async () => ({

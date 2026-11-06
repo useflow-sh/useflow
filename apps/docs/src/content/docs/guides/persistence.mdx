@@ -136,6 +136,14 @@ That's it! The flow will automatically:
 
 If the user has saved progress at `complete`, the flow restores `complete`; it does not restart at `profile`. Calling `reset()` clears the saved state for this flow key and starts again from `initialStepId`.
 
+To start over somewhere else, pass a new context or start step. `reset` still clears saved state, and history starts fresh, so Back can't return to the step you left:
+
+```tsx
+reset({ context: { ...context, answers: [] }, initialStepId: "questions" });
+```
+
+Saved progress is only restored when its path starts at the flow's `start` or the `<Flow initialStepId>` it mounts with. If you reset to a different step in a persisted flow, mount the next session with the same `initialStepId`, or the saved progress is discarded as `incompatible_state`.
+
 ### Manual save control
 
 Control when the flow saves using the `save()` function:

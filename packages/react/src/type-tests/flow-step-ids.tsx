@@ -40,6 +40,11 @@ export function FlowStepIdTypeTest() {
         const _invalid: "does-not-exist" = state.stepId;
         void _invalid;
 
+        state.reset({ initialStepId: "profile" });
+
+        // @ts-expect-error - reset start steps should be known step ids
+        state.reset({ initialStepId: "does-not-exist" });
+
         // @ts-expect-error - render-prop navigation targets should be known step ids
         state.next("does-not-exist");
 

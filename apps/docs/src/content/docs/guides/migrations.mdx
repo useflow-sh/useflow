@@ -55,7 +55,7 @@ When versions differ, `onDiscard` reports `version_unmigrated` if no migration e
 </Flow>
 ```
 
-The Flow callback overrides the provider and persister defaults, rather than calling all three. Incompatible state still calls `onPersistenceError`. Known behavior: persister `validate` does not run on migrated state; React's flow-definition validation still runs. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress).
+The Flow callback overrides the provider and persister defaults, rather than calling all three. Incompatible state still calls `onPersistenceError`. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress).
 
 ## When to use migrations
 

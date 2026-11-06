@@ -85,7 +85,7 @@ const persister = createPersister({
 
 Reasons are `expired`, `version_unmigrated`, `migration_rejected`, and `validation_rejected`. React additionally reports `incompatible_state`. `FlowRestoreDiscardReason` and `FlowRestoreDiscardEvent` are exported from this package.
 
-`persister.restore(flowId, { onDiscard })` overrides the persister callback for that restore; callbacks do not stack. Missing state and successful restores do not notify. Callback failures go to `onError`, or a development-only warning when absent, without interrupting restore. Only expiration removes stored state. Known behavior: `validate` does not run on migrated state.
+`persister.restore(flowId, { onDiscard })` overrides the persister callback for that restore; callbacks do not stack. Missing state and successful restores do not notify. Callback failures go to `onError`, or a development-only warning when absent, without interrupting restore. Only expiration removes stored state.
 
 ## Documentation
 

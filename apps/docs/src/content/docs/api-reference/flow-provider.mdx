@@ -47,7 +47,7 @@ function App() {
 | `onPersistenceError` | `(error: Error) => void` | - | Global error handler |
 | `onDiscard` | `(event: FlowRestoreDiscardEvent) => void` | - | Saved progress rejected during restoration; overridden by the Flow prop |
 
-`config.onDiscard` covers persister rejections and React's `incompatible_state` check. It overrides the persister default, rather than calling both. The Flow prop takes precedence. Incompatible state still calls `onPersistenceError`; callback failures use that handler too, or a development-only warning when absent. Known behavior: persister `validate` does not run on migrated state. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress) for event fields, reasons, and an error-tracker example.
+`config.onDiscard` covers persister rejections and React's `incompatible_state` check. It overrides the persister default, rather than calling both. The Flow prop takes precedence. Incompatible state still calls `onPersistenceError`; callback failures use that handler too, or a development-only warning when absent. See [reporting discarded progress](/guides/persistence#reporting-discarded-progress) for event fields, reasons, and an error-tracker example.
 
 ### Global callbacks
 

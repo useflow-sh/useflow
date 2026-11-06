@@ -260,38 +260,30 @@ export function createPersister(options: PersisterOptions): FlowPersister {
           }
         }
 
-        // Version check and migration
+        let restored = typedState;
         if (
           restoreOptions?.version &&
           typedState.__meta?.version !== restoreOptions.version
         ) {
-          // If migrate function exists, try to migrate
-          if (restoreOptions?.migrate) {
-            const migrated = restoreOptions.migrate(
-              typedState,
-              typedState.__meta?.version,
-            );
-            if (!migrated) {
-              // Migration failed or returned null, discard state
-              discard("migration_rejected");
-              return null;
-            }
-            onRestore?.(flowId, migrated);
-            return migrated;
+          if (!restoreOptions.migrate) {
+            discard("version_unmigrated");
+            return null;
           }
-          // No migration function, discard old version
-          discard("version_unmigrated");
-          return null;
+          const migrated = restoreOptions.migrate(typedState, fromVersion);
+          if (!migrated) {
+            discard("migration_rejected");
+            return null;
+          }
+          restored = migrated;
         }
 
-        // Custom validation
-        if (validate && !validate(typedState)) {
+        if (validate && !validate(restored)) {
           discard("validation_rejected");
           return null;
         }
 
-        onRestore?.(flowId, typedState);
-        return typedState;
+        onRestore?.(flowId, restored);
+        return restored;
       } catch (error) {
         onError?.(error as Error);
         return null;

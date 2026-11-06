@@ -103,10 +103,45 @@ describe("persister restore discards", () => {
       expect(result?.context).toEqual(migrated ? { migrated: true } : {});
       expect(onRestore).toHaveBeenCalledExactlyOnceWith("onboarding", result);
       expect(onDiscard).not.toHaveBeenCalled();
-      expect(validate).toHaveBeenCalledTimes(migrated ? 0 : 1);
+      expect(validate).toHaveBeenCalledExactlyOnceWith(result);
       expect(migration).toHaveBeenCalledTimes(migrated ? 1 : 0);
     },
   );
+
+  it("validates migrated state and discards it when rejected", async () => {
+    const store = createMemoryStore();
+    store.set("onboarding", createState());
+    const onDiscard = vi.fn();
+    const onRestore = vi.fn();
+    const validate = vi.fn(
+      (saved: Readonly<PersistedFlowState>) => saved.context.migrated !== true,
+    );
+    const persister = createPersister({
+      store,
+      onDiscard,
+      onRestore,
+      validate,
+    });
+
+    const result = await persister.restore("onboarding", {
+      version: "v2",
+      migrate: (saved) => ({ ...saved, context: { migrated: true } }),
+    });
+
+    expect(result).toBeNull();
+    expect(validate).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ context: { migrated: true } }),
+    );
+    expect(onRestore).not.toHaveBeenCalled();
+    expect(onDiscard).toHaveBeenCalledExactlyOnceWith({
+      flowId: "onboarding",
+      reason: "validation_rejected",
+      fromVersion: "v1",
+      toVersion: "v2",
+      instanceId: undefined,
+      variantId: undefined,
+    });
+  });
 
   it("allows a restore callback to override the persister callback", async () => {
     const store = createMemoryStore();

@@ -47,7 +47,7 @@ children: (state: FlowState) => ReactNode
   next: (target?: string, update?: ContextUpdate) => void;
   skip: (target?: string, update?: ContextUpdate) => void;
   back: () => void;
-  reset: () => void;
+  reset: (options?: { context?: TContext; initialStepId?: string }) => void;
   
   // Context Management
   setContext: (update: ContextUpdate<TContext>) => void;

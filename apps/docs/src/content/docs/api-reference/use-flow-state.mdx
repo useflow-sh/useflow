@@ -94,8 +94,8 @@ The hook returns an object containing:
   // Go back
   back: () => void;
   
-  // Reset flow
-  reset: () => void;
+  // Reset flow (optionally with a new context or start step)
+  reset: (options?: { context?: TContext; initialStepId?: string }) => void;
   
   // Update context
   setContext: (update: ContextUpdate<TContext>) => void;

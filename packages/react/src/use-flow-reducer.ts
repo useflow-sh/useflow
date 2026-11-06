@@ -34,6 +34,16 @@ export type UseFlowReducerOptions<TDefinition extends CoreFlowDefinition> =
  * @param TContext - The context type
  * @param TValidNextSteps - Valid step names for next() - defaults to any string
  */
+export type FlowResetOptions<
+  TContext extends FlowContext,
+  TStepNames extends string = string,
+> = {
+  /** Context to start from instead of the flow's initial context */
+  context?: TContext;
+  /** Step to start from instead of the flow's initial step */
+  initialStepId?: TStepNames;
+};
+
 export type UseFlowReducerReturn<
   TContext extends FlowContext,
   TValidNextSteps extends string = string,
@@ -64,7 +74,7 @@ export type UseFlowReducerReturn<
   back: () => void;
   setContext: (update: ContextUpdate<TContext>) => void;
   restore: (state: FlowState<TContext>) => void;
-  reset: () => void;
+  reset: (options?: FlowResetOptions<TContext, TStepNames>) => void;
 };
 
 /**
@@ -144,13 +154,16 @@ export function useFlowReducer<
     dispatch({ type: "RESTORE", state: restoredState });
   }, []);
 
-  const reset = useCallback(() => {
-    dispatch({
-      type: "RESET",
-      initialContext: initialContextRef.current,
-      initialStepId: initialStepIdRef.current,
-    });
-  }, []);
+  const reset = useCallback(
+    (resetOptions?: FlowResetOptions<TContext, TStepNames>) => {
+      dispatch({
+        type: "RESET",
+        initialContext: resetOptions?.context ?? initialContextRef.current,
+        initialStepId: resetOptions?.initialStepId ?? initialStepIdRef.current,
+      });
+    },
+    [],
+  );
 
   return {
     stepId: state.stepId as TStepNames,
